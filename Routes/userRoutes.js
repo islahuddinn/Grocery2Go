@@ -1,21 +1,20 @@
 const express = require("express");
 const userControler = require("../Controllers/userController");
-const restaurantController = require("../Controllers/restaurantController");
 const authController = require("../Controllers/authController");
 const catchAsync = require("../Utils/catchAsync");
-const fileUpload = require("express-fileupload");
-const { uploadFile } = require("../Utils/s3-uploader");
+// const fileUpload = require("express-fileupload");
+// const { uploadFile } = require("../Utils/s3-uploader");
 // const pushNotificationController = require("../controllers/push-notificationController");
 const router = express.Router();
-router.post(
-  "/bucket-upload",
-  fileUpload({}),
-  catchAsync(async (req, res) => {
-    const file = req.files.file;
-    const url = await uploadFile(file);
-    return res.send({ url });
-  })
-);
+// router.post(
+//   "/bucket-upload",
+//   fileUpload({}),
+//   catchAsync(async (req, res) => {
+//     const file = req.files.file;
+//     const url = await uploadFile(file);
+//     return res.send({ url });
+//   })
+// );
 
 router.post("/signup", authController.signup);
 router.post("/socialLogin", authController.socialLogin);
@@ -40,20 +39,16 @@ router.post("/logout", authController.logout);
 //   "/send-notification",
 //   pushNotificationController.sendPushNotification
 // );
-router.get("/rewards-points", userControler.getUserRewardPoints);
-router.get("/wallet-ballance", userControler.getWalletBalance);
 
 router.get("/me", userControler.getMe, userControler.getUser);
 router.patch(
   "/updateProfile",
-  authController.restrictTo("User"),
+  //   authController.restrictTo("User"),
   userControler.updateMe
 );
 router.patch(
-  "/update-business-profile",
-  authController.restrictTo("Owner"),
-
-  restaurantController.updateBusinessProfile
+  "/update-business-profile"
+  //   authController.restrictTo("Owner"),
 );
 // router.patch("/updateMe", userControler.updateMe);
 // router.patch("/updateProfile", userControler.updateUserProfile);
@@ -68,6 +63,5 @@ router
   .get(userControler.getUser)
   .patch(userControler.updateUser)
   .delete(userControler.deleteUser);
-// .post(userControler.deleteUser);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 const express = require("express");
 const userController = require("../Controllers/userController");
 const authController = require("../Controllers/authController");
-const PrivacyController = require("../Controllers/privacy-policyController");
+const PrivacyController = require("../Controllers/privacyPolicyController");
 const router = express.Router();
 
 router.post(

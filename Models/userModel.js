@@ -15,22 +15,41 @@ const userSchema = new mongoose.Schema(
     fullName: {
       type: String,
     },
+    shopName: {
+      type: String,
+    },
+    openingTime: {
+      type: String,
+    },
+    closingTime: {
+      type: String,
+    },
+    bankName: {
+      type: String,
+    },
+    accountNumber: {
+      type: Number,
+    },
+    vehiclePermit: {
+      type: String,
+    },
     email: {
       type: String,
       unique: true,
       trim: true,
-      lowerCase: true,
+      lowercase: true,
       required: [true, "Enter a valid email"],
-      validate: [validator.isEmail, "please provide a valid email"],
+      validate: [validator.isEmail, "Please provide a valid email"],
     },
     contact: {
       type: Number,
     },
-    Address: {
-      type: String,
-    },
     location: {
-      type: point,
+      type: {
+        type: String,
+        default: "Point",
+      },
+      coordinates: { type: [Number], default: [0, 0] },
     },
     image: {
       type: String,
@@ -39,20 +58,19 @@ const userSchema = new mongoose.Schema(
     },
     userType: {
       type: String,
-      enum: ["Customer", "Owner", "Driver", "Admin"],
-      message: ["enter vallid role"],
+      enum: ["Customer", "Owner", "Rider", "Admin"],
       default: "Customer",
       required: [true, "Enter a valid user type"],
     },
     password: {
       type: String,
       required: [true, "Password is a required field"],
-      minlength: [8, "Password must be of atleast 8 Charactors"],
+      minlength: [8, "Password must be at least 8 characters"],
       select: false,
     },
     confirmPassword: {
       type: String,
-      minlength: [8, "Password must be of atleast 8 Charactors"],
+      minlength: [8, "Password must be at least 8 characters"],
       select: false,
     },
     subscriptionType: {
@@ -68,7 +86,6 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
@@ -90,17 +107,16 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+
 userSchema.index({ location: "2dsphere" });
+
 userSchema.pre("save", async function (next) {
-  //only run this function if password id actually modified
   if (!this.isModified("password")) return next();
-  // Hash the password with cost
   this.password = await bcrypt.hash(this.password, 12);
-  // remove(stop) the confirmPassword to store in db. require means necessary to input not to save in db.
   this.confirmPassword = undefined;
   next();
 });
-// password Tester
+
 userSchema.methods.correctPassword = async function (
   passwordByUser,
   passwordInDb
@@ -108,32 +124,27 @@ userSchema.methods.correctPassword = async function (
   return await bcrypt.compare(passwordByUser, passwordInDb);
 };
 
-// ========method to protect routes verifies all about token
-
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
     const changedTimestamp = parseInt(
       this.passwordChangedAt.getTime() / 1000,
       10
     );
-    console.log(changedTimestamp, JWTTimestamp);
     return JWTTimestamp < changedTimestamp;
   }
   return false;
 };
 
-// update "passwordChangedAt value in DB whenever we update password "
 userSchema.pre("save", function (next) {
   if (!this.isModified("password") || this.isNew) return next();
-  this.passwordChangedAt = Date.now() - 1000; //here -1000 mili seconds is to make sure that it will not creat any problem in login as some times that gets this
+  this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
-// Middleware to only get active=true users
 userSchema.pre(/^find/, function (next) {
-  // here "this" points to the current property`
   this.find({ active: true });
   next();
 });
+
 const User = mongoose.model("User", userSchema);
 module.exports = User;
