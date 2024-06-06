@@ -6,6 +6,7 @@ const subscriptionRoutes = require("./subscriptionRoutes");
 const shopRoutes = require("./shopRoutes");
 const productRoutes = require("./productRoutes");
 const cartRoutes = require("./cartRoutes");
+const listRoutes = require("./listRoutes");
 
 const setupRoutesV1 = () => {
   const router = express.Router();
@@ -16,6 +17,7 @@ const setupRoutesV1 = () => {
   router.use("/shop", shopRoutes);
   router.use("/product", productRoutes);
   router.use("/cart", cartRoutes);
+  router.use("/list", listRoutes);
 
   return router;
 };

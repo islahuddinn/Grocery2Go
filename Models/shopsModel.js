@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const shopSchema = new mongoose.Schema(
   {
-    name: {
+    shopTitle: {
       type: String,
       required: true,
       trim: true,
@@ -26,23 +26,75 @@ const shopSchema = new mongoose.Schema(
       },
       coordinates: { type: [Number], default: [0, 0] },
     },
+    operatingHours: { type: String, default: ["08:00 am-10:00 pm"] },
     // categories: [
     //   {
     //     type: mongoose.Schema.Types.ObjectId,
     //     ref: "Category",
     //   },
     // ],
-
-    products: [
+    category: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
+        type: String,
+        required: true,
       },
     ],
-    favourite: {
-      type: Boolean,
-      default: false,
+    productName: {
+      type: String,
+      required: true,
+      trim: true,
     },
+    price: {
+      type: Number,
+      required: true,
+    },
+    volume: {
+      type: String,
+    },
+    manufacturedBy: {
+      type: String,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+    },
+    description: {
+      type: String,
+    },
+    productImages: [
+      {
+        type: String,
+        default:
+          "https://icon-library.com/images/default-profile-icon/default-profile-icon-6.jpg",
+      },
+    ], //// Revamp the shop model to include groceries and categories.
+
+    // category: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Category",
+    //   required: true,
+    // },
+
+    // favourite: {
+    //   type: Boolean,
+    //   default: false,
+    // },
+    stockStatus: {
+      type: String,
+      enum: ["low stock", "available"],
+      default: "available",
+    },
+
+    // products: [
+    //   {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "Product",
+    //   },
+    // ],
+    // favourite: {
+    //   type: Boolean,
+    //   default: false,
+    // },
   },
   { timestamps: true }
 );

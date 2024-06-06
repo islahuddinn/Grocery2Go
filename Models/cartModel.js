@@ -12,21 +12,27 @@ const cartSchema = new mongoose.Schema(
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
-          required: true,
         },
-        quantity: {
-          type: Number,
-          required: true,
-          default: 1,
-        },
-        volume: {
-          type: String,
-        },
+        quantity: Number,
+        volume: String,
       },
     ],
+    adminFeePercentage: {
+      type: Number,
+      default: 0.05,
+    },
+    riderFeePerKm: {
+      type: Number,
+      default: 1,
+    },
+    averageSpeedKmPerHour: {
+      type: Number,
+      default: 30,
+    },
   },
   { timestamps: true }
 );
 
 const Cart = mongoose.model("Cart", cartSchema);
+
 module.exports = Cart;

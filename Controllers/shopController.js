@@ -3,13 +3,13 @@ const Product = require("../Models/productsModel");
 const AppError = require("../Utils/appError");
 const catchAsync = require("../Utils/catchAsync");
 const factory = require("./handleFactory");
-const User = require("../Models/userModel");
+// const User = require("../Models/userModel");
 const Favorite = require("../Models/favoriteModel");
 
 ///////------Shops Controllers-----//////
 
 exports.createShop = catchAsync(async (req, res, next) => {
-  const { name, images, location, categories } = req.body;
+  const { shopTitle, images, location, operatingHours } = req.body;
 
   // Check if owner exists
   // const ownerExists = await User.findById(req.user);
@@ -23,10 +23,10 @@ exports.createShop = catchAsync(async (req, res, next) => {
 
   // Create new shop
   const newShop = await Shop.create({
-    name,
+    shopTitle,
     images,
     location,
-    categories,
+    operatingHours,
   });
 
   // Populate categories

@@ -42,17 +42,20 @@ router.post("/logout", authController.logout);
 
 router.get("/me", userControler.getMe, userControler.getUser);
 router.patch(
-  "/updateProfile",
-  //   authController.restrictTo("User"),
+  "/update-user-profile",
+  authController.restrictTo("Customer"),
   userControler.updateMe
 );
 router.patch(
-  "/update-business-profile"
-  //   authController.restrictTo("Owner"),
+  "/update-owner-profile",
+  authController.restrictTo("Owner"),
+  userControler.updateMe
 );
-// router.patch("/updateMe", userControler.updateMe);
-// router.patch("/updateProfile", userControler.updateUserProfile);
-// router.delete("/deleteMe", userControler.deleteMe); its not functional
+router.patch(
+  "/update-rider-profile",
+  authController.restrictTo("Rider"),
+  userControler.updateMe
+);
 router.route("/getAllUsers").get(userControler.getAllUsers);
 
 // router.use(authController.restrictTo("admin"));

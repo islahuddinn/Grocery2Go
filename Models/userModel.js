@@ -28,7 +28,8 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
     accountNumber: {
-      type: Number,
+      type: String,
+      unique: true,
     },
     vehiclePermit: {
       type: String,
@@ -42,7 +43,7 @@ const userSchema = new mongoose.Schema(
       validate: [validator.isEmail, "Please provide a valid email"],
     },
     contact: {
-      type: Number,
+      type: String,
     },
     location: {
       type: {
@@ -72,11 +73,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       minlength: [8, "Password must be at least 8 characters"],
       select: false,
-    },
-    subscriptionType: {
-      type: String,
-      enum: ["free", "monthly", "yearly"],
-      default: "free",
     },
     isProfileCompleted: {
       type: Boolean,
