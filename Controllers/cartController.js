@@ -32,6 +32,42 @@ exports.addToCart = catchAsync(async (req, res, next) => {
     message: "Product added to cart",
   });
 });
+//// remove product from cart
+
+exports.removeFromCart = catchAsync(async (req, res, next) => {
+  const { productId } = req.body;
+  const cart = await Cart.findOne({ user: req.user.id });
+
+  if (!cart) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Cart not found",
+    });
+  }
+
+  const productIndex = cart.products.findIndex(
+    (p) => p.product.toString() === productId
+  );
+
+  if (productIndex === -1) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Product not found in cart",
+    });
+  }
+
+  cart.products.splice(productIndex, 1);
+  await cart.save();
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Product removed from cart",
+    data: cart,
+  });
+});
 
 exports.getCart = catchAsync(async (req, res, next) => {
   const cart = await Cart.findOne({ user: req.user.id }).populate(
