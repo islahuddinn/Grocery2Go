@@ -12,9 +12,25 @@ const cartSchema = new mongoose.Schema(
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
+          required: true,
         },
-        quantity: Number,
-        volume: String,
+        shop: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Shop",
+          required: true,
+        },
+        category: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+        },
+        grocery: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+        },
       },
     ],
     adminFeePercentage: {
