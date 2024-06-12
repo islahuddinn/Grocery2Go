@@ -2,8 +2,14 @@ const catchAsync = require("../Utils/catchAsync");
 const Cart = require("../Models/cartModel");
 const Factory = require("../Controllers/handleFactory");
 const Shop = require("../Models/shopsModel");
+const Order = require("../Models/orderModel");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const geolib = require("geolib");
+const {
+  calculateDistance,
+  calculateExpectedDeliveryTime,
+} = require("../Utils/helper");
+// const { io } = require("../sockets");
 
 exports.addToCart = catchAsync(async (req, res, next) => {
   const { productId, quantity } = req.body;
@@ -310,7 +316,7 @@ exports.getCart = async (req, res, next) => {
   }
 };
 
-/////
+/////----upfate the cart------////
 exports.updateCart = catchAsync(async (req, res, next) => {
   console.log("route hitted");
   const { productId, quantity, volume } = req.body;
@@ -363,12 +369,113 @@ exports.deleteCart = Factory.deleteOne(Cart);
 
 ///////----Checkout------/////
 
+// exports.checkout = catchAsync(async (req, res, next) => {
+//   const { user } = req;
+//   const { location } = req.body;
+
+//   // Find user's cart
+//   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
+//   if (!location) {
+//     return res.status(404).json({
+//       success: false,
+//       status: 404,
+//       message: "Please select your address",
+//     });
+//   }
+
+//   if (!cart) {
+//     return res.status(404).json({
+//       success: false,
+//       status: 404,
+//       message: "Cart not found",
+//     });
+//   }
+
+//   // Calculate total price of the products
+//   let totalPrice = 0;
+//   for (let item of cart.products) {
+//     const shop = await Shop.findById(item.shop);
+
+//     if (!shop) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Shop with ID ${item.shop} not found`,
+//       });
+//     }
+
+//     const category = shop.categories.id(item.category);
+//     if (!category) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Category with ID ${item.category} not found in shop ${shop._id}`,
+//       });
+//     }
+
+//     const grocery = category.groceries.id(item.grocery);
+//     if (!grocery) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
+//       });
+//     }
+
+//     totalPrice += grocery.price * item.quantity;
+//   }
+//   // Calculate admin fee and rider fee
+//   const adminFee = totalPrice * cart.adminFeePercentage;
+//   const riderFee =
+//     cart.riderFeePerKm * calculateDistance(cart.products, location);
+//   const totalAmount = totalPrice + adminFee + riderFee;
+//   // Calculate expected delivery time
+//   const expectedDeliveryTime = calculateExpectedDeliveryTime(
+//     cart.products,
+//     location,
+//     cart.averageSpeedKmPerHour
+//   );
+
+//   // Create payment intent with Stripe
+//   const paymentIntent = await stripe.paymentIntents.create({
+//     amount: Math.round(totalAmount * 100),
+//     currency: "usd",
+//     description: "Products Payment",
+//     automatic_payment_methods: { enabled: true },
+//     metadata: { userId: user._id.toString() },
+//   });
+
+//   // Return order details
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     totalProducts: cart,
+//     orderSummary: {
+//       totalPrice,
+//       adminFee,
+//       riderFee,
+//       totalAmount,
+//       expectedDeliveryTime,
+//       paymentIntent: paymentIntent.id,
+//     },
+//     DeliveryAddress: location,
+//     // clientSecret: paymentIntent.client_secret,
+//   });
+// });
+
 exports.checkout = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { location } = req.body;
 
   // Find user's cart
   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
+  if (!location) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Please select your address",
+    });
+  }
 
   if (!cart) {
     return res.status(404).json({
@@ -378,8 +485,9 @@ exports.checkout = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Calculate total price of the products
+  // Calculate total price of the products and gather product details
   let totalPrice = 0;
+  const productDetails = [];
   for (let item of cart.products) {
     const shop = await Shop.findById(item.shop);
 
@@ -410,6 +518,15 @@ exports.checkout = catchAsync(async (req, res, next) => {
     }
 
     totalPrice += grocery.price * item.quantity;
+
+    // Collect product details
+    productDetails.push({
+      productName: grocery.productName,
+      volume: grocery.volume,
+      price: grocery.price,
+      quantity: item.quantity,
+      images: grocery.productImages,
+    });
   }
 
   // Calculate admin fee and rider fee
@@ -427,56 +544,137 @@ exports.checkout = catchAsync(async (req, res, next) => {
 
   // Create payment intent with Stripe
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: totalAmount * 100,
+    amount: Math.round(totalAmount * 100), // Convert to smallest currency unit (e.g., cents)
     currency: "usd",
+    description: "Products Payment",
+    automatic_payment_methods: { enabled: true },
     metadata: { userId: user._id.toString() },
   });
 
-  // Return order details
+  // Return order details and product details
   res.status(200).json({
     success: true,
     status: 200,
+    totalProducts: productDetails.length,
+    productDetails,
     orderSummary: {
       totalPrice,
       adminFee,
       riderFee,
       totalAmount,
       expectedDeliveryTime,
-      paymentIntent,
+      paymentIntent: paymentIntent.id,
     },
-    // clientSecret: paymentIntent.client_secret,
+    DeliveryAddress: location,
   });
 });
 
-// Helper function to calculate distance (using Haversine formula)
-function calculateDistance(products, userLocation) {
-  if (!products.length || !userLocation) return 0;
+/////-----conferm payment------///////
 
-  const shopLocation = products[0].shop.location.coordinates;
-  const [lat1, lon1] = userLocation || shopLocation;
-  const [lat2, lon2] = shopLocation;
+exports.confirmPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const { paymentIntentId, endLocation } = req.body;
 
-  const R = 6371; // Radius of the Earth in km
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) *
-      Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; // Distance in km
-  return distance;
-}
+  // Confirm the payment intent with Stripe
+  const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId);
+  if (paymentIntent.status !== "succeeded") {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "Payment not successful",
+    });
+  }
 
-function deg2rad(deg) {
-  return deg * (Math.PI / 180);
-}
+  // Find user's cart
+  const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
+  if (!cart) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Cart not found",
+    });
+  }
 
-// Helper function to calculate expected delivery time
-function calculateExpectedDeliveryTime(products, userLocation, speed) {
-  const distance = calculateDistance(products, userLocation);
-  const time = distance / speed; // Time in hours
-  return time * 60; // Convert to minutes
-}
+  // Generate a unique order number (e.g., using a timestamp)
+  const orderNumber = `ORD-${Date.now()}`;
+
+  // Initialize an array to hold product details and calculate the total items
+  const productDetails = [];
+  let totalItems = 0;
+
+  // Iterate over the products in the cart to get their details
+  for (let item of cart.products) {
+    const shop = await Shop.findById(item.shop);
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: `Shop with ID ${item.shop} not found`,
+      });
+    }
+
+    const category = shop.categories.id(item.category);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: `Category with ID ${item.category} not found in shop ${shop._id}`,
+      });
+    }
+
+    const grocery = category.groceries.id(item.grocery);
+    if (!grocery) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
+      });
+    }
+
+    totalItems += item.quantity;
+
+    productDetails.push({
+      name: grocery.productName,
+      volume: grocery.volume,
+      images: grocery.productImages,
+      price: grocery.price,
+      quantity: item.quantity,
+    });
+  }
+
+  // Get the start location from the first product's shop location
+  const startLocation = cart.products[0].shop.location;
+
+  // Create the order
+  const newOrder = await Order.create({
+    orderNumber,
+    customer: user._id,
+    products: cart.products,
+    startLocation,
+    endLocation,
+    status: "pending",
+  });
+
+  // Clear the user's cart after creating the order
+  cart.products = [];
+  await cart.save();
+
+  // Real-time notification to all riders using Socket.io
+  io.emit("newOrder", {
+    orderId: newOrder._id,
+    orderNumber: newOrder.orderNumber,
+    startLocation: newOrder.startLocation,
+    endLocation: newOrder.endLocation,
+    customer: user._id,
+  });
+
+  // Return the order details
+  res.status(201).json({
+    success: true,
+    status: 201,
+    message: "Order created successfully",
+    order: newOrder,
+    totalItems,
+    productDetails,
+  });
+});
