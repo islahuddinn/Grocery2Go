@@ -569,21 +569,23 @@ exports.checkout = catchAsync(async (req, res, next) => {
   });
 });
 
-/////-----conferm payment------///////
+/////-----verify payment------///////
 
-exports.confirmPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
+exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { paymentIntentId, endLocation } = req.body;
 
   // Confirm the payment intent with Stripe
-  const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId);
-  if (paymentIntent.status !== "succeeded") {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Payment not successful",
-    });
-  }
+  // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+  // if (paymentIntent.status !== "succeeded") {
+  //   return res.status(400).json({
+  //     success: false,
+  //     status: 400,
+  //     message: "Payment not successful",
+  //     data: paymentIntent,
+  //   });
+  // }
 
   // Find user's cart
   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
@@ -601,6 +603,7 @@ exports.confirmPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   // Initialize an array to hold product details and calculate the total items
   const productDetails = [];
   let totalItems = 0;
+  let startLocation;
 
   // Iterate over the products in the cart to get their details
   for (let item of cart.products) {
@@ -611,6 +614,11 @@ exports.confirmPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
         status: 404,
         message: `Shop with ID ${item.shop} not found`,
       });
+    }
+
+    // Set the start location from the first product's shop location
+    if (!startLocation) {
+      startLocation = shop.location;
     }
 
     const category = shop.categories.id(item.category);
@@ -642,8 +650,13 @@ exports.confirmPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Get the start location from the first product's shop location
-  const startLocation = cart.products[0].shop.location;
+  if (!startLocation) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Start location not found",
+    });
+  }
 
   // Create the order
   const newOrder = await Order.create({
