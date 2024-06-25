@@ -8,6 +8,7 @@ router.use(authController.protect);
 router.post("/create-list", listController.addProductsToList);
 router.patch("/edit-product", listController.editProductInList);
 router.patch("/delete-product", listController.deleteProductFromList);
+router.patch("/select-rider", userController.getAllUsers);
 router
   .route("/:id")
   .get(listController.getOneList)

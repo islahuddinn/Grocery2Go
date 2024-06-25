@@ -66,6 +66,82 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
+    status: 200,
     data: orders,
+  });
+});
+/////-----order-details-----////
+
+exports.getOrderDetails = catchAsync(async (req, res, next) => {
+  const { orderId } = req.body;
+
+  // Find the order by ID and populate necessary fields
+  const order = await Order.findById(orderId)
+    .populate({
+      path: "products.shop",
+      select: "shopTitle images location",
+    })
+    .populate({
+      path: "products.grocery",
+      select: "productName price volume productImages",
+    })
+    .populate("customer", "name")
+    .populate("driver", "name");
+
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Order not found",
+    });
+  }
+
+  // Extract shop details
+  const shopDetails = order.products.map((item) => ({
+    name: item.shop.shopTitle,
+    image: item.shop.images,
+    location: item.shop.location,
+  }));
+
+  // Extract product details
+  // const grocery = category.groceries.id(item.grocery);
+  // if (!grocery) {
+  //   return res.status(404).json({
+  //     success: false,
+  //     status: 404,
+  //     message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
+  //   });
+  // }
+  const productDetails = order.products.map((item) => ({
+    image: item.productImages,
+    title: item.productName,
+    quantity: item.quantity,
+    price: item.price,
+    volume: item.volume,
+  }));
+
+  // Prepare order summary
+  const orderSummary = {
+    itemsTotal: order.itemsTotal,
+    serviceFee: order.serviceFee,
+    adminFee: order.adminFee,
+    totalPayment: order.totalPayment,
+    paymentStatus: order.paymentStatus,
+    deliveryFee: order.deliveryCharges,
+    deliveryPaymentStatus: order.deliveryPaymentStatus,
+  };
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Order details retrieved successfully",
+    order: {
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      shopDetails,
+      productDetails,
+      rider: order.driver ? order.driver.name : null,
+      orderSummary,
+    },
   });
 });

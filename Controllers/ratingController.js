@@ -1,6 +1,6 @@
 const Ratings = require("../Models/ratingModel.js");
 const User = require("../Models/userModel.js");
-const Message = require("../Models/Message.js");
+const Message = require("../Models/message.js ");
 const RideRequest = require("../Models/rideRequestModel.js");
 
 const TxDeleter = require("../txDeleter");

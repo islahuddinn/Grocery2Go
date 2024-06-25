@@ -465,11 +465,11 @@ exports.deleteCart = Factory.deleteOne(Cart);
 
 exports.checkout = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { location } = req.body;
+  const { deliveryLocation } = req.body;
 
   // Find user's cart
   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
-  if (!location) {
+  if (!deliveryLocation) {
     return res.status(404).json({
       success: false,
       status: 404,
@@ -532,19 +532,19 @@ exports.checkout = catchAsync(async (req, res, next) => {
   // Calculate admin fee and rider fee
   const adminFee = totalPrice * cart.adminFeePercentage;
   const riderFee =
-    cart.riderFeePerKm * calculateDistance(cart.products, location);
+    cart.riderFeePerKm * calculateDistance(cart.products, deliveryLocation);
   const totalAmount = totalPrice + adminFee + riderFee;
 
   // Calculate expected delivery time
   const expectedDeliveryTime = calculateExpectedDeliveryTime(
     cart.products,
-    location,
+    deliveryLocation,
     cart.averageSpeedKmPerHour
   );
 
   // Create payment intent with Stripe
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(totalAmount * 100), // Convert to smallest currency unit (e.g., cents)
+    amount: Math.round(totalAmount * 100),
     currency: "usd",
     description: "Products Payment",
     automatic_payment_methods: { enabled: true },
@@ -565,17 +565,137 @@ exports.checkout = catchAsync(async (req, res, next) => {
       expectedDeliveryTime,
       paymentIntent: paymentIntent.id,
     },
-    DeliveryAddress: location,
+    DeliveryAddress: deliveryLocation,
   });
 });
 
 /////-----verify payment------///////
 
+// exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
+//   const { user } = req;
+//   const { paymentIntentId, deliveryLocation } = req.body;
+
+//   // Confirm the payment intent with Stripe
+//   // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+//   // if (paymentIntent.status !== "succeeded") {
+//   //   return res.status(400).json({
+//   //     success: false,
+//   //     status: 400,
+//   //     message: "Payment not successful",
+//   //     data: paymentIntent,
+//   //   });
+//   // }
+
+//   // Find user's cart and populate product details including shop
+//   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
+//   if (!cart || cart.products.length === 0) {
+//     return res.status(404).json({
+//       success: false,
+//       status: 404,
+//       message: "Your Cart is Empty",
+//     });
+//   }
+
+//   // Generate a unique order number (e.g., using a timestamp)
+//   const orderNumber = `ORD-${Date.now()}`;
+
+//   // Initialize variables for order details
+//   const productDetails = [];
+//   let totalItems = 0;
+//   let itemsTotal = 0;
+//   let serviceFee = 0.5; // Example service fee
+//   let adminFee = 0.1; // Example admin fee
+//   let deliveryCharges = 2.0; // Example delivery charge
+//   let startLocation = null;
+
+//   // Iterate over the products in the cart to get their details
+//   for (let item of cart.products) {
+//     const shop = item.shop;
+//     if (!shop) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Shop with ID ${item.shop} not found`,
+//       });
+//     }
+
+//     // Set the start location from the first product's shop location
+//     if (!startLocation) {
+//       startLocation = shop.location;
+//     }
+
+//     const category = shop.categories.id(item.category);
+//     if (!category) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Category with ID ${item.category} not found in shop ${shop._id}`,
+//       });
+//     }
+
+//     const grocery = category.groceries.id(item.grocery);
+//     if (!grocery) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
+//       });
+//     }
+
+//     totalItems += item.quantity;
+//     itemsTotal += item.quantity * grocery.price;
+
+//     productDetails.push({
+//       name: grocery.productName,
+//       volume: grocery.volume,
+//       images: grocery.productImages,
+//       price: grocery.price,
+//       quantity: item.quantity,
+//     });
+//   }
+
+//   const totalPayment = itemsTotal + serviceFee + adminFee + deliveryCharges;
+
+//   // Create the order
+//   const newOrder = await Order.create({
+//     orderNumber,
+//     customer: user._id,
+//     products: cart.products,
+//     startLocation,
+//     endLocation: deliveryLocation,
+//     itemsTotal,
+//     serviceFee,
+//     adminFee,
+//     totalPayment,
+//     paymentStatus: "paid",
+//     deliveryCharges,
+//     deliveryPaymentStatus: "unpaid",
+//     orderStatus: "pending",
+//   });
+
+//   // Clear the user's cart after creating the order
+//   cart.products = [];
+//   await cart.save();
+
+//   // Return the order details
+//   res.status(201).json({
+//     success: true,
+//     status: 201,
+//     message: "Order created successfully",
+//     order: newOrder,
+//     totalItems,
+//     productDetails,
+//     startLocation,
+//     endLocation: deliveryLocation,
+//   });
+// });
+
 exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { paymentIntentId, endLocation } = req.body;
+  const { paymentIntentId, deliveryLocation } = req.body;
 
-  // Confirm the payment intent with Stripe
+  // // Confirm the payment intent with Stripe
   // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
   // if (paymentIntent.status !== "succeeded") {
@@ -587,27 +707,32 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   //   });
   // }
 
-  // Find user's cart
+  // Find user's cart and populate product details including shop
   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
-  if (!cart) {
+  if (!cart || cart.products.length === 0) {
     return res.status(404).json({
       success: false,
       status: 404,
-      message: "Cart not found",
+      message: "Your Cart is Empty",
     });
   }
 
   // Generate a unique order number (e.g., using a timestamp)
   const orderNumber = `ORD-${Date.now()}`;
 
-  // Initialize an array to hold product details and calculate the total items
+  // Initialize variables for order details
   const productDetails = [];
   let totalItems = 0;
-  let startLocation;
+  let itemsTotal = 0;
+  const serviceFee = 0.5; // Example service fee
+  const adminFee = 0.1; // Example admin fee
+  const deliveryCharges = 2.0; // Example delivery charge
+  let startLocation = null;
+  let shopDetails = [];
 
   // Iterate over the products in the cart to get their details
   for (let item of cart.products) {
-    const shop = await Shop.findById(item.shop);
+    const shop = item.shop;
     if (!shop) {
       return res.status(404).json({
         success: false,
@@ -640,6 +765,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     }
 
     totalItems += item.quantity;
+    itemsTotal += item.quantity * grocery.price;
 
     productDetails.push({
       name: grocery.productName,
@@ -648,15 +774,15 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
       price: grocery.price,
       quantity: item.quantity,
     });
-  }
 
-  if (!startLocation) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Start location not found",
+    shopDetails.push({
+      shopName: shop.shopTitle,
+      images: shop.images,
+      location: shop.location,
     });
   }
+
+  const totalPayment = itemsTotal + serviceFee + adminFee + deliveryCharges;
 
   // Create the order
   const newOrder = await Order.create({
@@ -664,30 +790,41 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     customer: user._id,
     products: cart.products,
     startLocation,
-    endLocation,
-    status: "pending",
+    endLocation: deliveryLocation,
+    itemsTotal,
+    serviceFee,
+    adminFee,
+    totalPayment,
+    paymentStatus: "paid",
+    deliveryCharges,
+    deliveryPaymentStatus: "unpaid",
+    orderStatus: "pending",
   });
 
   // Clear the user's cart after creating the order
   cart.products = [];
   await cart.save();
 
-  // Real-time notification to all riders using Socket.io
-  io.emit("newOrder", {
-    orderId: newOrder._id,
-    orderNumber: newOrder.orderNumber,
-    startLocation: newOrder.startLocation,
-    endLocation: newOrder.endLocation,
-    customer: user._id,
-  });
-
   // Return the order details
   res.status(201).json({
     success: true,
     status: 201,
     message: "Order created successfully",
-    order: newOrder,
-    totalItems,
-    productDetails,
+    order: {
+      orderNumber: newOrder.orderNumber,
+      orderStatus: newOrder.orderStatus,
+      startLocation: newOrder.startLocation,
+      endLocation: newOrder.endLocation,
+      customer: newOrder.customer,
+      itemsTotal: newOrder.itemsTotal,
+      serviceFee: newOrder.serviceFee,
+      adminFee: newOrder.adminFee,
+      totalPayment: newOrder.totalPayment,
+      paymentStatus: newOrder.paymentStatus,
+      deliveryCharges: newOrder.deliveryCharges,
+      deliveryPaymentStatus: newOrder.deliveryPaymentStatus,
+      products: productDetails,
+      shopDetails,
+    },
   });
 });

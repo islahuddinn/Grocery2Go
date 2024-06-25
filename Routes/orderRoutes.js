@@ -5,6 +5,8 @@ const router = express.Router();
 
 router.use(authController.protect);
 router.post("/create", orderController.createOrder);
+router.get("/get-all-orders", orderController.getUserOrders);
+router.get("/order-details", orderController.getOrderDetails);
 
 // router.get("/get-all-favorite-products", shopController.getAllFavoriteProducts);
 // router.post("/mark-favorite-unfavorite", shopController.toggleProductFavorite);

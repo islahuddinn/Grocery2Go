@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const TxQuery = require("../txQuery");
 
 const structure = {
   from: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -8,7 +7,7 @@ const structure = {
     type: String,
     default: false,
   },
-  requestId: { type: mongoose.Schema.Types.ObjectId, ref: "RideRequest" },
+  requestId: { type: mongoose.Schema.Types.ObjectId, ref: "OrderRequest" },
 
   stars: Number,
   createdAt: Number,
@@ -16,6 +15,5 @@ const structure = {
 
 const schema = new mongoose.Schema(structure);
 const model = mongoose.model("Ratings", schema);
-TxQuery.model("Ratings", model, structure);
 
 module.exports = model;

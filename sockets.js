@@ -1,13 +1,11 @@
 const lambdaQuery = require("./Utils/queryLambda");
-const TxQuery = require("./txQuery");
-const { models, inferModels, schemas } = TxQuery.internals;
-const rideRequest = require("./Controllers/rideRequestController");
+const orderRequest = require("./Controllers/orderDeliveryController");
 const io = require("socket.io")();
 const { Req, Res } = require("./requester");
-const Message = require("./Models/Message");
+const Message = require("./Models/message");
 const User = require("./Models/userModel");
 
-const OnlineUser = require("./Models/OnlineUser");
+const OnlineRider = require("./Models/onlineRider");
 
 const queries = {};
 const lastResult = {};
@@ -25,11 +23,11 @@ const process = (evName, socket, io, f) => (data) => {
 
 const client = {
   set: async (user) =>
-    await OnlineUser.updateOne({ user }, {}, { upsert: true }),
-  del: async (user) => await OnlineUser.deleteOne({ user }),
-  flushDb: async () => await OnlineUser.deleteOne({}),
+    await OnlineRider.updateOne({ user }, {}, { upsert: true }),
+  del: async (user) => await OnlineRider.deleteOne({ user }),
+  flushDb: async () => await OnlineRider.deleteOne({}),
   KEYS: async () => {
-    const keys = await OnlineUser.find({});
+    const keys = await OnlineRider.find({});
     const newKeys = [];
     for (const key of keys) newKeys.push(`${key.user}`);
     return newKeys;
@@ -295,26 +293,26 @@ io.sockets.on("connect", async (socket) => {
 
   socket.on(
     "createRideRequest",
-    process("createdRideRequest", socket, io, rideRequest.store)
+    process("createdRideRequest", socket, io, orderRequest.store)
   );
   socket.on(
     "calculateFare",
-    process("calculatedFare", socket, io, rideRequest.calculateFare)
+    process("calculatedFare", socket, io, orderRequest.calculateFare)
   );
   socket.on(
     "findnearbyDrivers",
-    process("nearByDrivers", socket, io, rideRequest.nearbyDrivers)
+    process("nearByDrivers", socket, io, orderRequest.nearbyDrivers)
   );
   socket.on(
     "updateMyLocation",
-    process("updatedLocation", socket, io, rideRequest.updateLocation)
+    process("updatedLocation", socket, io, orderRequest.updateLocation)
   );
-  socket.on("unsub", process("unsubed", socket, io, rideRequest.unsub));
+  socket.on("unsub", process("unsubed", socket, io, orderRequest.unsub));
 
   // ====== Driver Side =======
   socket.on(
     "getNearByRequests",
-    process("nearByRequests", socket, io, rideRequest.nearByRequests)
+    process("nearByRequests", socket, io, orderRequest.nearByRequests)
   );
   socket.on(
     "enroutNearByRequests",
@@ -322,37 +320,37 @@ io.sockets.on("connect", async (socket) => {
       "enroutedNearByRequests",
       socket,
       io,
-      rideRequest.enroutedNearByRequests
+      orderRequest.enroutedNearByRequests
     )
   );
 
   socket.on(
     "startRide",
-    process("rideStarted", socket, io, rideRequest.startRide)
+    process("rideStarted", socket, io, orderRequest.startRide)
   );
-  socket.on("arrive", process("arrived", socket, io, rideRequest.arrived));
-  socket.on("endRide", process("rideEnded", socket, io, rideRequest.rideEnd));
+  socket.on("arrive", process("arrived", socket, io, orderRequest.arrived));
+  socket.on("endRide", process("rideEnded", socket, io, orderRequest.rideEnd));
   socket.on(
     "acceptRequest",
-    process("acceptedRequest", socket, io, rideRequest.acceptRequest)
+    process("acceptedRequest", socket, io, orderRequest.acceptRequest)
   );
 
   socket.on(
     "ratingRefresh",
-    process("ratingRefreshed", socket, io, rideRequest.ratingRefresh)
+    process("ratingRefreshed", socket, io, orderRequest.ratingRefresh)
   );
 
   socket.on(
     "cancelRequest",
-    process("canceledRequest", socket, io, rideRequest.cancelRequest)
+    process("canceledRequest", socket, io, orderRequest.cancelRequest)
   );
   socket.on(
     "cancelPendingRequest",
-    process("canceledPendingRequest", socket, io, rideRequest.cancelRequest)
+    process("canceledPendingRequest", socket, io, orderRequest.cancelRequest)
   );
   socket.on(
     "amountReceive",
-    process("amountReceived", socket, io, rideRequest.paymentReceived)
+    process("amountReceived", socket, io, orderRequest.paymentReceived)
   );
 });
 
