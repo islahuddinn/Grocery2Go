@@ -18,6 +18,10 @@ const listSchema = new mongoose.Schema(
           required: true,
           min: 1,
         },
+        isAvailable: {
+          type: Boolean,
+          default: false,
+        },
       },
     ],
     rider: {

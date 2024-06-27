@@ -130,7 +130,7 @@ exports.store = async (req, res, next) => {
     console.log("checking for status", rideRequest2);
     if (rideRequest2.status == "pending")
       await OrderDeliveryRequest.findByIdAndDelete(orderRequest._id);
-    console.log("Ride request  is deleted after 1 minutes.");
+    console.log("Order delivery request  is deleted after 1 minutes.");
   }, 70000);
   res.status(200).json({
     status: 200,
@@ -343,7 +343,7 @@ exports.calculateFare = async (req, res, next) => {
 
   console.log("body>>>>>>", req.body);
 
-  const type = req.body.type;
+  // const type = req.body.type;
   const km = req.body.distance / 1000;
   const distance = km * 0.621371; // converting in miles
   console.log("body>>>>>>", req.body);
@@ -354,13 +354,14 @@ exports.calculateFare = async (req, res, next) => {
 
   // const fare=112
   let fare = {
-    black: 190,
+    // black: 190,
+    bike: 100,
     xl: 230,
     x: distance > 5 ? 20 + distance * 2 : 20,
     taxi: distance > 5 ? 24 + distance * 5 : 24,
     mini: distance > 5 ? 16 + distance * 2 : 16,
   };
-  console.log("fare>>>>>>", fare[type]);
+  console.log("fare>>>>>>", fare);
 
   res.status(200).json({
     status: 200,

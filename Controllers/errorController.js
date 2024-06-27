@@ -68,6 +68,9 @@ module.exports = (err, req, res, next) => {
     case "TokenExpiredError":
       err = handleTokenExpiredError();
       break;
+    case "messaging/invalid-argument":
+      err = handleValidationErrorDB(err);
+      break;
     default:
       return sendErrorResponse(err, res);
   }

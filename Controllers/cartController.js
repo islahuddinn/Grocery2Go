@@ -3,12 +3,17 @@ const Cart = require("../Models/cartModel");
 const Factory = require("../Controllers/handleFactory");
 const Shop = require("../Models/shopsModel");
 const Order = require("../Models/orderModel");
+const User = require("../Models/userModel");
+const Notification = require("../Models/notificationModel");
+const { SendNotification } = require("../Utils/notificationSender");
+
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const geolib = require("geolib");
 const {
   calculateDistance,
   calculateExpectedDeliveryTime,
 } = require("../Utils/helper");
+const message = require("../Models/message");
 // const { io } = require("../sockets");
 
 exports.addToCart = catchAsync(async (req, res, next) => {
@@ -571,133 +576,13 @@ exports.checkout = catchAsync(async (req, res, next) => {
 
 /////-----verify payment------///////
 
-// exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
-//   const { user } = req;
-//   const { paymentIntentId, deliveryLocation } = req.body;
-
-//   // Confirm the payment intent with Stripe
-//   // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-//   // if (paymentIntent.status !== "succeeded") {
-//   //   return res.status(400).json({
-//   //     success: false,
-//   //     status: 400,
-//   //     message: "Payment not successful",
-//   //     data: paymentIntent,
-//   //   });
-//   // }
-
-//   // Find user's cart and populate product details including shop
-//   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
-//   if (!cart || cart.products.length === 0) {
-//     return res.status(404).json({
-//       success: false,
-//       status: 404,
-//       message: "Your Cart is Empty",
-//     });
-//   }
-
-//   // Generate a unique order number (e.g., using a timestamp)
-//   const orderNumber = `ORD-${Date.now()}`;
-
-//   // Initialize variables for order details
-//   const productDetails = [];
-//   let totalItems = 0;
-//   let itemsTotal = 0;
-//   let serviceFee = 0.5; // Example service fee
-//   let adminFee = 0.1; // Example admin fee
-//   let deliveryCharges = 2.0; // Example delivery charge
-//   let startLocation = null;
-
-//   // Iterate over the products in the cart to get their details
-//   for (let item of cart.products) {
-//     const shop = item.shop;
-//     if (!shop) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Shop with ID ${item.shop} not found`,
-//       });
-//     }
-
-//     // Set the start location from the first product's shop location
-//     if (!startLocation) {
-//       startLocation = shop.location;
-//     }
-
-//     const category = shop.categories.id(item.category);
-//     if (!category) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Category with ID ${item.category} not found in shop ${shop._id}`,
-//       });
-//     }
-
-//     const grocery = category.groceries.id(item.grocery);
-//     if (!grocery) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
-//       });
-//     }
-
-//     totalItems += item.quantity;
-//     itemsTotal += item.quantity * grocery.price;
-
-//     productDetails.push({
-//       name: grocery.productName,
-//       volume: grocery.volume,
-//       images: grocery.productImages,
-//       price: grocery.price,
-//       quantity: item.quantity,
-//     });
-//   }
-
-//   const totalPayment = itemsTotal + serviceFee + adminFee + deliveryCharges;
-
-//   // Create the order
-//   const newOrder = await Order.create({
-//     orderNumber,
-//     customer: user._id,
-//     products: cart.products,
-//     startLocation,
-//     endLocation: deliveryLocation,
-//     itemsTotal,
-//     serviceFee,
-//     adminFee,
-//     totalPayment,
-//     paymentStatus: "paid",
-//     deliveryCharges,
-//     deliveryPaymentStatus: "unpaid",
-//     orderStatus: "pending",
-//   });
-
-//   // Clear the user's cart after creating the order
-//   cart.products = [];
-//   await cart.save();
-
-//   // Return the order details
-//   res.status(201).json({
-//     success: true,
-//     status: 201,
-//     message: "Order created successfully",
-//     order: newOrder,
-//     totalItems,
-//     productDetails,
-//     startLocation,
-//     endLocation: deliveryLocation,
-//   });
-// });
-
 exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { paymentIntentId, deliveryLocation } = req.body;
 
-  // // Confirm the payment intent with Stripe
+  // Uncomment these lines if you are using Stripe for payment processing
+  // Confirm the payment intent with Stripe
   // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
   // if (paymentIntent.status !== "succeeded") {
   //   return res.status(400).json({
   //     success: false,
@@ -740,7 +625,10 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
         message: `Shop with ID ${item.shop} not found`,
       });
     }
-
+    var shopOwner = await User.findById(shop.owner);
+    console.log(shopOwner, "the shop owner details");
+    var FCMToken = shopOwner.deviceToken;
+    console.log(FCMToken, "here is the fcm token");
     // Set the start location from the first product's shop location
     if (!startLocation) {
       startLocation = shop.location;
@@ -783,6 +671,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   }
 
   const totalPayment = itemsTotal + serviceFee + adminFee + deliveryCharges;
+  const messageBody = `New order from ${user.firstName}. Please accept or reject the order.`;
 
   // Create the order
   const newOrder = await Order.create({
@@ -800,8 +689,33 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     deliveryPaymentStatus: "unpaid",
     orderStatus: "pending",
   });
+  await SendNotification({
+    token: FCMToken,
+    title: `New Order from ${user.firstName}`,
+    body: "Simply the test message",
+  });
+  await Notification.create({
+    sender: user._id,
+    receiver: shopOwner,
+    data: messageBody,
+  });
+  // Send notification to the owner of the shop
+  // for (let shop of cart.products.map((product) => product.shop)) {
+  //
+  //   console.log(shop, "shop data");
+  //   await Notification.create({
+  //     message: messageBody,
+  //     sender: user._id,
+  //     receiver: shop.owner,
+  //   });
 
-  // Clear the user's cart after creating the order
+  //   await SendNotification({
+  //     token: shop.owner.deviceToken,
+  //     title: `New Order from ${user.firstName}`,
+  //     message: messageBody,
+  //   });
+  // }
+  ///Clear the user's cart after creating the order
   cart.products = [];
   await cart.save();
 
@@ -811,6 +725,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     status: 201,
     message: "Order created successfully",
     order: {
+      orderId: newOrder.id,
       orderNumber: newOrder.orderNumber,
       orderStatus: newOrder.orderStatus,
       startLocation: newOrder.startLocation,
