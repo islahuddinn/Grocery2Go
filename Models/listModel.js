@@ -7,6 +7,11 @@ const listSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    shop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shop",
+      // required: true,
+    },
     items: [
       {
         productName: {

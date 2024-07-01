@@ -8,32 +8,52 @@ const orderSchema = new mongoose.Schema(
     },
     orderStatus: {
       type: String,
-      enum: ["pending", "ready for pickup", "rider accepted", "delivered"],
+      enum: [
+        "pending",
+        "ready for pickup",
+        "rider accepted",
+        "buying grocery",
+        "ready to deliver",
+        "on the way",
+        "delivered",
+      ],
       default: "pending",
     },
-    list: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "List",
-      required: true,
-    },
+    listItems: [
+      {
+        productName: {
+          type: String,
+          // required: true,
+        },
+        quantity: {
+          type: Number,
+          // required: true,
+          min: 1,
+        },
+        isAvailable: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
     products: [
       {
         shop: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Shop",
-          required: true,
+          // required: true,
         },
         category: {
           type: mongoose.Schema.Types.ObjectId,
-          required: true,
+          // required: true,
         },
         grocery: {
           type: mongoose.Schema.Types.ObjectId,
-          required: true,
+          // required: true,
         },
         quantity: {
           type: Number,
-          required: true,
+          // required: true,
         },
       },
     ],
@@ -66,25 +86,41 @@ const orderSchema = new mongoose.Schema(
       enum: ["paid", "unpaid"],
       default: "unpaid",
     },
+    deliveryTime: {
+      type: String,
+    },
     itemsTotal: {
-      type: Number,
+      type: String,
     },
     serviceFee: {
       type: Number,
-      required: true,
+      default: 2,
+      // required: true,
     },
     adminFee: {
       type: Number,
-      required: true,
+      default: 1,
+      // required: true,
+    },
+    tax: {
+      type: Number,
+      default: 2,
+    },
+    savings: {
+      type: Number,
+      default: 0,
     },
     totalPayment: {
-      type: Number,
-      required: true,
+      type: String,
+      // required: true,
     },
     paymentStatus: {
       type: String,
       enum: ["paid", "unpaid"],
       default: "unpaid",
+    },
+    tip: {
+      type: Number,
     },
   },
   { timestamps: true }

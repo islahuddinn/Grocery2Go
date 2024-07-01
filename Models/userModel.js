@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
     },
     accountNumber: {
       type: String,
-      unique: true,
+      // unique: true,
     },
     vehiclePermit: {
       type: String,
