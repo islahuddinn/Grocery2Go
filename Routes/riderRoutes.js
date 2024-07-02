@@ -1,18 +1,19 @@
 const express = require("express");
 const userController = require("../Controllers/userController");
 const authController = require("../Controllers/authController");
-const shopController = require("../Controllers/shopController");
+const riderController = require("../Controllers/riderController");
 const router = express.Router();
 
 router.use(authController.protect);
-router.post("/create", shopController.addProduct);
-router.get("/get-all-favorite-products", shopController.getAllFavoriteProducts);
-router.post("/mark-favorite-unfavorite", shopController.toggleProductFavorite);
-router.get("/", shopController.getAllProduct);
-router
-  .route("/:id")
-  .get(shopController.getOneProduct)
-  .patch(shopController.updateProduct)
-  .delete(shopController.deleteProduct);
+router.get("/online-riders", riderController.getAllOnlineRiders);
+router.post("/online-offline-rider", riderController.updateRiderOnlineStatus);
+router.get("/rider-stats/:id", riderController.getRiderStatistics);
+router.post("/search-shop", riderController.searchShopByTitle);
+// router.get("/", shopController.getAllProduct);
+// router
+//   .route("/:id")
+//   .get(shopController.getOneProduct)
+//   .patch(shopController.updateProduct)
+//   .delete(shopController.deleteProduct);
 
 module.exports = router;

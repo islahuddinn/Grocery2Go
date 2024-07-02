@@ -8,6 +8,8 @@ const productRoutes = require("./productRoutes");
 const cartRoutes = require("./cartRoutes");
 const listRoutes = require("./listRoutes");
 const orderRoutes = require("./orderRoutes");
+const riderRoutes = require("./riderRoutes");
+// const reviewRoutes = require("./reviewRoutes");
 
 const setupRoutesV1 = () => {
   const router = express.Router();
@@ -20,6 +22,8 @@ const setupRoutesV1 = () => {
   router.use("/cart", cartRoutes);
   router.use("/list", listRoutes);
   router.use("/order", orderRoutes);
+  router.use("/rider", riderRoutes);
+  // router.use("/reviews", reviewRoutes);
 
   return router;
 };

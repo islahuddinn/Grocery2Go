@@ -122,6 +122,9 @@ const orderSchema = new mongoose.Schema(
     tip: {
       type: Number,
     },
+    riderEarnings: {
+      type: Number,
+    },
   },
   { timestamps: true }
 );

@@ -90,6 +90,10 @@ const userSchema = new mongoose.Schema(
       default: true,
       select: false,
     },
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
     otp: {
       type: Number,
     },

@@ -6,6 +6,7 @@ const Order = require("../Models/orderModel");
 const { SendNotification } = require("../Utils/notificationSender");
 const Notification = require("../Models/notificationModel");
 const Shop = require("../Models/shopsModel");
+const Rating = require("../Models/ratingModel");
 const { calculateDeliveryCharges } = require("../Utils/helper");
 // const { default: Stripe } = require("stripe");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -91,22 +92,76 @@ exports.deleteProductFromList = catchAsync(async (req, res, next) => {
 });
 
 // Get all riders
+
 exports.getAllRiders = catchAsync(async (req, res, next) => {
-  const riders = await User.find({ userType: "Rider" });
+  const riders = await User.find({ userType: "Rider" }).select(
+    "-password -__v"
+  ); // Exclude password and version key
+
+  // Get ratings for each rider
+  const riderRatingsPromises = riders.map(async (rider) => {
+    const ratings = await Rating.find({ to: rider._id, toDriver: true }).select(
+      "stars createdAt -_id"
+    );
+    const averageRating = ratings.length
+      ? (
+          ratings.reduce((acc, rating) => acc + rating.stars, 0) /
+          ratings.length
+        ).toFixed(2)
+      : "0";
+    return {
+      rider,
+      ratings,
+      averageRating,
+    };
+  });
+
+  const ridersWithRatings = await Promise.all(riderRatingsPromises);
 
   res.status(200).json({
     success: true,
     status: 200,
     message: "Riders retrieved successfully",
-    data: riders,
+    data: ridersWithRatings,
   });
 });
 
 // Get details of a specific rider
-exports.getRiderDetails = catchAsync(async (req, res, next) => {
-  const { riderId } = req.params;
+// exports.getRiderDetails = catchAsync(async (req, res, next) => {
+//   const riderId = req.params.id;
 
-  const rider = await User.findOne({ _id: riderId, userType: "Rider" });
+//   const rider = await User.findOne({ _id: riderId, userType: "Rider" });
+
+//   if (!rider) {
+//     return res.status(404).json({
+//       success: false,
+//       status: 404,
+//       message: "Rider not found",
+//     });
+//   }
+//   const rating = await Rating.findById(rider._id);
+//   if (!rating) {
+//     res.status(404).json({
+//       success: false,
+//       status: 404,
+//       message: "rider ratings not found",
+//     });
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Rider details retrieved successfully",
+//     data: rider,
+//     reviews: rating,
+//   });
+// });
+exports.getRiderDetails = catchAsync(async (req, res, next) => {
+  const riderId = req.params.id;
+
+  const rider = await User.findOne({ _id: riderId, userType: "Rider" }).select(
+    "-password -__v"
+  );
 
   if (!rider) {
     return res.status(404).json({
@@ -116,11 +171,27 @@ exports.getRiderDetails = catchAsync(async (req, res, next) => {
     });
   }
 
+  // Fetch all ratings for the rider
+  const ratings = await Rating.find({ to: rider._id, toDriver: true }).select(
+    "stars createdAt -_id"
+  );
+
+  // Calculate average rating
+  const averageRating = ratings.length
+    ? (
+        ratings.reduce((acc, rating) => acc + rating.stars, 0) / ratings.length
+      ).toFixed(2)
+    : "0";
+
   res.status(200).json({
     success: true,
     status: 200,
     message: "Rider details retrieved successfully",
-    data: rider,
+    data: {
+      rider,
+      averageRating,
+      ratings,
+    },
   });
 });
 
@@ -184,7 +255,7 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   //     return res.status(404).json({
   //       success: false,
   //       status: 404,
-  //       message: `Price not found for item: ${item.productName}`,
+  //       message: `Price not found for item: ${item.productName} or item not available`,
   //     });
   //   }
   // }
@@ -443,15 +514,15 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
 exports.sendListBill = catchAsync(async (req, res, next) => {
   const { orderId } = req.body;
 
-  // if (!orderId || !Array.isArray(updatedItems)) {
-  //   return res.status(400).json({
-  //     success: false,
-  //     status: 400,
-  //     message: "Invalid input data",
-  //   });
-  // }
+  if (!orderId) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "Invalid input data",
+    });
+  }
 
-  const order = await Order.findById(orderId);
+  const order = await Order.findById(orderId).populate("customer");
   if (!order) {
     return res.status(404).json({
       success: false,
@@ -471,9 +542,8 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Fetch serviceFee and adminFee from settings (assuming they are stored in a global settings collection)
-  const otherCharges = await Order.findOne();
-  if (!otherCharges) {
+  const settings = await Order.findOne();
+  if (!settings) {
     return res.status(500).json({
       success: false,
       status: 500,
@@ -481,36 +551,29 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
     });
   }
 
-  const { serviceFee, adminFee } = otherCharges;
+  const { serviceFee, tax } = settings;
   let itemsTotal = 0;
 
   for (const item of order.listItems) {
-    const updatedItem = updatedItems.find(
-      (ui) => ui.productName === item.productName
-    );
-    if (updatedItem) {
-      item.isAvailable = updatedItem.isAvailable;
+    if (item.isAvailable) {
+      const shopProduct = await Shop.findOne(
+        { "categories.groceries.productName": item.productName },
+        { "categories.$": 1 }
+      );
 
-      if (updatedItem.isAvailable) {
-        const shopProduct = await Shop.findOne(
-          { "categories.groceries.productName": item.productName },
-          { "categories.$": 1 }
-        );
-
-        if (!shopProduct) {
-          return res.status(404).json({
-            success: false,
-            status: 404,
-            message: `Price not found for item: ${item.productName}`,
-          });
-        }
-
-        const grocery = shopProduct.categories[0].groceries.find(
-          (g) => g.productName === item.productName
-        );
-        const totalPrice = item.quantity * grocery.price;
-        itemsTotal += totalPrice;
+      if (!shopProduct) {
+        return res.status(404).json({
+          success: false,
+          status: 404,
+          message: `Price not found for item: ${item.productName}`,
+        });
       }
+
+      const grocery = shopProduct.categories[0].groceries.find(
+        (g) => g.productName === item.productName
+      );
+      const totalPrice = item.quantity * grocery.price;
+      itemsTotal += totalPrice;
     }
   }
 
@@ -519,47 +582,58 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
   order.itemsTotal = itemsTotal.toFixed(2);
   order.serviceFee = serviceFee;
   order.tax = tax;
-  order.tip = tip;
   order.totalPayment = totalPayment.toFixed(2);
   order.orderStatus = "buying grocery";
 
   await order.save();
-  const FCMToken = order.customer.deviceToken;
-  const paymentIntent = await stripe.paymentIntents.create({});
 
-  // Notify the customer
-  await SendNotification({
-    token: FCMToken,
-    title: "send bill to the customer",
-    message: `Your order ${order.orderNumber} payment is pending.`,
+  const FCMToken = order.customer.deviceToken;
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(totalPayment * 100),
+    currency: "usd",
+    customer: order.customer.stripeCustomerId,
+    description: `Payment for order ${order.orderNumber}`,
   });
-  await Notification.create({
-    sender: order.rider._id,
-    receiver: customer._id,
-    data: `New order from ${user.firstName}. Please accept or reject the order.`,
-  });
+
+  //// Notify the customer
+  // await SendNotification({
+  //   token: FCMToken,
+  //   title: "Bill Details",
+  //   body: `Your order ${
+  //     order.orderNumber
+  //   } payment is pending. Total payment: ${totalPayment.toFixed(2)}`,
+  // });
+
+  // await Notification.create({
+  //   sender: order.driver,
+  //   receiver: order.customer._id,
+  //   data: `Your order ${
+  //     order.orderNumber
+  //   } bill is ready. Total payment: ${totalPayment.toFixed(2)}`,
+  // });
 
   res.status(200).json({
     success: true,
     status: 200,
-    message: "List item availability and billing details updated successfully",
+    message: "List items and billing details send successfully",
     order,
-    paymentIntent,
+    paymentIntentId: paymentIntent._id,
+    tip: paymentIntent.amount_details,
     riderDetails,
   });
 });
-
 ////----add tip to the user ------ ////
+
 exports.addTipToRider = catchAsync(async (req, res, next) => {
   const { orderId, tipAmount, paymentIntentId } = req.body;
 
-  // if (!orderId || tipAmount == null || !paymentIntentId) {
-  //   return res.status(400).json({
-  //     success: false,
-  //     status: 400,
-  //     message: "Invalid input data",
-  //   });
-  // }
+  if (!orderId || tipAmount == null || !paymentIntentId) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "Invalid input data",
+    });
+  }
 
   const order = await Order.findById(orderId);
   if (!order) {
@@ -577,18 +651,19 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
   ).toFixed(2);
 
   // Update the payment intent with the new amount
-  const newTotalAmount = Math.round(order.totalPayment * 100);
-  const paymentIntent = await stripe.paymentIntents.update(paymentIntentId, {
-    amount_details: {
-      tip: { newTotalAmount },
-    },
-  });
-
-  if (!paymentIntent) {
+  const newTotalAmount = Math.round(order.totalPayment * 100); // Stripe expects the amount in cents
+  let paymentIntent;
+  try {
+    paymentIntent = await stripe.paymentIntents.update(paymentIntentId, {
+      amount: newTotalAmount,
+      metadata: { tipAmount: tipAmount.toString() }, // Store the tip amount as metadata
+    });
+  } catch (error) {
     return res.status(500).json({
       success: false,
       status: 500,
       message: "Failed to update payment intent",
+      error: error.message,
     });
   }
 
@@ -599,10 +674,91 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
     status: 200,
     message: "Tip added and payment intent updated successfully",
     order,
-    paymentIntent_Id: paymentIntent.id,
-    paymentIntent_Tip: paymentIntent.amount_details,
+    orderSummary: {
+      itemsTotal: order.itemsTotal,
+      serviceFee: order.serviceFee,
+      adminFee: order.adminFee,
+      tax: order.tax,
+      tip: order.tip,
+      totalPayment: order.totalPayment,
+    },
+    paymentIntent: {
+      id: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      metadata: paymentIntent.metadata,
+    },
   });
 });
+exports.payDeliveryCharges = async (req, res, next) => {
+  const { orderId } = req.body;
+  console.log("here is the order:   ", orderId);
+
+  if (!orderId) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "Invalid input data",
+    });
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Order not found",
+    });
+  }
+
+  // Ensure delivery charges are present
+  if (!order.deliveryCharges) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "Delivery charges not found in the order",
+    });
+  }
+
+  const deliveryCharges = parseFloat(order.deliveryCharges);
+  const deliveryChargesAmount = Math.round(deliveryCharges * 100); // Stripe expects the amount in cents
+
+  // Create a new payment intent for the delivery charges
+  let paymentIntent;
+  try {
+    paymentIntent = await stripe.paymentIntents.create({
+      amount: deliveryChargesAmount,
+      currency: "usd", // Adjust the currency as necessary
+      metadata: { orderId: order._id.toString(), type: "deliveryCharges" },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      status: 500,
+      message: "Failed to create payment intent",
+      error: error.message,
+    });
+  }
+
+  // Update the delivery payment status
+  order.deliveryPaymentStatus = "unpaid";
+  order.riderEarnings = deliveryCharges + order.tip;
+
+  await order.save();
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Payment intent for delivery charges created successfully",
+    order,
+    paymentIntent: {
+      id: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      metadata: paymentIntent.metadata,
+    },
+  });
+};
 
 exports.getAllLists = Factory.getAll(List);
 exports.updateList = Factory.updateOne(List);
