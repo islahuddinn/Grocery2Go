@@ -1,4 +1,5 @@
 const catchAsync = require("../Utils/catchAsync");
+const AppError = require("../Utils/appError");
 const List = require("../Models/listModel");
 const Factory = require("../Controllers/handleFactory");
 const User = require("../Models/userModel");
@@ -32,20 +33,12 @@ exports.editProductInList = catchAsync(async (req, res, next) => {
   const list = await List.findById(listId);
 
   if (!list) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "List not found",
-    });
+    return next(new AppError("List not found", 404));
   }
 
   const item = list.items.id(itemId);
   if (!item) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Item not found in list",
-    });
+    return next(new AppError("Items not found in the list", 404));
   }
 
   if (productName) item.productName = productName;
@@ -66,20 +59,12 @@ exports.deleteProductFromList = catchAsync(async (req, res, next) => {
   const list = await List.findById(listId);
 
   if (!list) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "List not found",
-    });
+    return next(new AppError("List not found", 404));
   }
 
   const item = list.items.id(itemId);
   if (!item) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Item not found in list",
-    });
+    return next(new AppError("Items not found in the list", 404));
   }
   list.items.pull(itemId);
   await list.save();
@@ -127,35 +112,6 @@ exports.getAllRiders = catchAsync(async (req, res, next) => {
 });
 
 // Get details of a specific rider
-// exports.getRiderDetails = catchAsync(async (req, res, next) => {
-//   const riderId = req.params.id;
-
-//   const rider = await User.findOne({ _id: riderId, userType: "Rider" });
-
-//   if (!rider) {
-//     return res.status(404).json({
-//       success: false,
-//       status: 404,
-//       message: "Rider not found",
-//     });
-//   }
-//   const rating = await Rating.findById(rider._id);
-//   if (!rating) {
-//     res.status(404).json({
-//       success: false,
-//       status: 404,
-//       message: "rider ratings not found",
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Rider details retrieved successfully",
-//     data: rider,
-//     reviews: rating,
-//   });
-// });
 exports.getRiderDetails = catchAsync(async (req, res, next) => {
   const riderId = req.params.id;
 
@@ -164,11 +120,7 @@ exports.getRiderDetails = catchAsync(async (req, res, next) => {
   );
 
   if (!rider) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Rider not found",
-    });
+    return next(new AppError("Rider not found", 404));
   }
 
   // Fetch all ratings for the rider
@@ -204,20 +156,12 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   // Validate that the rider exists
   const rider = await User.findOne({ _id: riderId, userType: "Rider" });
   if (!rider) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Rider not found",
-    });
+    return next(new AppError("Rider not found", 404));
   }
   // Retrieve the list by listId
   const list = await List.findById(listId).populate("user");
   if (!list) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "List not found",
-    });
+    return next(new AppError("List not found", 404));
   }
 
   // Extract product names from the list
@@ -284,11 +228,9 @@ exports.requestRider = catchAsync(async (req, res, next) => {
     "categories.groceries.productName": productNames[0],
   });
   if (!shop || !shop.location || !shop.location) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Shop not found or invalid coordinates for the first product",
-    });
+    return next(
+      new AppError("Sshop not found or invalid coordinates/location", 404)
+    );
   }
   const startLocation = shop.location;
   console.log("rider start:", startLocation);
@@ -362,20 +304,12 @@ exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
   // Find the order by ID
   const order = await Order.findById(orderId);
   if (!order) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Order not found",
-    });
+    return next(new AppError("Order not found", 404));
   }
 
   // Check if the order is still pending
   if (order.orderStatus !== "pending") {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Order is not in pending status",
-    });
+    return next(new AppError("Order is not pending", 400));
   }
 
   // Handle the action
@@ -398,17 +332,9 @@ exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
     // Optionally, you can log the rejection or notify the customer about the rejection
     // sendNotificationToCustomer(order.customer, 'Your order has been rejected');
 
-    return res.status(200).json({
-      success: true,
-      status: 200,
-      message: "Order rejected",
-    });
+    return next(new AppError("Order rejected ", 200));
   } else {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Invalid action. Use 'accept' or 'reject'",
-    });
+    return next(new AppError("Invalid action use accept/reject ", 400));
   }
 });
 
@@ -418,40 +344,24 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
   const { orderId, updatedItems } = req.body;
 
   if (!orderId || !updatedItems || !Array.isArray(updatedItems)) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Invalid input data",
-    });
+    return next(new AppError("Invalid input data", 400));
   }
 
   const order = await Order.findById(orderId);
   if (!order) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Order not found",
-    });
+    return next(new AppError("Order not found", 404));
   }
   const riderDetails = await User.findById(order.driver).populate(
     "firstName image location"
   );
   if (!riderDetails) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Driver not found in the order",
-    });
+    return next(new AppError("Driver not found in the order", 404));
   }
-  console.log("mr rider details are here:", riderDetails);
+  // console.log("mr rider details are here:", riderDetails);
   // Fetch serviceFee and adminFee from settings
   const otherCharges = await Order.findOne();
   if (!otherCharges) {
-    return res.status(500).json({
-      success: false,
-      status: 500,
-      message: "otherCharges not found",
-    });
+    return next(new AppError("Other charges not found", 500));
   }
 
   const { serviceFee, tax, tip } = otherCharges;
@@ -515,40 +425,26 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
   const { orderId } = req.body;
 
   if (!orderId) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Invalid input data",
-    });
+    return next(new AppError("Invalid input data", 400));
   }
 
   const order = await Order.findById(orderId).populate("customer");
   if (!order) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Order not found",
-    });
+    return next(new AppError("Order not found", 404));
   }
 
   const riderDetails = await User.findById(order.driver).select(
     "firstName image location"
   );
   if (!riderDetails) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Driver not found in the order",
-    });
+    return next(new AppError("Driver not found in the order", 404));
   }
 
   const settings = await Order.findOne();
   if (!settings) {
-    return res.status(500).json({
-      success: false,
-      status: 500,
-      message: "Service fee and admin fee not found",
-    });
+    return next(
+      new AppError("Service fee, Admin fee or tax fee not found", 500)
+    );
   }
 
   const { serviceFee, tax } = settings;
@@ -628,20 +524,12 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
   const { orderId, tipAmount, paymentIntentId } = req.body;
 
   if (!orderId || tipAmount == null || !paymentIntentId) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Invalid input data",
-    });
+    return next(new AppError("Invalid input data", 400));
   }
 
   const order = await Order.findById(orderId);
   if (!order) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Order not found",
-    });
+    return next(new AppError("Order not found", 404));
   }
 
   // Update the tip amount and total payment
@@ -695,29 +583,17 @@ exports.payDeliveryCharges = async (req, res, next) => {
   console.log("here is the order:   ", orderId);
 
   if (!orderId) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Invalid input data",
-    });
+    return next(new AppError("Invalid input data", 400));
   }
 
   const order = await Order.findById(orderId);
   if (!order) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Order not found",
-    });
+    return next(new AppError("Order not found ", 404));
   }
 
   // Ensure delivery charges are present
   if (!order.deliveryCharges) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Delivery charges not found in the order",
-    });
+    return next(new AppError("Delivery charges not found in order", 400));
   }
 
   const deliveryCharges = parseFloat(order.deliveryCharges);

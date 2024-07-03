@@ -161,3 +161,33 @@ exports.getAllOnlineRiders = catchAsync(async (req, res, next) => {
     data: onlineRiders,
   });
 });
+
+/////-----Navigte Rider------///
+exports.updateLocation = async (req, res, next) => {
+  console.log("Update my location hitt>> ", req.body, req.user);
+
+  const users = await User.findByIdAndUpdate(req.body.user._id, {
+    location: req.body.location,
+  });
+
+  res
+    .to(req.body.user._id.toString())
+    .status(200)
+    .json({
+      status: 200,
+      success: true,
+      message: "updated",
+      data: { location: req.body.location },
+    });
+  if (req.body.to) {
+    res
+      .to(req.body.to.toString())
+      .status(200)
+      .json({
+        status: 200,
+        success: true,
+        message: "updated",
+        data: { location: req.body.location },
+      });
+  }
+};

@@ -94,6 +94,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    shopEarnings: {
+      type: Number,
+    },
     otp: {
       type: Number,
     },

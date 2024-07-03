@@ -1,5 +1,5 @@
 const lambdaQuery = require("./Utils/queryLambda");
-const orderRequest = require("./Controllers/orderDeliveryController");
+const riderRequest = require("./Controllers/riderController");
 const io = require("socket.io")();
 const { Req, Res } = require("./requester");
 const Message = require("./Models/message");
@@ -7,9 +7,9 @@ const User = require("./Models/userModel");
 
 const OnlineRider = require("./Models/onlineRider");
 
-const queries = {};
-const lastResult = {};
-let watched = false;
+// const queries = {};
+// const lastResult = {};
+// let watched = false;
 
 const process = (evName, socket, io, f) => (data) => {
   const res = new Res(socket, evName, io);
@@ -275,34 +275,7 @@ io.sockets.on("connect", async (socket) => {
       }
     })
   );
-  socket.on(
-    "event",
-    process("evented", socket, io, async (req, res) => {
-      return res.json({
-        a: 1,
-      });
-    })
-  );
 
-  socket.on("user-enter", (data) => {
-    console.log(data.body);
-    socket.join(data.body.user._id);
-  });
-
-  socket.on("user-leave", (data) => socket.leave(data.body.user._id));
-
-  socket.on(
-    "createRideRequest",
-    process("createdRideRequest", socket, io, orderRequest.store)
-  );
-  socket.on(
-    "calculateFare",
-    process("calculatedFare", socket, io, orderRequest.calculateFare)
-  );
-  socket.on(
-    "findnearbyDrivers",
-    process("nearByDrivers", socket, io, orderRequest.nearbyDrivers)
-  );
   socket.on(
     "updateMyLocation",
     process("updatedLocation", socket, io, orderRequest.updateLocation)

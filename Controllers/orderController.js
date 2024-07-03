@@ -14,10 +14,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
   );
 
   if (!cart || cart.products.length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Your cart is empty",
-    });
+    return next(new AppError("Your cart is empty", 400));
   }
 
   const shop = await Shop.findById(cart.products[0].product.shop);
@@ -91,11 +88,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     .populate("driver", "name");
 
   if (!order) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Order not found",
-    });
+    return next(new AppError("Order not found", 404));
   }
 
   const productDetails = [];
@@ -105,11 +98,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   for (let item of order.products) {
     const shop = item.shop;
     if (!shop) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: "Shop not found",
-      });
+      return next(new AppError("Shop not found", 404));
     }
 
     // Find the corresponding category within the shop
@@ -190,20 +179,12 @@ exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
   // Find the order by ID
   const order = await Order.findById(orderId);
   if (!order) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Order not found",
-    });
+    return next(new AppError("Order not found", 404));
   }
 
   // Check if the order is still pending
   if (order.orderStatus !== "pending") {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Order is not in pending status",
-    });
+    return next(new AppError("Order is not in pending stat ", 400));
   }
 
   // Handle the action
@@ -231,10 +212,6 @@ exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
       message: "Order rejected",
     });
   } else {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Invalid action. Use 'accept' or 'reject'",
-    });
+    return next(new AppError("Invalid action, use 'accept' or 'reject'", 400));
   }
 });

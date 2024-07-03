@@ -21,6 +21,7 @@ exports.createPrivacy = catchAsync(async (req, res, next) => {
 
   res.status(201).json({
     success: true,
+    status: 201,
     privacy,
   });
 });
