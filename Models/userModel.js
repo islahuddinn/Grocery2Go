@@ -94,6 +94,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    bankAccountInfo: {
+      bankAccountId: {
+        type: String,
+      },
+      isOnboardingCompleted: {
+        type: Boolean,
+        default: false,
+      },
+    },
     shopEarnings: {
       type: Number,
     },

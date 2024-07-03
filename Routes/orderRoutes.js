@@ -7,6 +7,7 @@ router.use(authController.protect);
 router.post("/create", orderController.createOrder);
 router.get("/get-all-orders", orderController.getUserOrders);
 router.get("/order-details", orderController.getOrderDetails);
+// router.get("/shop-stats", orderController.getOrderDetails);
 router.post(
   "/accept-reject-order",
   //   authController.restrictTo("owner"),

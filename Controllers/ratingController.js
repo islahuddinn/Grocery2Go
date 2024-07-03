@@ -57,7 +57,7 @@ exports.updateRating = catchAsync(async (req, res, next) => {
 
 /////-----Get rating for user -----//////
 exports.getRatingsForUser = catchAsync(async (req, res, next) => {
-  const { userId } = req.params;
+  const userId = req.params.id;
 
   if (!userId) {
     return next(new AppError("Invalid input", 400));
@@ -74,7 +74,8 @@ exports.getRatingsForUser = catchAsync(async (req, res, next) => {
 });
 ///////------Get average rating for user ---- /////
 exports.getAverageRatingForUser = catchAsync(async (req, res, next) => {
-  const { userId } = req.params;
+  const userId = req.params.id;
+  console.log(userId, "here is the user id");
 
   if (!userId) {
     return next(new AppError("Invalid input", 400));

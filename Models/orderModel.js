@@ -125,6 +125,9 @@ const orderSchema = new mongoose.Schema(
     riderEarnings: {
       type: Number,
     },
+    shopEarnings: {
+      type: Number,
+    },
   },
   { timestamps: true }
 );

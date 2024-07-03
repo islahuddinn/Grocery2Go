@@ -14,6 +14,7 @@ const {
   calculateExpectedDeliveryTime,
 } = require("../Utils/helper");
 const message = require("../Models/message");
+const AppError = require("../Utils/appError");
 // const { io } = require("../sockets");
 
 exports.addToCart = catchAsync(async (req, res, next) => {
@@ -24,11 +25,7 @@ exports.addToCart = catchAsync(async (req, res, next) => {
   const shop = await Shop.findOne({ "categories.groceries._id": productId });
 
   if (!shop) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Shop or product not found",
-    });
+    return next(new AppError("Shop or Product not found ", 404));
   }
 
   const category = shop.categories.find((cat) =>
@@ -36,30 +33,18 @@ exports.addToCart = catchAsync(async (req, res, next) => {
   );
 
   if (!category) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Category not found in shop",
-    });
+    return next(new AppError("Category not found in shop ", 404));
   }
 
   const product = category.groceries.id(productId);
 
   if (!product) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Product not found in category",
-    });
+    return next(new AppError("Products not found in category", 404));
   }
 
   // Check for stock availability
   if (product.quantity < quantity) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Insufficient stock",
-    });
+    return next(new AppError("Insufficient stock", 400));
   }
 
   // Update the cart
@@ -138,11 +123,7 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
   const cart = await Cart.findOne({ user: req.user.id });
 
   if (!cart) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Cart not found",
-    });
+    return next(new AppError("Cart not found", 404));
   }
 
   const productIndex = cart.products.findIndex(
@@ -150,11 +131,7 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
   );
 
   if (productIndex === -1) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Product not found in cart",
-    });
+    return next(new AppError("Product not found in cart", 404));
   }
 
   const removedProduct = cart.products[productIndex];
@@ -166,29 +143,17 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
   // Find the shop, category, and product to update the quantity
   const shop = await Shop.findById(removedProduct.shop);
   if (!shop) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Shop not found",
-    });
+    return next(new AppError("Shop not found", 404));
   }
 
   const category = shop.categories.id(removedProduct.category);
   if (!category) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Category not found in shop",
-    });
+    return next(new AppError("Category not found in shop", 404));
   }
 
   const product = category.groceries.id(removedProduct.grocery);
   if (!product) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Product not found in category",
-    });
+    return next(new AppError("Product not found in category", 404));
   }
 
   // Update product quantity in shop
@@ -330,11 +295,7 @@ exports.updateCart = catchAsync(async (req, res, next) => {
   const cart = await Cart.findOne({ user: req.user.id });
 
   if (!cart) {
-    return res.status(404).json({
-      success: false,
-      status: 400,
-      message: "Cart not found",
-    });
+    return next(new AppError("Cart not found", 400));
   }
 
   // Find the product in the cart
@@ -343,11 +304,7 @@ exports.updateCart = catchAsync(async (req, res, next) => {
   );
 
   if (productIndex === -1) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Product not found in cart",
-    });
+    return next(new AppError("Product not found in cart", 404));
   }
 
   // Update the product details
@@ -475,19 +432,11 @@ exports.checkout = catchAsync(async (req, res, next) => {
   // Find user's cart
   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
   if (!deliveryLocation) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Please select your address",
-    });
+    return next(new AppError("Please provide delivery address", 404));
   }
 
   if (!cart) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Cart not found",
-    });
+    return next(new AppError("Cart not found", 404));
   }
 
   // Calculate total price of the products and gather product details

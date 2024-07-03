@@ -1,6 +1,7 @@
 const express = require("express");
-const userControler = require("../Controllers/userController");
+const userController = require("../Controllers/userController");
 const authController = require("../Controllers/authController");
+const { createBankAccount } = require("../Utils/stripe");
 const catchAsync = require("../Utils/catchAsync");
 // const fileUpload = require("express-fileupload");
 // const { uploadFile } = require("../Utils/s3-uploader");
@@ -33,38 +34,43 @@ router.post(
 // protecting all routes ussing protect midleware
 router.use(authController.protect);
 router.patch("/updateMyPassword", authController.updatePassword);
-router.get("/mynotifications", userControler.mynotifications);
+router.get("/mynotifications", userController.mynotifications);
 router.post("/logout", authController.logout);
+router.get("/stripe/add-bank", userController.addBankAccount);
+router.get("/stripe/verify-onboarding", userController.verifyStripeOnboarding);
+router.get("/stripe/get-onboarding-link", userController.getLoginLink);
+router.get("/stripe/get-account-balance", userController.getAccountBalance);
+router.get("/stripe/get-transactions", userController.getTransactions);
 // router.post(
 //   "/send-notification",
 //   pushNotificationController.sendPushNotification
 // );
 
-router.get("/me", userControler.getMe, userControler.getUser);
+router.get("/me", userController.getMe, userController.getUser);
 router.patch(
   "/update-user-profile",
   authController.restrictTo("Customer"),
-  userControler.updateMe
+  userController.updateMe
 );
 router.patch(
   "/update-owner-profile",
   authController.restrictTo("Owner"),
-  userControler.updateMe
+  userController.updateMe
 );
 router.patch(
   "/update-rider-profile",
   authController.restrictTo("Rider"),
-  userControler.updateMe
+  userController.updateMe
 );
-router.route("/getAllUsers").get(userControler.getAllUsers);
+router.route("/getAllUsers").get(userController.getAllUsers);
 
 // router.use(authController.restrictTo("admin"));
 // router.route("/").post(userControler.createUser);
 
 router
   .route("/:id")
-  .get(userControler.getUser)
-  .patch(userControler.updateUser)
-  .delete(userControler.deleteUser);
+  .get(userController.getUser)
+  .patch(userController.updateUser)
+  .delete(userController.deleteUser);
 
 module.exports = router;

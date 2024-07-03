@@ -278,52 +278,7 @@ io.sockets.on("connect", async (socket) => {
 
   socket.on(
     "updateMyLocation",
-    process("updatedLocation", socket, io, orderRequest.updateLocation)
-  );
-  socket.on("unsub", process("unsubed", socket, io, orderRequest.unsub));
-
-  // ====== Driver Side =======
-  socket.on(
-    "getNearByRequests",
-    process("nearByRequests", socket, io, orderRequest.nearByRequests)
-  );
-  socket.on(
-    "enroutNearByRequests",
-    process(
-      "enroutedNearByRequests",
-      socket,
-      io,
-      orderRequest.enroutedNearByRequests
-    )
-  );
-
-  socket.on(
-    "startRide",
-    process("rideStarted", socket, io, orderRequest.startRide)
-  );
-  socket.on("arrive", process("arrived", socket, io, orderRequest.arrived));
-  socket.on("endRide", process("rideEnded", socket, io, orderRequest.rideEnd));
-  socket.on(
-    "acceptRequest",
-    process("acceptedRequest", socket, io, orderRequest.acceptRequest)
-  );
-
-  socket.on(
-    "ratingRefresh",
-    process("ratingRefreshed", socket, io, orderRequest.ratingRefresh)
-  );
-
-  socket.on(
-    "cancelRequest",
-    process("canceledRequest", socket, io, orderRequest.cancelRequest)
-  );
-  socket.on(
-    "cancelPendingRequest",
-    process("canceledPendingRequest", socket, io, orderRequest.cancelRequest)
-  );
-  socket.on(
-    "amountReceive",
-    process("amountReceived", socket, io, orderRequest.paymentReceived)
+    process("updatedLocation", socket, io, riderRequest.updateLocation)
   );
 });
 

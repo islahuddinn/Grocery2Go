@@ -597,15 +597,16 @@ exports.payDeliveryCharges = async (req, res, next) => {
   }
 
   const deliveryCharges = parseFloat(order.deliveryCharges);
-  const deliveryChargesAmount = Math.round(deliveryCharges * 100); // Stripe expects the amount in cents
+  const deliveryChargesAmount = Math.round(deliveryCharges * 100);
 
   // Create a new payment intent for the delivery charges
   let paymentIntent;
   try {
     paymentIntent = await stripe.paymentIntents.create({
       amount: deliveryChargesAmount,
-      currency: "usd", // Adjust the currency as necessary
+      currency: "usd",
       metadata: { orderId: order._id.toString(), type: "deliveryCharges" },
+      // accountId:{rider.bankAccountId}
     });
   } catch (error) {
     return res.status(500).json({
@@ -635,6 +636,55 @@ exports.payDeliveryCharges = async (req, res, next) => {
     },
   });
 };
+
+/////-----Mark the order completed------////
+
+exports.markOrderAsCompleted = catchAsync(async (req, res, next) => {
+  const { orderId, paymentIntentId } = req.body;
+
+  // Validate input
+  if (!orderId || !paymentIntentId) {
+    return next(new AppError("Invalid input", 400));
+  }
+
+  // Find the order by ID
+  const order = await Order.findById(orderId);
+  if (!order) {
+    return next(new AppError("Order not found", 404));
+  }
+
+  // Check if the order status is already delivered
+  if (order.orderStatus === "delivered") {
+    return next(new AppError("Order is allready delivered", 400));
+  }
+
+  // Retrieve the payment intent from Stripe
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  if (!paymentIntent) {
+    return next(new AppError("Payment intent not found", 404));
+  }
+
+  // Check if the payment intent status is succeeded
+  if (paymentIntent.status !== "succeeded") {
+    return next(new AppError("Payment intent is not successfull", 400));
+  }
+
+  // Update the order statuses
+  order.paymentStatus = "paid";
+  order.deliveryPaymentStatus = "paid";
+  order.orderStatus = "delivered";
+
+  // Save the updated order
+  await order.save();
+
+  // Respond with success
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Order marked as completed successfully",
+    order,
+  });
+});
 
 exports.getAllLists = Factory.getAll(List);
 exports.updateList = Factory.updateOne(List);

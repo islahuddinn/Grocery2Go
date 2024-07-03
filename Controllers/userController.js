@@ -7,6 +7,12 @@ const Notification = require("../Models/notificationModel");
 const paginateArray = require("../Utils/paginationHelper");
 const RefreshToken = require("../Models/refreshTokenModel");
 const { loginChecks } = require("../Utils/login-checks");
+const {
+  createBankAccount,
+  verifyOnboarding,
+  generateLoginLink,
+  createStripeCustomer,
+} = require("../Utils/stripe");
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
   Object.keys(obj).forEach((el) => {
@@ -81,6 +87,112 @@ exports.getUser = catchAsync(async (req, res, next) => {
     status: 200,
     success: true,
     user,
+  });
+});
+
+exports.addBankAccount = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return next(new CustomError("No User found!", 404));
+  }
+  const accountUrl = await createBankAccount(user);
+  if (!accountUrl) {
+    return next(new CustomError("Could not generated Account URL", 400));
+  }
+  return res.status(200).json({
+    status: "success",
+    statusCode: 200,
+    message: "Account created and account link generated",
+    data: {
+      user,
+      accountUrl,
+    },
+  });
+});
+
+exports.verifyStripeOnboarding = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return next(new CustomError("Could not find user", 404));
+  }
+  if (!user.bankAccountInfo.bankAccountId) {
+    return next(
+      new CustomError(
+        "You do not have any bank account added. First add a bank account",
+        400
+      )
+    );
+  }
+  const link = await verifyOnboarding(user);
+  if (!link && !user.bankAccountInfo.isOnboardingCompleted) {
+    const accountUrl = await createBankAccount(user);
+    if (!accountUrl) {
+      return next(new CustomError("Could not generate account URL", 400));
+    }
+    return res.status(200).json({
+      status: "success",
+      statusCode: 200,
+      message:
+        "Could not verify your details. Please refer to the link and submit your information again!",
+      data: {
+        user,
+        accountUrl,
+      },
+    });
+  }
+  res.status(200).json({
+    status: "success",
+    statusCode: 200,
+    message: "ACCOUNT VERIFIED. Your dashboard login link is generated",
+    data: {
+      user,
+      dashboardLink: link,
+    },
+  });
+});
+exports.getLoginLink = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return next(new CustomError("Could not find user", 404));
+  }
+  const loginLink = await generateLoginLink(user);
+  if (!loginLink) {
+    return next(new CustomError("Could not generate login link", 400));
+  }
+  res.status(200).json({
+    status: "success",
+    statusCode: 200,
+    message: "Your dashboard link generated successfully",
+    data: {
+      user,
+      loginLink,
+    },
+  });
+});
+exports.getAccountBalance = catchAsync(async (req, res, next) => {
+  const balance = await retrieveBalance(req.user.bankAccountInfo.bankAccountId);
+  console.log(balance);
+  if (!balance) {
+    return next(new CustomError("Error retrieving account balance", 400));
+  }
+  res.status(200).json({
+    status: "success",
+    statusCode: 200,
+    message: "Account Balance Fetched successfully",
+    balance,
+  });
+});
+exports.getTransactions = catchAsync(async (req, res, next) => {
+  const transactions = await retrieveTransactions(req.user.customerId);
+  console.log(transactions);
+  if (!transactions) {
+    return next(new CustomError("Could not fetch transactions"));
+  }
+  res.status(200).json({
+    status: "success",
+    statusCode: 200,
+    message: "Transactions fetched successfully",
+    transactions,
   });
 });
 exports.getAllUsers = factory.getAll(User);
