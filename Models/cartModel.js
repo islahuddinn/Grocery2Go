@@ -41,9 +41,21 @@ const cartSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    serviceFee: {
+      type: Number,
+      default: 1,
+    },
     averageSpeedKmPerHour: {
       type: Number,
       default: 30,
+    },
+    cartPaymentStatus: {
+      type: String,
+      enum: ["paid", "unpaid"],
+      default: "unpaid",
+    },
+    deliveryCharges: {
+      type: Number,
     },
   },
   { timestamps: true }

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const catchAsync = require("../Utils/catchAsync");
 const Cart = require("../Models/cartModel");
 const Factory = require("../Controllers/handleFactory");
@@ -19,27 +20,36 @@ const AppError = require("../Utils/appError");
 
 exports.addToCart = catchAsync(async (req, res, next) => {
   const { productId, quantity } = req.body;
-  let cart = await Cart.findOne({ user: req.user.id });
+  const userId = req.user.id;
+
+  if (!productId || !quantity) {
+    return next(new AppError("Product ID and quantity are required", 400));
+  }
+
+  const productIdObject = new mongoose.Types.ObjectId(productId);
+  let cart = await Cart.findOne({ user: userId });
 
   // Search for the product in all shops and categories
-  const shop = await Shop.findOne({ "categories.groceries._id": productId });
+  const shop = await Shop.findOne({
+    "categories.groceries._id": productIdObject,
+  });
 
   if (!shop) {
-    return next(new AppError("Shop or Product not found ", 404));
+    return next(new AppError("Shop or Product not found", 404));
   }
 
   const category = shop.categories.find((cat) =>
-    cat.groceries.some((grocery) => grocery._id.toString() === productId)
+    cat.groceries.some((grocery) => grocery._id.equals(productIdObject))
   );
 
   if (!category) {
-    return next(new AppError("Category not found in shop ", 404));
+    return next(new AppError("Category not found in shop", 404));
   }
 
-  const product = category.groceries.id(productId);
+  const product = category.groceries.id(productIdObject);
 
   if (!product) {
-    return next(new AppError("Products not found in category", 404));
+    return next(new AppError("Product not found in category", 404));
   }
 
   // Check for stock availability
@@ -49,8 +59,8 @@ exports.addToCart = catchAsync(async (req, res, next) => {
 
   // Update the cart
   if (cart) {
-    const existingProductIndex = cart.products.findIndex(
-      (p) => p.product.toString() === productId
+    const existingProductIndex = cart.products.findIndex((p) =>
+      p.grocery.equals(productIdObject)
     );
     if (existingProductIndex > -1) {
       // If the product already exists in the cart, add the quantity
@@ -58,7 +68,7 @@ exports.addToCart = catchAsync(async (req, res, next) => {
     } else {
       // If it's a new product, add it to the cart
       cart.products.push({
-        product: productId,
+        product: productIdObject,
         quantity: Number(quantity),
         shop: shop._id,
         category: category._id,
@@ -68,10 +78,10 @@ exports.addToCart = catchAsync(async (req, res, next) => {
   } else {
     // If the cart doesn't exist, create a new one
     cart = new Cart({
-      user: req.user.id,
+      user: userId,
       products: [
         {
-          product: productId,
+          product: productIdObject,
           quantity: Number(quantity),
           shop: shop._id,
           category: category._id,
@@ -120,14 +130,21 @@ exports.addToCart = catchAsync(async (req, res, next) => {
 
 exports.removeFromCart = catchAsync(async (req, res, next) => {
   const { productId } = req.body;
-  const cart = await Cart.findOne({ user: req.user.id });
+  const userId = req.user.id;
+
+  if (!productId) {
+    return next(new AppError("Product ID is required", 400));
+  }
+
+  const productIdObject = new mongoose.Types.ObjectId(productId);
+  const cart = await Cart.findOne({ user: userId });
 
   if (!cart) {
     return next(new AppError("Cart not found", 404));
   }
 
-  const productIndex = cart.products.findIndex(
-    (p) => p.product.toString() === productId
+  const productIndex = cart.products.findIndex((p) =>
+    p.grocery.equals(productIdObject)
   );
 
   if (productIndex === -1) {
@@ -201,12 +218,183 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getCart = async (req, res, next) => {
+// exports.getCart = async (req, res, next) => {
+//   try {
+//     // Find the cart for the current user
+//     const cart = await Cart.findOne({ user: req.user.id }).populate(
+//       "products.product"
+//     );
+
+//     if (!cart) {
+//       return res.status(200).json({
+//         success: true,
+//         status: 200,
+//         data: {
+//           cart: null,
+//           totalProducts: 0,
+//           totalPrice: 0,
+//         },
+//       });
+//     }
+
+//     // Calculate total products and total price
+//     let totalProducts = 0;
+//     let totalPrice = 0;
+
+//     // Prepare cart products with details
+//     const cartProducts = await Promise.all(
+//       cart.products.map(async (cartItem) => {
+//         const product = cartItem.product;
+//         const shop = await Shop.findById(cartItem.shop);
+
+//         if (!shop) {
+//           throw new Error("Shop not found");
+//         }
+
+//         const category = shop.categories.id(cartItem.category);
+
+//         if (!category) {
+//           throw new Error("Category not found in shop");
+//         }
+
+//         const grocery = category.groceries.id(cartItem.grocery);
+
+//         if (!grocery) {
+//           throw new Error("Product not found in category");
+//         }
+
+//         // Calculate total price for the current product
+//         const productTotalPrice = grocery.price * cartItem.quantity;
+
+//         // Increment total products and total price
+//         totalProducts += cartItem.quantity;
+//         totalPrice += productTotalPrice;
+
+//         return {
+//           productId: grocery._id,
+//           productName: grocery.productName,
+//           volume: grocery.volume,
+//           price: grocery.price,
+//           quantity: cartItem.quantity,
+//           totalPrice: productTotalPrice,
+//           productImages: grocery.productImages,
+//         };
+//       })
+//     );
+
+//     // Return response with cart details
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       data: {
+//         cart: cartProducts,
+//         totalQuantity: totalProducts,
+//         totalPrice,
+//       },
+//     });
+//   } catch (error) {
+//     // Handle errors
+//     console.error("Error in getCart:", error.message);
+//     res.status(500).json({
+//       success: false,
+//       status: 500,
+//       message: error.message || "Internal Server Error",
+//     });
+//   }
+// };
+
+// exports.getCart = catchAsync(async (req, res, next) => {
+//   try {
+//     const userId = req.user.id;
+
+//     // Find the cart for the current user
+//     const cart = await Cart.findOne({ user: userId }).populate(
+//       "products.product"
+//     );
+
+//     if (!cart) {
+//       return res.status(200).json({
+//         success: true,
+//         status: 200,
+//         data: {
+//           cart: null,
+//           totalProducts: 0,
+//           totalPrice: 0,
+//         },
+//       });
+//     }
+
+//     // Calculate total products and total price
+//     let totalProducts = 0;
+//     let totalPrice = 0;
+
+//     // Prepare cart products with details
+//     const cartProducts = await Promise.all(
+//       cart.products.map(async (cartItem) => {
+//         const shop = await Shop.findById(cartItem.shop);
+
+//         if (!shop) {
+//           throw new Error("Shop not found");
+//         }
+
+//         const category = shop.categories.id(cartItem.category);
+
+//         if (!category) {
+//           throw new Error("Category not found in shop");
+//         }
+
+//         const grocery = category.groceries.id(cartItem.grocery);
+
+//         if (!grocery) {
+//           throw new Error("Product not found in category");
+//         }
+
+//         // Calculate total price for the current product
+//         const productTotalPrice = grocery.price * cartItem.quantity;
+
+//         // Increment total products and total price
+//         totalProducts += cartItem.quantity;
+//         totalPrice += productTotalPrice;
+
+//         return {
+//           productId: grocery._id,
+//           productName: grocery.productName,
+//           volume: grocery.volume,
+//           price: grocery.price,
+//           quantity: cartItem.quantity,
+//           totalPrice: productTotalPrice,
+//           productImages: grocery.productImages,
+//         };
+//       })
+//     );
+
+//     // Return response with cart details
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       data: {
+//         cart: cartProducts,
+//         totalQuantity: totalProducts,
+//         totalPrice,
+//       },
+//     });
+//   } catch (error) {
+//     // Handle errors
+//     console.error("Error in getCart:", error.message);
+//     res.status(500).json({
+//       success: false,
+//       status: 500,
+//       message: error.message || "Internal Server Error",
+//     });
+//   }
+// });
+
+exports.getCart = catchAsync(async (req, res, next) => {
   try {
+    const userId = req.user.id;
+
     // Find the cart for the current user
-    const cart = await Cart.findOne({ user: req.user.id }).populate(
-      "products.product"
-    );
+    const cart = await Cart.findOne({ user: userId });
 
     if (!cart) {
       return res.status(200).json({
@@ -227,7 +415,6 @@ exports.getCart = async (req, res, next) => {
     // Prepare cart products with details
     const cartProducts = await Promise.all(
       cart.products.map(async (cartItem) => {
-        const product = cartItem.product;
         const shop = await Shop.findById(cartItem.shop);
 
         if (!shop) {
@@ -284,15 +471,16 @@ exports.getCart = async (req, res, next) => {
       message: error.message || "Internal Server Error",
     });
   }
-};
+});
 
 /////----upfate the cart------////
+
 exports.updateCart = catchAsync(async (req, res, next) => {
-  console.log("route hitted");
   const { productId, quantity, volume } = req.body;
+  const userId = req.user.id;
 
   // Find the cart for the logged-in user
-  const cart = await Cart.findOne({ user: req.user.id });
+  const cart = await Cart.findOne({ user: userId });
 
   if (!cart) {
     return next(new AppError("Cart not found", 400));
@@ -300,7 +488,7 @@ exports.updateCart = catchAsync(async (req, res, next) => {
 
   // Find the product in the cart
   const productIndex = cart.products.findIndex(
-    (item) => item.product.toString() === productId
+    (item) => item.grocery.toString() === productId
   );
 
   if (productIndex === -1) {
@@ -318,11 +506,56 @@ exports.updateCart = catchAsync(async (req, res, next) => {
   // Save the updated cart
   await cart.save();
 
+  // Manually populate the updated cart products with details
+  const updatedCartProducts = await Promise.all(
+    cart.products.map(async (cartItem) => {
+      const shop = await Shop.findById(cartItem.shop);
+
+      if (!shop) {
+        throw new Error("Shop not found");
+      }
+
+      const category = shop.categories.id(cartItem.category);
+
+      if (!category) {
+        throw new Error("Category not found in shop");
+      }
+
+      const grocery = category.groceries.id(cartItem.grocery);
+
+      if (!grocery) {
+        throw new Error("Product not found in category");
+      }
+
+      // Calculate total price for the current product
+      const productTotalPrice = grocery.price * cartItem.quantity;
+
+      return {
+        productId: grocery._id,
+        productName: grocery.productName,
+        volume: grocery.volume,
+        price: grocery.price,
+        quantity: cartItem.quantity,
+        totalPrice: productTotalPrice,
+        productImages: grocery.productImages,
+      };
+    })
+  );
+
+  // Calculate total price of all products in cart
+  const totalCartPrice = updatedCartProducts.reduce(
+    (acc, curr) => acc + curr.totalPrice,
+    0
+  );
+
   res.status(200).json({
     success: true,
     status: 200,
     message: "Cart updated successfully",
-    data: cart,
+    data: {
+      cart: updatedCartProducts,
+      totalPrice: totalCartPrice,
+    },
   });
 });
 
@@ -330,100 +563,6 @@ exports.updateCart = catchAsync(async (req, res, next) => {
 exports.deleteCart = Factory.deleteOne(Cart);
 
 ///////----Checkout------/////
-
-// exports.checkout = catchAsync(async (req, res, next) => {
-//   const { user } = req;
-//   const { location } = req.body;
-
-//   // Find user's cart
-//   const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
-//   if (!location) {
-//     return res.status(404).json({
-//       success: false,
-//       status: 404,
-//       message: "Please select your address",
-//     });
-//   }
-
-//   if (!cart) {
-//     return res.status(404).json({
-//       success: false,
-//       status: 404,
-//       message: "Cart not found",
-//     });
-//   }
-
-//   // Calculate total price of the products
-//   let totalPrice = 0;
-//   for (let item of cart.products) {
-//     const shop = await Shop.findById(item.shop);
-
-//     if (!shop) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Shop with ID ${item.shop} not found`,
-//       });
-//     }
-
-//     const category = shop.categories.id(item.category);
-//     if (!category) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Category with ID ${item.category} not found in shop ${shop._id}`,
-//       });
-//     }
-
-//     const grocery = category.groceries.id(item.grocery);
-//     if (!grocery) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
-//       });
-//     }
-
-//     totalPrice += grocery.price * item.quantity;
-//   }
-//   // Calculate admin fee and rider fee
-//   const adminFee = totalPrice * cart.adminFeePercentage;
-//   const riderFee =
-//     cart.riderFeePerKm * calculateDistance(cart.products, location);
-//   const totalAmount = totalPrice + adminFee + riderFee;
-//   // Calculate expected delivery time
-//   const expectedDeliveryTime = calculateExpectedDeliveryTime(
-//     cart.products,
-//     location,
-//     cart.averageSpeedKmPerHour
-//   );
-
-//   // Create payment intent with Stripe
-//   const paymentIntent = await stripe.paymentIntents.create({
-//     amount: Math.round(totalAmount * 100),
-//     currency: "usd",
-//     description: "Products Payment",
-//     automatic_payment_methods: { enabled: true },
-//     metadata: { userId: user._id.toString() },
-//   });
-
-//   // Return order details
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     totalProducts: cart,
-//     orderSummary: {
-//       totalPrice,
-//       adminFee,
-//       riderFee,
-//       totalAmount,
-//       expectedDeliveryTime,
-//       paymentIntent: paymentIntent.id,
-//     },
-//     DeliveryAddress: location,
-//     // clientSecret: paymentIntent.client_secret,
-//   });
-// });
 
 exports.checkout = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -485,10 +624,14 @@ exports.checkout = catchAsync(async (req, res, next) => {
 
   // Calculate admin fee and rider fee
   const adminFee = totalPrice * cart.adminFeePercentage;
-  const riderFee =
+  console.log(adminFee, "here is the admin fee details");
+  const deliveryCharges =
     cart.riderFeePerKm * calculateDistance(cart.products, deliveryLocation);
-  const totalAmount = totalPrice + adminFee + riderFee;
+  console.log(riderFee, "here is the rider fee details");
 
+  const totalAmount = totalPrice + adminFee + cart.serviceFee;
+  cart.deliveryCharges = deliveryCharges;
+  await cart.save();
   // Calculate expected delivery time
   const expectedDeliveryTime = calculateExpectedDeliveryTime(
     cart.products,
@@ -520,6 +663,7 @@ exports.checkout = catchAsync(async (req, res, next) => {
       paymentIntent: paymentIntent.id,
     },
     DeliveryAddress: deliveryLocation,
+    deliveryCharges,
   });
 });
 
@@ -558,9 +702,9 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const productDetails = [];
   let totalItems = 0;
   let itemsTotal = 0;
-  const serviceFee = 0.5; // Example service fee
-  const adminFee = 0.1; // Example admin fee
-  const deliveryCharges = 2.0; // Example delivery charge
+  const serviceFee = cart.serviceFee;
+  const adminFee = cart.adminFeePercentage;
+  const deliveryCharges = cart.deliveryCharges;
   let startLocation = null;
   let shopDetails = [];
 
