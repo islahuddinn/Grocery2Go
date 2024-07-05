@@ -4,14 +4,14 @@ const orderController = require("../Controllers/orderController");
 const router = express.Router();
 
 router.use(authController.protect);
-router.post("/create", orderController.createOrder);
+// router.post("/create", orderController.createOrder);
 router.get("/get-all-orders", orderController.getUserOrders);
 router.get("/order-details", orderController.getOrderDetails);
 // router.get("/shop-stats", orderController.getOrderDetails);
 router.post(
   "/accept-reject-order",
   //   authController.restrictTo("owner"),
-  orderController.acceptOrRejectOrder
+  orderController.acceptOrRejectOrderByOwner
 );
 
 // router.get("/get-all-favorite-products", shopController.getAllFavoriteProducts);

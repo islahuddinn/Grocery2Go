@@ -1,5 +1,5 @@
 const Shop = require("../Models/shopsModel");
-const Product = require("../Models/productsModel");
+// const Product = require("../Models/productsModel");
 const AppError = require("../Utils/appError");
 const catchAsync = require("../Utils/catchAsync");
 const factory = require("./handleFactory");
@@ -111,11 +111,7 @@ exports.addProduct = catchAsync(async (req, res, next) => {
   const shop = await Shop.findById(shopId);
 
   if (!shop) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Shop not found",
-    });
+    return next(new AppError("Shop not found", 404));
   }
 
   let category = shop.categories.find(
@@ -158,11 +154,7 @@ exports.toggleProductFavorite = catchAsync(async (req, res, next) => {
   if (favorite) {
     await Favorite.findOneAndDelete({ user: userId, product: productId });
 
-    return res.status(200).json({
-      success: true,
-      status: 200,
-      message: "Product unmarked as favorite",
-    });
+    return next(new AppError("Product unmarked as favorite", 200));
   } else {
     // Mark as favorite
     const newFavorite = await Favorite.create({
@@ -186,11 +178,7 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
   });
 
   if (!favorites || favorites.length === 0) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "No favorite products found",
-    });
+    return next(new AppError("No favorite product found", 404));
   }
 
   // Retrieve product details
@@ -249,11 +237,7 @@ exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
   const shop = await Shop.findById(shopId);
 
   if (!shop) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Shop not found",
-    });
+    return next(new AppError("Shop not found", 404));
   }
 
   let productFound = false;
@@ -270,11 +254,7 @@ exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
   }
 
   if (!productFound) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Product not found in shop",
-    });
+    return next(new AppError("Product not found in shop", 404));
   }
 
   await shop.save();
@@ -294,11 +274,7 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
   const shop = await Shop.findById(shopId);
 
   if (!shop) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Shop not found",
-    });
+    return next(new AppError("Shop not found", 404));
   }
 
   let productFound = false;
@@ -313,11 +289,7 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
   }
 
   if (!productFound) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "Product not found in shop",
-    });
+    return next(new AppError("Product not found in shop", 404));
   }
 
   await shop.save();

@@ -6,7 +6,10 @@ const Shop = require("../Models/shopsModel");
 const Order = require("../Models/orderModel");
 const User = require("../Models/userModel");
 const Notification = require("../Models/notificationModel");
-const { SendNotification } = require("../Utils/notificationSender");
+const {
+  SendNotification,
+  SendNotificationMultiCast,
+} = require("../Utils/notificationSender");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const geolib = require("geolib");
@@ -582,7 +585,10 @@ exports.checkout = catchAsync(async (req, res, next) => {
   let totalPrice = 0;
   const productDetails = [];
   for (let item of cart.products) {
-    const shop = await Shop.findById(item.shop);
+    const shop = await Shop.findById(item.shop).populate({
+      path: "owner",
+      select: "bankAccountInfo",
+    });
 
     if (!shop) {
       return res.status(404).json({
@@ -611,7 +617,8 @@ exports.checkout = catchAsync(async (req, res, next) => {
     }
 
     totalPrice += grocery.price * item.quantity;
-
+    var ownerBank = shop.owner.bankAccountInfo.bankAccountId;
+    console.log(ownerBank, "here is the bank account id of the owner");
     // Collect product details
     productDetails.push({
       productName: grocery.productName,
@@ -627,7 +634,7 @@ exports.checkout = catchAsync(async (req, res, next) => {
   console.log(adminFee, "here is the admin fee details");
   const deliveryCharges =
     cart.riderFeePerKm * calculateDistance(cart.products, deliveryLocation);
-  console.log(riderFee, "here is the rider fee details");
+  console.log(deliveryCharges, "here is the rider fee details");
 
   const totalAmount = totalPrice + adminFee + cart.serviceFee;
   cart.deliveryCharges = deliveryCharges;
@@ -638,16 +645,29 @@ exports.checkout = catchAsync(async (req, res, next) => {
     deliveryLocation,
     cart.averageSpeedKmPerHour
   );
-
-  // Create payment intent with Stripe
+  //// Create payment intent with Stripe
+  // const paymentIntent = await stripe.paymentIntents.create(
+  //   {
+  //     amount: Math.round(totalAmount * 100),
+  //     currency: "usd",
+  //     description: "Products Payment",
+  //     automatic_payment_methods: { enabled: true },
+  //     metadata: { userId: req.user.id.toString() },
+  //   },
+  //   {
+  //     stripe_account: ownerBank,
+  //   }
+  // );
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(totalAmount * 100),
+    amount: Math.round(totalAmount * 100), // Convert amount to cents
     currency: "usd",
     description: "Products Payment",
     automatic_payment_methods: { enabled: true },
-    metadata: { userId: user._id.toString() },
+    metadata: { userId: req.user.id.toString() },
+    transfer_data: {
+      destination: ownerBank,
+    },
   });
-
   // Return order details and product details
   res.status(200).json({
     success: true,
@@ -657,13 +677,12 @@ exports.checkout = catchAsync(async (req, res, next) => {
     orderSummary: {
       totalPrice,
       adminFee,
-      riderFee,
+      deliveryCharges,
       totalAmount,
       expectedDeliveryTime,
       paymentIntent: paymentIntent.id,
     },
     DeliveryAddress: deliveryLocation,
-    deliveryCharges,
   });
 });
 
@@ -704,7 +723,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   let itemsTotal = 0;
   const serviceFee = cart.serviceFee;
   const adminFee = cart.adminFeePercentage;
-  const deliveryCharges = cart.deliveryCharges;
+  // const deliveryCharges = cart.deliveryCharges;
   let startLocation = null;
   let shopDetails = [];
 
@@ -763,7 +782,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     });
   }
 
-  const totalPayment = itemsTotal + serviceFee + adminFee + deliveryCharges;
+  const totalPayment = itemsTotal + serviceFee + adminFee;
   const messageBody = `New order from ${user.firstName}. Please accept or reject the order.`;
 
   // Create the order
@@ -778,36 +797,24 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     adminFee,
     totalPayment,
     paymentStatus: "paid",
-    deliveryCharges,
+    deliveryCharges: cart.deliveryCharges,
     deliveryPaymentStatus: "unpaid",
     orderStatus: "pending",
   });
-  await SendNotification({
-    token: FCMToken,
-    title: `New Order from ${user.firstName}`,
-    body: "Simply the test message",
-  });
-  await Notification.create({
-    sender: user._id,
-    receiver: shopOwner,
-    data: messageBody,
-  });
-  // Send notification to the owner of the shop
-  // for (let shop of cart.products.map((product) => product.shop)) {
-  //
-  //   console.log(shop, "shop data");
-  //   await Notification.create({
-  //     message: messageBody,
-  //     sender: user._id,
-  //     receiver: shop.owner,
-  //   });
+  newOrder.shopEarnings = totalPayment;
+  await newOrder.save();
 
-  //   await SendNotification({
-  //     token: shop.owner.deviceToken,
-  //     title: `New Order from ${user.firstName}`,
-  //     message: messageBody,
-  //   });
-  // }
+  // await SendNotification({
+  //   token: FCMToken,
+  //   title: `New Order from ${user.firstName}`,
+  //   body: "Simply the test message",
+  // });
+  // await Notification.create({
+  //   sender: user._id,
+  //   receiver: shopOwner,
+  //   data: messageBody,
+  // });
+
   ///Clear the user's cart after creating the order
   cart.products = [];
   await cart.save();
@@ -836,3 +843,5 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+//////-----Aaccept or reject order by owner ------/////

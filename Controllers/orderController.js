@@ -1,47 +1,47 @@
 const catchAsync = require("../Utils/catchAsync");
+const AppError = require("../Utils/appError");
 const Order = require("../Models/orderModel");
 const Cart = require("../Models/cartModel");
 const User = require("../Models/userModel");
 const Shop = require("../Models/shopsModel");
-const Rider = require("../Models/riderModel");
 const {
   sendNotificationToNearbyRiders,
 } = require("../Utils/notificationSender");
 
-exports.createOrder = catchAsync(async (req, res, next) => {
-  const cart = await Cart.findOne({ user: req.user.id }).populate(
-    "products.product"
-  );
+// exports.createOrder = catchAsync(async (req, res, next) => {
+//   const cart = await Cart.findOne({ user: req.user.id }).populate(
+//     "products.product"
+//   );
 
-  if (!cart || cart.products.length === 0) {
-    return next(new AppError("Your cart is empty", 400));
-  }
+//   if (!cart || cart.products.length === 0) {
+//     return next(new AppError("Your cart is empty", 400));
+//   }
 
-  const shop = await Shop.findById(cart.products[0].product.shop);
+//   const shop = await Shop.findById(cart.products[0].product.shop);
 
-  const totalPrice = cart.products.reduce(
-    (total, item) => total + item.product.price * item.quantity,
-    0
-  );
+//   const totalPrice = cart.products.reduce(
+//     (total, item) => total + item.product.price * item.quantity,
+//     0
+//   );
 
-  const order = await Order.create({
-    user: req.user.id,
-    shop: shop.id,
-    products: cart.products,
-    totalPrice,
-  });
+//   const order = await Order.create({
+//     user: req.user.id,
+//     shop: shop.id,
+//     products: cart.products,
+//     totalPrice,
+//   });
 
-  // Clear user's cart
-  await Cart.findOneAndDelete({ user: req.user.id });
+//   // Clear user's cart
+//   await Cart.findOneAndDelete({ user: req.user.id });
 
-  // Notify nearby riders
-  sendNotificationToNearbyRiders(req.user.location.coordinates, order.id);
+//   // Notify nearby riders
+//   sendNotificationToNearbyRiders(req.user.location.coordinates, order.id);
 
-  res.status(201).json({
-    success: true,
-    data: order,
-  });
-});
+//   res.status(201).json({
+//     success: true,
+//     data: order,
+//   });
+// });
 
 exports.updateOrderStatus = catchAsync(async (req, res, next) => {
   const { orderId, status } = req.body;
@@ -59,9 +59,8 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 });
 
 exports.getUserOrders = catchAsync(async (req, res, next) => {
-  const orders = await Order.find({ user: req.user.id }).populate(
-    "products.product"
-  );
+  const orders = await Order.find({ customer: req.user.id });
+  console.log(orders, "here is the order details ");
 
   res.status(200).json({
     success: true,
@@ -164,14 +163,13 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       },
       shopDetails,
       productDetails,
-      Rider: order.driver ? order.driver.name : null,
+      Rider: order.driver ? order.driver.id : null,
       orderSummary,
     },
   });
 });
 
-/////----Accept or Reject the order function-------////
-// controllers/orderController.js
+/////----Accept or Reject the order function for rider-------////
 
 exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
   const { orderId, action } = req.body;
@@ -190,6 +188,7 @@ exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
   // Handle the action
   if (action === "accept") {
     order.orderStatus = "ready for pickup";
+    order.driver = req.user.id;
     await order.save();
 
     // Send a notification to the customer about the order status change
@@ -205,6 +204,59 @@ exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
   } else if (action === "reject") {
     // Optionally, you can log the rejection or notify the customer about the rejection
     // sendNotificationToCustomer(order.customer, 'Your order has been rejected');
+
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Order rejected",
+    });
+  } else {
+    return next(new AppError("Invalid action, use 'accept' or 'reject'", 400));
+  }
+});
+
+////////------Accept or Reject order by Owner -----////
+exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
+  const { orderId, action } = req.body;
+
+  // Find the order by ID
+  const order = await Order.findById(orderId);
+  if (!order) {
+    return next(new AppError("Order not found", 404));
+  }
+
+  // Check if the order is still pending
+  if (order.orderStatus !== "pending") {
+    return next(new AppError("Order is not in pending stat ", 400));
+  }
+
+  // Handle the action
+  if (action === "accept") {
+    order.orderStatus = "ready for pickup";
+    order.driver = req.user.id;
+    await order.save();
+
+    // Send a notification to the all riders about the order new order
+    const allRiders = await User.find({ userType: "Rider" });
+    console.log(allRiders, "All riders");
+    const FCMTokens = allRiders.map((rider) => rider.deviceToken);
+    await SendNotificationMultiCast({
+      tokens: FCMTokens,
+      title: "New order delivery request ",
+      body: `Accept or reject the order ${order}`,
+    });
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Order accepted and notifies to all riders",
+      order,
+    });
+  } else if (action === "reject") {
+    await SendNotification({
+      token: FCMToken,
+      title: "Your order is rejected by the owner ",
+      body: `Owner rejected the order ${order}`,
+    });
 
     return res.status(200).json({
       success: true,
