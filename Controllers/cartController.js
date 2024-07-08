@@ -843,5 +843,3 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     },
   });
 });
-
-//////-----Aaccept or reject order by owner ------/////

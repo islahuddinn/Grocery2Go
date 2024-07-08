@@ -1,4 +1,4 @@
-const lambdaQuery = require("./Utils/queryLambda");
+// const lambdaQuery = require("./Utils/");
 const riderRequest = require("./Controllers/riderController");
 const io = require("socket.io")();
 const { Req, Res } = require("./requester");

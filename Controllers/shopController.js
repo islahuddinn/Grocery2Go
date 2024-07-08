@@ -1,5 +1,6 @@
+const mongoose = require("mongoose");
 const Shop = require("../Models/shopsModel");
-// const Product = require("../Models/productsModel");
+const Order = require("../Models/orderModel");
 const AppError = require("../Utils/appError");
 const catchAsync = require("../Utils/catchAsync");
 const factory = require("./handleFactory");
@@ -299,5 +300,55 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
     status: 200,
     message: "Product updated successfully",
     data: shop,
+  });
+});
+
+//////------Shop Statistics by owner------//////
+
+exports.getShopOrderStats = catchAsync(async (req, res, next) => {
+  const shopId = req.params.id;
+  console.log(shopId, "here is the shop id");
+
+  if (!shopId) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "Shop ID is required",
+    });
+  }
+
+  const completedOrders = await Order.countDocuments({
+    "products.shop": shopId,
+    orderStatus: "delivered",
+  });
+
+  const pendingOrders = await Order.countDocuments({
+    "products.shop": shopId,
+    orderStatus: { $ne: "delivered" },
+  });
+
+  const totalEarningsData = await Order.aggregate([
+    {
+      $match: {
+        "products.shop": new mongoose.Types.ObjectId(shopId),
+        orderStatus: "delivered",
+      },
+    },
+    { $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } } },
+  ]);
+
+  const totalEarnings = totalEarningsData.length
+    ? totalEarningsData[0].totalEarnings
+    : 0;
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Shop order stats retrieved successfully",
+    data: {
+      completedOrders,
+      pendingOrders,
+      totalEarnings,
+    },
   });
 });

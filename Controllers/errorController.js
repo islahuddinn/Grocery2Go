@@ -28,6 +28,11 @@ const handleJWTError = () =>
 const handleTokenExpiredError = () =>
   new AppError("Expired token. Please login again", 401, "token-expired");
 
+const handleFirebaseError = (err) => {
+  const message = `Firebase error: ${err.errorInfo.message}`;
+  return new AppError(message, 400, err.errorInfo.code || "firebase-error");
+};
+
 const sendErrorResponse = (err, res) => {
   res.status(err.statusCode).json({
     success: false,
@@ -46,6 +51,7 @@ module.exports = (err, req, res, next) => {
   }
 
   if (process.env.NODE_ENV === "production") {
+    // Customize error messages for production if necessary
   }
 
   switch (err.name) {
@@ -68,11 +74,12 @@ module.exports = (err, req, res, next) => {
     case "TokenExpiredError":
       err = handleTokenExpiredError();
       break;
-    case "messaging/invalid-argument":
-      err = handleValidationErrorDB(err);
-      break;
     default:
-      return sendErrorResponse(err, res);
+      if (err.codePrefix === "messaging") {
+        err = handleFirebaseError(err);
+      } else {
+        return sendErrorResponse(err, res);
+      }
   }
 
   sendErrorResponse(err, res);

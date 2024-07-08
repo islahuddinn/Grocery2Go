@@ -10,6 +10,7 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: [
         "pending",
+        "accepted",
         "ready for pickup",
         "rider accepted",
         "buying grocery",

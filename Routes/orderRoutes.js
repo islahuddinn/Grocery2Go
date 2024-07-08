@@ -9,9 +9,14 @@ router.get("/get-all-orders", orderController.getUserOrders);
 router.get("/order-details", orderController.getOrderDetails);
 // router.get("/shop-stats", orderController.getOrderDetails);
 router.post(
-  "/accept-reject-order",
+  "/accept-reject-order-owner",
   //   authController.restrictTo("owner"),
   orderController.acceptOrRejectOrderByOwner
+);
+router.post(
+  "/accept-reject-order-rider",
+  //   authController.restrictTo("Rider"),
+  orderController.acceptOrRejectOrderByRider
 );
 
 // router.get("/get-all-favorite-products", shopController.getAllFavoriteProducts);
