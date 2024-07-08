@@ -33,6 +33,11 @@ const handleFirebaseError = (err) => {
   return new AppError(message, 400, err.errorInfo.code || "firebase-error");
 };
 
+const handleReferenceError = (err) => {
+  const message = `Reference error: ${err.message}`;
+  return new AppError(message, 500, "reference-error");
+};
+
 const sendErrorResponse = (err, res) => {
   res.status(err.statusCode).json({
     success: false,
@@ -74,12 +79,14 @@ module.exports = (err, req, res, next) => {
     case "TokenExpiredError":
       err = handleTokenExpiredError();
       break;
+    case "FirebaseMessagingError":
+      err = handleFirebaseError(err);
+      break;
+    case "ReferenceError":
+      err = handleReferenceError(err);
+      break;
     default:
-      if (err.codePrefix === "messaging") {
-        err = handleFirebaseError(err);
-      } else {
-        return sendErrorResponse(err, res);
-      }
+      return sendErrorResponse(err, res);
   }
 
   sendErrorResponse(err, res);
