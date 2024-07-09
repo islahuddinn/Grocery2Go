@@ -3,19 +3,19 @@ const userController = require("../Controllers/userController");
 const authController = require("../Controllers/authController");
 const { createBankAccount } = require("../Utils/stripe");
 const catchAsync = require("../Utils/catchAsync");
-// const fileUpload = require("express-fileupload");
-// const { uploadFile } = require("../Utils/s3-uploader");
+const fileUpload = require("express-fileupload");
+const { uploadFile } = require("../Utils/s3-uploader");
 // const pushNotificationController = require("../controllers/push-notificationController");
 const router = express.Router();
-// router.post(
-//   "/bucket-upload",
-//   fileUpload({}),
-//   catchAsync(async (req, res) => {
-//     const file = req.files.file;
-//     const url = await uploadFile(file);
-//     return res.send({ url });
-//   })
-// );
+router.post(
+  "/bucket-upload",
+  fileUpload({}),
+  catchAsync(async (req, res) => {
+    const file = req.files.file;
+    const url = await uploadFile(file);
+    return res.send({ url });
+  })
+);
 
 router.post("/signup", authController.signup);
 router.post("/socialLogin", authController.socialLogin);
