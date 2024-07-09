@@ -374,7 +374,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
 
   if (!req.body.otp) {
     return res.status(400).send({
-      success: true,
+      success: false,
       status: 400,
       message: "Please add otp",
 
@@ -383,7 +383,7 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
   }
   if (req.body.otp != user.otp) {
     return res.status(400).send({
-      success: true,
+      success: false,
       status: 400,
       message: "The given OTP is invalid",
       errorType: "wrong-otp",
