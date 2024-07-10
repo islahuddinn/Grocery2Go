@@ -1,11 +1,32 @@
 const mongoose = require("mongoose");
 
+const categorySchema = new mongoose.Schema({
+  categoryName: {
+    type: String,
+    enum: [
+      "Fruits",
+      "Vegetables",
+      "Beverages",
+      "Dairy",
+      "Backery",
+      "Frozen foods",
+      "Meat",
+      "Cleaners",
+      "Paper goods",
+      "Personal Care",
+      "Pharmacy",
+    ],
+    required: [true, "Enter a valid categoryName (Fruits, Vegetables etc)"],
+  },
+});
+
 const grocerySchema = new mongoose.Schema({
   productName: {
     type: String,
     required: true,
     trim: true,
   },
+  categoryName: [categorySchema],
   price: {
     type: Number,
     required: true,
@@ -36,16 +57,10 @@ const grocerySchema = new mongoose.Schema({
     default: "available",
   },
 });
+
 grocerySchema.pre("save", async function (next) {
   this.stockStatus = this.quantity < 5 ? "low stock" : "available";
   next();
-});
-const categorySchema = new mongoose.Schema({
-  categoryName: {
-    type: String,
-    required: true,
-  },
-  groceries: [grocerySchema],
 });
 
 const shopSchema = new mongoose.Schema(
@@ -65,7 +80,7 @@ const shopSchema = new mongoose.Schema(
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      // required: true,
+      required: true,
     },
     location: {
       type: {
@@ -73,9 +88,26 @@ const shopSchema = new mongoose.Schema(
         default: "Point",
       },
       coordinates: { type: [Number], default: [0, 0] },
+      address: String,
     },
     operatingHours: { type: String, default: "08:00 am-10:00 pm" },
-    categories: [categorySchema],
+    categories: {
+      type: [categorySchema],
+      default: [
+        { categoryName: "Fruits" },
+        { categoryName: "Vegetables" },
+        { categoryName: "Beverages" },
+        { categoryName: "Dairy" },
+        { categoryName: "Backery" },
+        { categoryName: "Frozen foods" },
+        { categoryName: "Meat" },
+        { categoryName: "Cleaners" },
+        { categoryName: "Paper goods" },
+        { categoryName: "Personal Care" },
+        { categoryName: "Pharmacy" },
+      ],
+    },
+    groceries: [grocerySchema],
   },
   { timestamps: true }
 );

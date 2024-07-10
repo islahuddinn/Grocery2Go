@@ -4,7 +4,7 @@ const loginChecks = (user) => {
     return "email-unverified";
   } else if (user.userType === "Owner" && !user.isProfileCompleted) {
     return "Owner-profile-setup-pending";
-  } else if (user.userType === "Customer" && !user.firstName) {
+  } else if (user.userType === "Customer" && !user.isProfileCompleted) {
     return "Customer-profile-setup-pending";
   } else if (user.userType === "Rider" && !user.isProfileCompleted) {
     return "Rider-profile-setup-pending";

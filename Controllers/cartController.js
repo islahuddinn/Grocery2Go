@@ -31,11 +31,13 @@ exports.addToCart = catchAsync(async (req, res, next) => {
 
   const productIdObject = new mongoose.Types.ObjectId(productId);
   let cart = await Cart.findOne({ user: userId });
+  console.log(productIdObject, "Here is the product id object");
 
   // Search for the product in all shops and categories
   const shop = await Shop.findOne({
-    "categories.groceries._id": productIdObject,
+    "groceries._id": productIdObject,
   });
+  console.log(shop, "here is the shop ");
 
   if (!shop) {
     return next(new AppError("Shop or Product not found", 404));

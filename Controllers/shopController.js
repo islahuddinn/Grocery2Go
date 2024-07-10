@@ -10,7 +10,7 @@ const Favorite = require("../Models/favoriteModel");
 ///////------Shops Controllers-----//////
 
 exports.createShop = catchAsync(async (req, res, next) => {
-  const { shopTitle, images, location, operatingHours, categories } = req.body;
+  const { shopTitle, images, location, operatingHours, groceries } = req.body;
 
   const newShop = await Shop.create({
     shopTitle,
@@ -18,7 +18,7 @@ exports.createShop = catchAsync(async (req, res, next) => {
     owner: req.user._id,
     location,
     operatingHours,
-    categories,
+    groceries,
   });
 
   res.status(201).json({
@@ -76,9 +76,9 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
     select: "shopTitle location images owner categories",
     populate: {
       path: "categories",
-      populate: {
-        path: "groceries",
-      },
+    },
+    populate: {
+      path: "groceries",
     },
   });
 
@@ -115,17 +115,15 @@ exports.addProduct = catchAsync(async (req, res, next) => {
     return next(new AppError("Shop not found", 404));
   }
 
-  let category = shop.categories.find(
-    (cat) => cat.categoryName === categoryName
-  );
+  const validCategoryNames = shop.categories.map((cat) => cat.categoryName);
 
-  if (!category) {
-    category = { categoryName, groceries: [] };
-    shop.categories.push(category);
+  if (!validCategoryNames.includes(categoryName)) {
+    return next(new AppError("Invalid category name", 400));
   }
 
   const newProduct = {
     productName,
+    categoryName: [{ categoryName }],
     price,
     volume,
     manufacturedBy,
@@ -133,8 +131,7 @@ exports.addProduct = catchAsync(async (req, res, next) => {
     description,
     productImages,
   };
-
-  category.groceries.push(newProduct);
+  shop.groceries.push(newProduct);
   await shop.save();
 
   res.status(201).json({
@@ -186,9 +183,9 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
   const favoriteProducts = await Promise.all(
     favorites.map(async (favorite) => {
       const shop = await Shop.findOne({
-        "categories.groceries._id": favorite.product,
+        "groceries._id": favorite.product,
       }).populate({
-        path: "categories.groceries._id",
+        path: "groceries._id",
         select:
           "productName price description productImages volume manufacturedBy quantity stockStatus",
         populate: {
@@ -201,36 +198,75 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
         return null;
       }
 
-      // Find the specific grocery within the categories
-      for (const category of shop.categories) {
-        const grocery = category.groceries.id(favorite.product);
-        if (grocery) {
-          return {
-            ...grocery.toObject(),
-            shop: {
-              shopTitle: shop.shopTitle,
-              location: shop.location,
-              images: shop.images,
-              owner: shop.owner,
-              categories: shop.categories.map((cat) => ({
-                categoryName: cat.categoryName,
-              })),
-            },
-          };
-        }
+      // Find the specific grocery within the groceries array
+      const grocery = shop.groceries.find((g) =>
+        g._id.equals(favorite.product)
+      );
+      if (!grocery) {
+        return null;
       }
 
-      return null;
+      return {
+        ...grocery.toObject(),
+        shop: {
+          shopTitle: shop.shopTitle,
+          location: shop.location,
+          images: shop.images,
+          owner: shop.owner,
+          categories: shop.categories.map((cat) => cat.categoryName),
+        },
+      };
     })
+  );
+
+  const filteredProducts = favoriteProducts.filter(
+    (product) => product !== null
   );
 
   res.status(200).json({
     success: true,
     status: 200,
-    data: favoriteProducts.filter((product) => product !== null),
+    data: filteredProducts,
   });
 });
+
 /////Delete shop product
+
+// exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
+//   const { shopId, productId } = req.body;
+
+//   const shop = await Shop.findById(shopId);
+
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+
+//   let productFound = false;
+
+//   for (let category of shop.categories) {
+//     const productIndex = category.groceries.findIndex(
+//       (grocery) => grocery._id.toString() === productId
+//     );
+//     if (productIndex > -1) {
+//       category.groceries.splice(productIndex, 1);
+//       productFound = true;
+//       break;
+//     }
+//   }
+
+//   if (!productFound) {
+//     return next(new AppError("Product not found in shop", 404));
+//   }
+
+//   await shop.save();
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Product deleted successfully",
+//     data: shop,
+//   });
+// });
 
 exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
   const { shopId, productId } = req.body;
@@ -243,12 +279,9 @@ exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
 
   let productFound = false;
 
-  for (let category of shop.categories) {
-    const productIndex = category.groceries.findIndex(
-      (grocery) => grocery._id.toString() === productId
-    );
-    if (productIndex > -1) {
-      category.groceries.splice(productIndex, 1);
+  for (let grocery of shop.groceries) {
+    if (grocery._id.equals(productId)) {
+      shop.groceries.pull(productId);
       productFound = true;
       break;
     }
@@ -269,6 +302,40 @@ exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
 });
 
 /////update product
+// exports.updateProductInShop = catchAsync(async (req, res, next) => {
+//   const { shopId, productId, productDetails } = req.body;
+
+//   const shop = await Shop.findById(shopId);
+
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+
+//   let productFound = false;
+
+//   for (let category of shop.categories) {
+//     const product = category.groceries.id(productId);
+//     if (product) {
+//       Object.assign(product, productDetails);
+//       productFound = true;
+//       break;
+//     }
+//   }
+
+//   if (!productFound) {
+//     return next(new AppError("Product not found in shop", 404));
+//   }
+
+//   await shop.save();
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Product updated successfully",
+//     data: shop,
+//   });
+// });
+
 exports.updateProductInShop = catchAsync(async (req, res, next) => {
   const { shopId, productId, productDetails } = req.body;
 
@@ -280,10 +347,9 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
 
   let productFound = false;
 
-  for (let category of shop.categories) {
-    const product = category.groceries.id(productId);
-    if (product) {
-      Object.assign(product, productDetails);
+  for (let grocery of shop.groceries) {
+    if (grocery._id.equals(productId)) {
+      Object.assign(grocery, productDetails);
       productFound = true;
       break;
     }
