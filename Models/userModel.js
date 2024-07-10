@@ -79,6 +79,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isNotification: {
+      type: Boolean,
+      default: false,
+    },
     walletBalance: {
       type: Number,
       default: 0,

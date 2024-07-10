@@ -412,73 +412,6 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
   );
 });
 //     ====================LOGIN User=========================================
-// exports.login = catchAsync(async (req, res, next) => {
-//   console.log("route hit for login");
-//   const { email, password, userType } = req.body;
-
-//   // check if email and password exist
-//   if (!email || !password || !userType) {
-//     return res.status(400).json({
-//       message: "Please provide email, userType and password",
-//       status: 400,
-//       success: false,
-//       data: {},
-//     });
-//   }
-
-//   // check if user exists and password is correct
-//   const user = await User.findOne({ email }).select("+password");
-
-//   if (!user || !(await user.correctPassword(password, user.password))) {
-//     return res.status(400).json({
-//       message: "Incorrect email or password",
-//       errorType: "wrong-password",
-//       status: 400,
-//       success: false,
-//       data: {},
-//     });
-//   }
-
-//   // Check if user is verified
-//   if (!user.verified) {
-//     const otpLength = 4;
-//     const otp = generateOtp(otpLength);
-
-//     ////// Sending Email..
-//     try {
-//       await new Email(user, otp).sendWelcome(otp);
-//     } catch (error) {
-//       console.log(error);
-//     }
-
-//     // Update user with OTP
-//     await User.findOneAndUpdate(
-//       { email: user.email },
-//       { otp },
-//       { new: true, runValidators: false }
-//     );
-
-//     return res.status(400).json({
-//       message: "Verification is pending. OTP sent to your email",
-//       errorType: "email-not-verified",
-//       status: 400,
-//       success: false,
-//       data: {},
-//     });
-//   }
-
-//   // Update device token and location
-//   await User.updateOne(
-//     { _id: user._id },
-//     {
-//       deviceToken: req.body.device && req.body.device.id,
-//     }
-//   );
-//   //act
-//   res.act = loginChecks(user);
-//   // Create and send token for user authentication
-//   creatSendToken(user, 200, "Logged In Successfully", res, req.body.device);
-// });
 exports.login = catchAsync(async (req, res, next) => {
   console.log("route hit for login");
   const { email, password, userType } = req.body;
@@ -543,7 +476,7 @@ exports.login = catchAsync(async (req, res, next) => {
       data: {},
     });
   }
-
+  res.act = "login-granted";
   // Update device token and location
   await User.updateOne(
     { _id: user._id },

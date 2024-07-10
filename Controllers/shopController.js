@@ -89,6 +89,92 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
   });
 });
 
+////-----Shops near me -----////
+
+exports.getNearbyShops = catchAsync(async (req, res, next) => {
+  const { latitude, longitude, maxDistance } = req.body;
+
+  if (
+    typeof latitude !== "number" ||
+    typeof longitude !== "number" ||
+    typeof maxDistance !== "number"
+  ) {
+    return next(
+      new AppError(
+        "Please provide valid latitude, longitude, and maxDistance",
+        400
+      )
+    );
+  }
+
+  const nearbyShops = await Shop.find({
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+        },
+        $maxDistance: maxDistance,
+      },
+    },
+  });
+
+  if (!nearbyShops || nearbyShops.length === 0) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "No shops found near your location",
+      data: [],
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Nearby shops retrieved successfully",
+    data: nearbyShops,
+  });
+});
+
+////---get rendom groceries-----////
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+exports.getRandomGroceries = catchAsync(async (req, res, next) => {
+  // Fetch all shops
+  const shops = await Shop.find();
+
+  if (!shops || shops.length === 0) {
+    return next(new AppError("No shops found", 404));
+  }
+
+  // Collect all groceries from the fetched shops
+  let allGroceries = [];
+  shops.forEach((shop) => {
+    allGroceries = allGroceries.concat(shop.groceries);
+  });
+
+  if (allGroceries.length === 0) {
+    return next(new AppError("No groceries found in the shops", 404));
+  }
+
+  // Shuffle the array of groceries to get a random selection
+  const shuffledGroceries = shuffleArray(allGroceries);
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Random groceries retrieved successfully",
+    data: shuffledGroceries,
+  });
+});
+
 ///////------Shops Product Controllers-----/////
 
 // exports.addProduct = factory.creatOne(Product);
