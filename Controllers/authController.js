@@ -551,7 +551,7 @@ exports.login = catchAsync(async (req, res, next) => {
       deviceToken: req.body.device && req.body.device.id,
     }
   );
-
+  res.act = loginChecks(user);
   // Create and send token for user authentication
   creatSendToken(user, 200, "Logged In Successfully", res, req.body.device);
 });
