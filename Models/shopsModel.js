@@ -201,6 +201,9 @@ const shopSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    shopType: {
+      type: String,
+    },
     images: [
       {
         type: String,
