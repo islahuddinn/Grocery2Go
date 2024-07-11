@@ -91,51 +91,6 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 
 ////-----Shops near me -----////
 
-// exports.getNearbyShops = catchAsync(async (req, res, next) => {
-//   const { latitude, longitude, maxDistance } = req.body;
-
-//   if (
-//     typeof latitude !== "number" ||
-//     typeof longitude !== "number" ||
-//     typeof maxDistance !== "number"
-//   ) {
-//     return next(
-//       new AppError(
-//         "Please provide valid latitude, longitude, and maxDistance",
-//         400
-//       )
-//     );
-//   }
-
-//   const nearbyShops = await Shop.find({
-//     location: {
-//       $near: {
-//         $geometry: {
-//           type: "Point",
-//           coordinates: [longitude, latitude],
-//         },
-//         $maxDistance: maxDistance,
-//       },
-//     },
-//   });
-
-//   if (!nearbyShops || nearbyShops.length === 0) {
-//     return res.status(404).json({
-//       success: false,
-//       status: 404,
-//       message: "No shops found near your location",
-//       data: [],
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Nearby shops retrieved successfully",
-//     data: nearbyShops,
-//   });
-// });
-
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
   const { latitude, longitude, maxDistance } = req.body;
 
@@ -421,42 +376,6 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
 
 /////Delete shop product
 
-// exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
-//   const { shopId, productId } = req.body;
-
-//   const shop = await Shop.findById(shopId);
-
-//   if (!shop) {
-//     return next(new AppError("Shop not found", 404));
-//   }
-
-//   let productFound = false;
-
-//   for (let category of shop.categories) {
-//     const productIndex = category.groceries.findIndex(
-//       (grocery) => grocery._id.toString() === productId
-//     );
-//     if (productIndex > -1) {
-//       category.groceries.splice(productIndex, 1);
-//       productFound = true;
-//       break;
-//     }
-//   }
-
-//   if (!productFound) {
-//     return next(new AppError("Product not found in shop", 404));
-//   }
-
-//   await shop.save();
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Product deleted successfully",
-//     data: shop,
-//   });
-// });
-
 exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
   const { shopId, productId } = req.body;
 
@@ -491,39 +410,6 @@ exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
 });
 
 /////update product
-// exports.updateProductInShop = catchAsync(async (req, res, next) => {
-//   const { shopId, productId, productDetails } = req.body;
-
-//   const shop = await Shop.findById(shopId);
-
-//   if (!shop) {
-//     return next(new AppError("Shop not found", 404));
-//   }
-
-//   let productFound = false;
-
-//   for (let category of shop.categories) {
-//     const product = category.groceries.id(productId);
-//     if (product) {
-//       Object.assign(product, productDetails);
-//       productFound = true;
-//       break;
-//     }
-//   }
-
-//   if (!productFound) {
-//     return next(new AppError("Product not found in shop", 404));
-//   }
-
-//   await shop.save();
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Product updated successfully",
-//     data: shop,
-//   });
-// });
 
 exports.updateProductInShop = catchAsync(async (req, res, next) => {
   const { shopId, productId, productDetails } = req.body;
@@ -609,6 +495,60 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
 });
 //////-----get all categories-----/////
 
+// exports.getAllCategories = catchAsync(async (req, res, next) => {
+//   // Fetch all shops
+//   const shops = await Shop.find();
+
+//   if (!shops || shops.length === 0) {
+//     return next(new AppError("No shops found", 404));
+//   }
+
+//   // Extract and aggregate unique categories
+//   const categoriesSet = new Set();
+//   shops.forEach((shop) => {
+//     shop.categories.forEach((category) => {
+//       categoriesSet.add(category.categoryName);
+//     });
+//   });
+
+//   const categories = Array.from(categoriesSet);
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: categories,
+//   });
+// });
+
+// exports.getAllCategories = catchAsync(async (req, res, next) => {
+//   // Fetch all shops
+//   const shops = await Shop.find();
+
+//   if (!shops || shops.length === 0) {
+//     return next(new AppError("No shops found", 404));
+//   }
+
+//   // Extract and aggregate unique categories with images
+//   const categoriesMap = new Map();
+//   shops.forEach((shop) => {
+//     shop.categories.forEach((category) => {
+//       if (!categoriesMap.has(category.categoryName)) {
+//         categoriesMap.set(category.categoryName, category.image);
+//       }
+//     });
+//   });
+
+//   const categories = Array.from(categoriesMap, ([categoryName, image]) => ({
+//     categoryName,
+//     image,
+//   }));
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: categories,
+//   });
+// });
 exports.getAllCategories = catchAsync(async (req, res, next) => {
   // Fetch all shops
   const shops = await Shop.find();
@@ -617,15 +557,23 @@ exports.getAllCategories = catchAsync(async (req, res, next) => {
     return next(new AppError("No shops found", 404));
   }
 
-  // Extract and aggregate unique categories
-  const categoriesSet = new Set();
+  // Extract and aggregate unique categories with images
+  const categoriesMap = new Map();
   shops.forEach((shop) => {
     shop.categories.forEach((category) => {
-      categoriesSet.add(category.categoryName);
+      if (!categoriesMap.has(category.categoryName)) {
+        categoriesMap.set(category.categoryName, category.categoryImage);
+      }
     });
   });
 
-  const categories = Array.from(categoriesSet);
+  const categories = Array.from(
+    categoriesMap,
+    ([categoryName, categoryImage]) => ({
+      categoryName,
+      categoryImage,
+    })
+  );
 
   res.status(200).json({
     success: true,
