@@ -238,6 +238,53 @@ exports.getAllProduct = factory.getAll(Shop);
 //   });
 // });
 
+// exports.addProduct = catchAsync(async (req, res, next) => {
+//   const {
+//     categoryName,
+//     productName,
+//     price,
+//     volume,
+//     manufacturedBy,
+//     quantity,
+//     description,
+//     productImages,
+//   } = req.body;
+
+//   // Find the shop associated with the logged-in user
+//   const userId = req.user.id;
+//   const shop = await Shop.findOne({ owner: userId });
+
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+
+//   const validCategoryNames = shop.categories.map((cat) => cat.categoryName);
+
+//   if (!validCategoryNames.includes(categoryName)) {
+//     return next(new AppError("Invalid category name", 400));
+//   }
+
+//   const newProduct = {
+//     productName,
+//     categoryName: [{ categoryName }],
+//     price,
+//     volume,
+//     manufacturedBy,
+//     quantity,
+//     description,
+//     productImages,
+//   };
+
+//   shop.groceries.push(newProduct);
+//   await shop.save();
+
+//   res.status(201).json({
+//     success: true,
+//     status: 201,
+//     data: shop,
+//   });
+// });
+
 exports.addProduct = catchAsync(async (req, res, next) => {
   const {
     categoryName,
@@ -512,36 +559,6 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
 //   });
 
 //   const categories = Array.from(categoriesSet);
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: categories,
-//   });
-// });
-
-// exports.getAllCategories = catchAsync(async (req, res, next) => {
-//   // Fetch all shops
-//   const shops = await Shop.find();
-
-//   if (!shops || shops.length === 0) {
-//     return next(new AppError("No shops found", 404));
-//   }
-
-//   // Extract and aggregate unique categories with images
-//   const categoriesMap = new Map();
-//   shops.forEach((shop) => {
-//     shop.categories.forEach((category) => {
-//       if (!categoriesMap.has(category.categoryName)) {
-//         categoriesMap.set(category.categoryName, category.image);
-//       }
-//     });
-//   });
-
-//   const categories = Array.from(categoriesMap, ([categoryName, image]) => ({
-//     categoryName,
-//     image,
-//   }));
 
 //   res.status(200).json({
 //     success: true,
