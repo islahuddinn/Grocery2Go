@@ -10,15 +10,15 @@ const Favorite = require("../Models/favoriteModel");
 ///////------Shops Controllers-----//////
 
 exports.createShop = catchAsync(async (req, res, next) => {
-  const { shopTitle, images, location, operatingHours, groceries } = req.body;
+  const { shopTitle, image, location, operatingHours } = req.body;
 
   const newShop = await Shop.create({
     shopTitle,
-    images,
+    image,
     owner: req.user._id,
     location,
     operatingHours,
-    groceries,
+    groceries: req.body.groceries || undefined,
   });
 
   res.status(201).json({

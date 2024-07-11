@@ -204,13 +204,12 @@ const shopSchema = new mongoose.Schema(
     shopType: {
       type: String,
     },
-    images: [
-      {
-        type: String,
-        default:
-          "https://icon-library.com/images/default-profile-icon/default-profile-icon-6.jpg",
-      },
-    ],
+    image: {
+      type: String,
+      default:
+        "https://icon-library.com/images/default-profile-icon/default-profile-icon-6.jpg",
+    },
+
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
