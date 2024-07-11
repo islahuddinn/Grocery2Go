@@ -6,6 +6,7 @@ const catchAsync = require("../Utils/catchAsync");
 const factory = require("./handleFactory");
 // const User = require("../Models/userModel");
 const Favorite = require("../Models/favoriteModel");
+const { loginChecks } = require("../Utils/login-checks");
 
 ///////------Shops Controllers-----//////
 
@@ -23,6 +24,7 @@ exports.createShop = catchAsync(async (req, res, next) => {
   const user = req.user;
   user.isProfileCompleted = true;
   await user.save();
+  res.act = loginChecks(user);
 
   res.status(201).json({
     success: true,
