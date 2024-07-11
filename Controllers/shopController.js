@@ -23,6 +23,7 @@ exports.createShop = catchAsync(async (req, res, next) => {
   });
   const user = req.user;
   user.isProfileCompleted = true;
+  user.shopId = newShop._id;
   await user.save();
   res.act = loginChecks(user);
 

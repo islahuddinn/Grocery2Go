@@ -99,6 +99,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    shopId: {
+      type: String,
+    },
     bankAccountInfo: {
       bankAccountId: {
         type: String,

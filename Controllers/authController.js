@@ -476,7 +476,7 @@ exports.login = catchAsync(async (req, res, next) => {
       data: {},
     });
   }
-  res.act = "login-granted";
+  // res.act = "login-granted";
   // Update device token and location
   await User.updateOne(
     { _id: user._id },
