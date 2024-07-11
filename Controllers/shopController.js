@@ -606,3 +606,25 @@ exports.getAllCategories = catchAsync(async (req, res, next) => {
     data: categories,
   });
 });
+
+/////---get products of a shop-----////
+
+exports.getShopProducts = catchAsync(async (req, res, next) => {
+  const shopId = req.params.id;
+
+  // Find the shop by ID
+  const shop = await Shop.findById(shopId);
+
+  if (!shop) {
+    return next(new AppError("Shop not found", 404));
+  }
+
+  // Extract the groceries (products) from the shop
+  const products = shop.groceries;
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    data: products,
+  });
+});

@@ -11,6 +11,7 @@ router.get("/all-categories", shopController.getAllCategories);
 
 router.post("/mark-favorite-unfavorite", shopController.toggleProductFavorite);
 router.get("/", shopController.getAllProduct);
+router.get("/get-shop-products/:id", shopController.getShopProducts);
 router.patch("/update-product", shopController.updateProductInShop);
 router.delete("/delete-product", shopController.deleteProductFromShop);
 // router
