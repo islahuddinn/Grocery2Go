@@ -21,7 +21,8 @@ exports.createShop = catchAsync(async (req, res, next) => {
     groceries: req.body.groceries || undefined,
   });
   const user = req.user;
-  console.log(user, "mr user here");
+  user.isProfileCompleted = true;
+  await user.save();
 
   res.status(201).json({
     success: true,
