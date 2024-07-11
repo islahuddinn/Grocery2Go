@@ -224,6 +224,18 @@ const shopSchema = new mongoose.Schema(
       address: String,
     },
     operatingHours: { type: String, default: "08:00 am-10:00 pm" },
+    bankAccountInfo: {
+      bankAccountId: {
+        type: String,
+      },
+      isOnboardingCompleted: {
+        type: Boolean,
+        default: false,
+      },
+    },
+    shopEarnings: {
+      type: Number,
+    },
     categories: {
       type: [categorySchema],
       default: [

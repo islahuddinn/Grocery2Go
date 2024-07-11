@@ -11,7 +11,8 @@ const { loginChecks } = require("../Utils/login-checks");
 ///////------Shops Controllers-----//////
 
 exports.createShop = catchAsync(async (req, res, next) => {
-  const { shopTitle, image, location, operatingHours } = req.body;
+  const { shopTitle, image, location, operatingHours, bankAccountInfo } =
+    req.body;
 
   const newShop = await Shop.create({
     shopTitle,
@@ -20,6 +21,7 @@ exports.createShop = catchAsync(async (req, res, next) => {
     location,
     operatingHours,
     groceries: req.body.groceries || undefined,
+    bankAccountInfo,
   });
   const user = req.user;
   user.isProfileCompleted = true;
