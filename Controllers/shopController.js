@@ -20,12 +20,15 @@ exports.createShop = catchAsync(async (req, res, next) => {
     operatingHours,
     groceries: req.body.groceries || undefined,
   });
+  const user = req.user;
+  console.log(user, "mr user here");
 
   res.status(201).json({
     success: true,
     status: 201,
     message: "Shop created successfully",
     data: newShop,
+    user: user,
   });
 });
 
