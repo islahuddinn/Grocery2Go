@@ -1,4 +1,10 @@
+const mongoose = require("mongoose");
+const catchAsync = require("./catchAsync");
+const AppError = require("./appError");
+const Cart = require("../Models/cartModel");
+const Shop = require("../Models/shopsModel");
 // Helper function to calculate distance (using Haversine formula)
+
 function calculateDistance(products, userLocation) {
   if (!products.length || !userLocation) return 0;
 
@@ -76,7 +82,112 @@ function calculateDeliveryCharges(startLocation, endLocation, ratePerKm = 5) {
   return distance * ratePerKm;
 }
 
+// Helper function to find a shop and product
+const findShopAndProduct = async (productIdObject) => {
+  const shop = await Shop.findOne({ "groceries._id": productIdObject });
+  if (!shop) throw new AppError("Shop or Product not found", 404);
+
+  const product = shop.groceries.id(productIdObject);
+  if (!product) throw new AppError("Product not found in shop", 404);
+
+  return { shop, product };
+};
+
+// Helper function to find a category
+const findCategory = (shop, product) => {
+  const category = shop.categories.find((cat) =>
+    product.categoryName.some(
+      (categoryObj) => categoryObj.categoryName === cat.categoryName
+    )
+  );
+  if (!category) throw new AppError("Category not found in shop", 404);
+
+  return category;
+};
+
+// Helper function to check stock availability
+const checkStockAvailability = (product, quantity) => {
+  if (product.quantity < quantity)
+    throw new AppError("Insufficient stock", 400);
+};
+
+// Helper function to update or create a cart
+const updateOrCreateCart = async (
+  userId,
+  productIdObject,
+  quantity,
+  shop,
+  category,
+  product
+) => {
+  let cart = await Cart.findOne({ user: userId });
+
+  if (cart) {
+    const existingProductIndex = cart.products.findIndex((p) =>
+      p.product.equals(productIdObject)
+    );
+    if (existingProductIndex > -1) {
+      cart.products[existingProductIndex].quantity += Number(quantity);
+    } else {
+      cart.products.push({
+        product: productIdObject,
+        quantity: Number(quantity),
+        shop: shop._id,
+        category: category._id,
+        grocery: product._id,
+      });
+    }
+  } else {
+    cart = new Cart({
+      user: userId,
+      products: [
+        {
+          product: productIdObject,
+          quantity: Number(quantity),
+          shop: shop._id,
+          category: category._id,
+          grocery: product._id,
+        },
+      ],
+    });
+  }
+
+  await cart.save();
+  return cart;
+};
+
+// Helper function to populate products in the cart
+const populateCartProducts = async (cart) => {
+  const populatedProducts = await Promise.all(
+    cart.products.map(async (p) => {
+      const shop = await Shop.findById(p.shop);
+      const grocery = shop.groceries.id(p.product);
+      const totalPrice = grocery.price * p.quantity;
+      return {
+        productId: grocery._id,
+        productName: grocery.productName,
+        volume: grocery.volume,
+        price: grocery.price,
+        quantity: p.quantity,
+        totalPrice,
+      };
+    })
+  );
+
+  const totalCartPrice = populatedProducts.reduce(
+    (acc, curr) => acc + curr.totalPrice,
+    0
+  );
+
+  return { populatedProducts, totalCartPrice };
+};
+
 module.exports = {
+  findShopAndProduct,
+  findCategory,
+  checkStockAvailability,
+  updateOrCreateCart,
+  populateCartProducts,
   calculateDistance,
   calculateExpectedDeliveryTime,
   calculateDeliveryCharges,

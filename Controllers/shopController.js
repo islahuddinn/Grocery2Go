@@ -91,6 +91,51 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 
 ////-----Shops near me -----////
 
+// exports.getNearbyShops = catchAsync(async (req, res, next) => {
+//   const { latitude, longitude, maxDistance } = req.body;
+
+//   if (
+//     typeof latitude !== "number" ||
+//     typeof longitude !== "number" ||
+//     typeof maxDistance !== "number"
+//   ) {
+//     return next(
+//       new AppError(
+//         "Please provide valid latitude, longitude, and maxDistance",
+//         400
+//       )
+//     );
+//   }
+
+//   const nearbyShops = await Shop.find({
+//     location: {
+//       $near: {
+//         $geometry: {
+//           type: "Point",
+//           coordinates: [longitude, latitude],
+//         },
+//         $maxDistance: maxDistance,
+//       },
+//     },
+//   });
+
+//   if (!nearbyShops || nearbyShops.length === 0) {
+//     return res.status(404).json({
+//       success: false,
+//       status: 404,
+//       message: "No shops found near your location",
+//       data: [],
+//     });
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Nearby shops retrieved successfully",
+//     data: nearbyShops,
+//   });
+// });
+
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
   const { latitude, longitude, maxDistance } = req.body;
 
@@ -107,6 +152,7 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
     );
   }
 
+  // Find nearby shops
   const nearbyShops = await Shop.find({
     location: {
       $near: {
@@ -119,12 +165,22 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
     },
   });
 
+  // If no nearby shops found, get at least two default shops
   if (!nearbyShops || nearbyShops.length === 0) {
-    return res.status(404).json({
-      success: false,
-      status: 404,
-      message: "No shops found near your location",
-      data: [],
+    const defaultShops = await Shop.find().limit(2);
+    if (!defaultShops || defaultShops.length === 0) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: "No shops found",
+        data: [],
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "No nearby shops found. Here are some default shops.",
+      data: defaultShops,
     });
   }
 

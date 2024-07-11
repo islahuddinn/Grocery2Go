@@ -10,6 +10,13 @@ const {
   SendNotification,
   SendNotificationMultiCast,
 } = require("../Utils/notificationSender");
+const {
+  findShopAndProduct,
+  checkStockAvailability,
+  findCategory,
+  updateOrCreateCart,
+  populateCartProducts,
+} = require("../Utils/helper");
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const geolib = require("geolib");
@@ -21,440 +28,6 @@ const message = require("../Models/message");
 const AppError = require("../Utils/appError");
 // const { io } = require("../sockets");
 
-// exports.addToCart = catchAsync(async (req, res, next) => {
-//   const { productId, quantity } = req.body;
-//   const userId = req.user.id;
-
-//   if (!productId || !quantity) {
-//     return next(new AppError("Product ID and quantity are required", 400));
-//   }
-
-//   const productIdObject = new mongoose.Types.ObjectId(productId);
-//   let cart = await Cart.findOne({ user: userId });
-//   console.log(productIdObject, "Here is the product id object");
-
-//   // Search for the product in all shops and categories
-//   const shop = await Shop.findOne({
-//     "groceries._id": productIdObject,
-//   });
-//   console.log(shop, "here is the shop ");
-
-//   if (!shop) {
-//     return next(new AppError("Shop or Product not found", 404));
-//   }
-
-//   const category = shop.categories.find((cat) =>
-//     cat.groceries.some((grocery) => grocery._id.equals(productIdObject))
-//   );
-
-//   if (!category) {
-//     return next(new AppError("Category not found in shop", 404));
-//   }
-
-//   const product = category.groceries.id(productIdObject);
-
-//   if (!product) {
-//     return next(new AppError("Product not found in category", 404));
-//   }
-
-//   // Check for stock availability
-//   if (product.quantity < quantity) {
-//     return next(new AppError("Insufficient stock", 400));
-//   }
-
-//   // Update the cart
-//   if (cart) {
-//     const existingProductIndex = cart.products.findIndex((p) =>
-//       p.grocery.equals(productIdObject)
-//     );
-//     if (existingProductIndex > -1) {
-//       // If the product already exists in the cart, add the quantity
-//       cart.products[existingProductIndex].quantity += Number(quantity);
-//     } else {
-//       // If it's a new product, add it to the cart
-//       cart.products.push({
-//         product: productIdObject,
-//         quantity: Number(quantity),
-//         shop: shop._id,
-//         category: category._id,
-//         grocery: product._id,
-//       });
-//     }
-//   } else {
-//     // If the cart doesn't exist, create a new one
-//     cart = new Cart({
-//       user: userId,
-//       products: [
-//         {
-//           product: productIdObject,
-//           quantity: Number(quantity),
-//           shop: shop._id,
-//           category: category._id,
-//           grocery: product._id,
-//         },
-//       ],
-//     });
-//   }
-
-//   await cart.save();
-
-//   // Manually populate the cart with product details and calculate total price
-//   const populatedProducts = await Promise.all(
-//     cart.products.map(async (p) => {
-//       const shop = await Shop.findById(p.shop);
-//       const category = shop.categories.id(p.category);
-//       const grocery = category.groceries.id(p.grocery);
-//       const totalPrice = grocery.price * p.quantity;
-//       return {
-//         productId: grocery._id,
-//         productName: grocery.productName,
-//         volume: grocery.volume,
-//         price: grocery.price,
-//         quantity: p.quantity,
-//         totalPrice,
-//       };
-//     })
-//   );
-
-//   // Calculate total price of all products in cart
-//   const totalCartPrice = populatedProducts.reduce(
-//     (acc, curr) => acc + curr.totalPrice,
-//     0
-//   );
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Product added to cart",
-//     data: populatedProducts,
-//     totalCartPrice,
-//   });
-// });
-
-// exports.addToCart = catchAsync(async (req, res, next) => {
-//   const { productId, quantity } = req.body;
-//   const userId = req.user.id;
-
-//   if (!productId || !quantity) {
-//     return next(new AppError("Product ID and quantity are required", 400));
-//   }
-
-//   const productIdObject = new mongoose.Types.ObjectId(productId);
-//   let cart = await Cart.findOne({ user: userId });
-
-//   // Search for the product in all shops and categories
-//   const shop = await Shop.findOne({
-//     "groceries._id": productIdObject,
-//   });
-
-//   if (!shop) {
-//     return next(new AppError("Shop or Product not found", 404));
-//   }
-
-//   const category = shop.categories.find((cat) =>
-//     cat.groceries.some((grocery) => grocery._id.equals(productIdObject))
-//   );
-
-//   if (!category) {
-//     return next(new AppError("Category not found in shop", 404));
-//   }
-
-//   const product = category.groceries.id(productIdObject);
-
-//   if (!product) {
-//     return next(new AppError("Product not found in category", 404));
-//   }
-
-//   // Check for stock availability
-//   if (product.quantity < quantity) {
-//     return next(new AppError("Insufficient stock", 400));
-//   }
-
-//   // Update the cart
-//   if (cart) {
-//     const existingProductIndex = cart.products.findIndex((p) =>
-//       p.grocery.equals(productIdObject)
-//     );
-//     if (existingProductIndex > -1) {
-//       // If the product already exists in the cart, add the quantity
-//       cart.products[existingProductIndex].quantity += Number(quantity);
-//     } else {
-//       // If it's a new product, add it to the cart
-//       cart.products.push({
-//         product: productIdObject,
-//         quantity: Number(quantity),
-//         shop: shop._id,
-//         category: category.categoryName, // Updated to use categoryName from shop model
-//         grocery: product._id,
-//       });
-//     }
-//   } else {
-//     // If the cart doesn't exist, create a new one
-//     cart = new Cart({
-//       user: userId,
-//       products: [
-//         {
-//           product: productIdObject,
-//           quantity: Number(quantity),
-//           shop: shop._id,
-//           category: category.categoryName, // Updated to use categoryName from shop model
-//           grocery: product._id,
-//         },
-//       ],
-//     });
-//   }
-
-//   await cart.save();
-
-//   // Manually populate the cart with product details and calculate total price
-//   const populatedProducts = await Promise.all(
-//     cart.products.map(async (p) => {
-//       const shop = await Shop.findById(p.shop);
-//       const grocery = shop.groceries.id(p.grocery);
-//       const totalPrice = grocery.price * p.quantity;
-//       return {
-//         productId: grocery._id,
-//         productName: grocery.productName,
-//         volume: grocery.volume,
-//         price: grocery.price,
-//         quantity: p.quantity,
-//         totalPrice,
-//       };
-//     })
-//   );
-
-//   // Calculate total price of all products in cart
-//   const totalCartPrice = populatedProducts.reduce(
-//     (acc, curr) => acc + curr.totalPrice,
-//     0
-//   );
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Product added to cart",
-//     data: populatedProducts,
-//     totalCartPrice,
-//   });
-// });
-
-// exports.addToCart = catchAsync(async (req, res, next) => {
-//   const { productId, quantity } = req.body;
-//   const userId = req.user.id;
-
-//   if (!productId || !quantity) {
-//     return next(new AppError("Product ID and quantity are required", 400));
-//   }
-
-//   const productIdObject = new mongoose.Types.ObjectId(productId);
-//   let cart = await Cart.findOne({ user: userId });
-
-//   // Search for the product in all shops
-//   const shop = await Shop.findOne({ "groceries._id": productIdObject });
-
-//   if (!shop) {
-//     return next(new AppError("Shop or Product not found", 404));
-//   }
-
-//   // Find the specific grocery product
-//   const product = shop.groceries.id(productIdObject);
-//   if (!product) {
-//     return next(new AppError("Product not found in shop", 404));
-//   }
-
-//   // Find the category of the product
-//   const category = shop.categories.find((cat) =>
-//     cat.groceries.some((grocery) => grocery._id.equals(productIdObject))
-//   );
-//   ////write a controller function to get all shops near the user, it take the user location in body and return all the nearby shops. here is the shop model:
-
-//   if (!category) {
-//     return next(new AppError("Category not found in shop", 404));
-//   }
-
-//   // Check for stock availability
-//   if (product.quantity < quantity) {
-//     return next(new AppError("Insufficient stock", 400));
-//   }
-
-//   // Update the cart
-//   if (cart) {
-//     const existingProductIndex = cart.products.findIndex((p) =>
-//       p.product.equals(productIdObject)
-//     );
-//     if (existingProductIndex > -1) {
-//       // If the product already exists in the cart, add the quantity
-//       cart.products[existingProductIndex].quantity += Number(quantity);
-//     } else {
-//       // If it's a new product, add it to the cart
-//       cart.products.push({
-//         product: productIdObject,
-//         quantity: Number(quantity),
-//         shop: shop._id,
-//         category: category._id,
-//         grocery: product._id,
-//       });
-//     }
-//   } else {
-//     // If the cart doesn't exist, create a new one
-//     cart = new Cart({
-//       user: userId,
-//       products: [
-//         {
-//           product: productIdObject,
-//           quantity: Number(quantity),
-//           shop: shop._id,
-//           category: category._id,
-//           grocery: product._id,
-//         },
-//       ],
-//     });
-//   }
-
-//   await cart.save();
-
-//   // Manually populate the cart with product details and calculate total price
-//   const populatedProducts = await Promise.all(
-//     cart.products.map(async (p) => {
-//       const shop = await Shop.findById(p.shop);
-//       const grocery = shop.groceries.id(p.product);
-//       const totalPrice = grocery.price * p.quantity;
-//       return {
-//         productId: grocery._id,
-//         productName: grocery.productName,
-//         volume: grocery.volume,
-//         price: grocery.price,
-//         quantity: p.quantity,
-//         totalPrice,
-//       };
-//     })
-//   );
-
-//   // Calculate total price of all products in cart
-//   const totalCartPrice = populatedProducts.reduce(
-//     (acc, curr) => acc + curr.totalPrice,
-//     0
-//   );
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Product added to cart",
-//     data: populatedProducts,
-//     totalCartPrice,
-//   });
-// });
-// exports.addToCart = catchAsync(async (req, res, next) => {
-//   const { productId, quantity } = req.body;
-//   const userId = req.user.id;
-
-//   if (!productId || !quantity) {
-//     return next(new AppError("Product ID and quantity are required", 400));
-//   }
-
-//   const productIdObject = new mongoose.Types.ObjectId(productId);
-//   let cart = await Cart.findOne({ user: userId });
-
-//   // Search for the product in all shops
-//   const shop = await Shop.findOne({ "groceries._id": productIdObject });
-
-//   if (!shop) {
-//     return next(new AppError("Shop or Product not found", 404));
-//   }
-
-//   // Find the specific grocery product
-//   const product = shop.groceries.id(productIdObject);
-//   if (!product) {
-//     return next(new AppError("Product not found in shop", 404));
-//   }
-
-//   // Check if the shop has categories and find the category of the product
-//   if (!shop.categories || shop.categories.length === 0) {
-//     return next(new AppError("No categories found in shop", 404));
-//   }
-
-//   const category = shop.categories.find(
-//     (cat) =>
-//       cat.groceries &&
-//       cat.groceries.some((grocery) => grocery._id.equals(productIdObject))
-//   );
-
-//   if (!category) {
-//     return next(new AppError("Category not found in shop", 404));
-//   }
-
-//   // Check for stock availability
-//   if (product.quantity < quantity) {
-//     return next(new AppError("Insufficient stock", 400));
-//   }
-
-//   // Update the cart
-//   if (cart) {
-//     const existingProductIndex = cart.products.findIndex((p) =>
-//       p.product.equals(productIdObject)
-//     );
-//     if (existingProductIndex > -1) {
-//       // If the product already exists in the cart, add the quantity
-//       cart.products[existingProductIndex].quantity += Number(quantity);
-//     } else {
-//       // If it's a new product, add it to the cart
-//       cart.products.push({
-//         product: productIdObject,
-//         quantity: Number(quantity),
-//         shop: shop._id,
-//         category: category._id,
-//         grocery: product._id,
-//       });
-//     }
-//   } else {
-//     // If the cart doesn't exist, create a new one
-//     cart = new Cart({
-//       user: userId,
-//       products: [
-//         {
-//           product: productIdObject,
-//           quantity: Number(quantity),
-//           shop: shop._id,
-//           category: category._id,
-//           grocery: product._id,
-//         },
-//       ],
-//     });
-//   }
-
-//   await cart.save();
-
-//   // Manually populate the cart with product details and calculate total price
-//   const populatedProducts = await Promise.all(
-//     cart.products.map(async (p) => {
-//       const shop = await Shop.findById(p.shop);
-//       const grocery = shop.groceries.id(p.product);
-//       const totalPrice = grocery.price * p.quantity;
-//       return {
-//         productId: grocery._id,
-//         productName: grocery.productName,
-//         volume: grocery.volume,
-//         price: grocery.price,
-//         quantity: p.quantity,
-//         totalPrice,
-//       };
-//     })
-//   );
-
-//   // Calculate total price of all products in cart
-//   const totalCartPrice = populatedProducts.reduce(
-//     (acc, curr) => acc + curr.totalPrice,
-//     0
-//   );
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Product added to cart",
-//     data: populatedProducts,
-//     totalCartPrice,
-//   });
-// });
 exports.addToCart = catchAsync(async (req, res, next) => {
   const { productId, quantity } = req.body;
   const userId = req.user.id;
@@ -496,15 +69,17 @@ exports.addToCart = catchAsync(async (req, res, next) => {
   }
 
   // Update the cart
-  if (cart) {
-    const existingProductIndex = cart.products.findIndex((p) =>
-      p.product.equals(productIdObject)
+  // Update the cart
+  if (cart && cart.products && cart.products.length > 0) {
+    const existingProductIndex = cart?.products?.findIndex(
+      (p) => p.product.toString() === productIdObject.toString()
     );
+
     if (existingProductIndex > -1) {
-      // If the product already exists in the cart, add the quantity
+      // Product already exists, increase quantity
       cart.products[existingProductIndex].quantity += Number(quantity);
     } else {
-      // If it's a new product, add it to the cart
+      // New product, add it to the cart
       cart.products.push({
         product: productIdObject,
         quantity: Number(quantity),
@@ -514,7 +89,7 @@ exports.addToCart = catchAsync(async (req, res, next) => {
       });
     }
   } else {
-    // If the cart doesn't exist, create a new one
+    // Create a new cart
     cart = new Cart({
       user: userId,
       products: [
@@ -530,6 +105,40 @@ exports.addToCart = catchAsync(async (req, res, next) => {
   }
 
   await cart.save();
+  // if (cart) {
+  //   const existingProductIndex = cart.products.findIndex((p) =>
+  //     p.product.equals(productIdObject)
+  //   );
+  //   if (existingProductIndex > -1) {
+  //     // If the product already exists in the cart, add the quantity
+  //     cart.products[existingProductIndex].quantity += Number(quantity);
+  //   } else {
+  //     // If it's a new product, add it to the cart
+  //     cart.products.push({
+  //       product: productIdObject,
+  //       quantity: Number(quantity),
+  //       shop: shop._id,
+  //       category: category._id,
+  //       grocery: product._id,
+  //     });
+  //   }
+  // } else {
+  //   // If the cart doesn't exist, create a new one
+  //   cart = new Cart({
+  //     user: userId,
+  //     products: [
+  //       {
+  //         product: productIdObject,
+  //         quantity: Number(quantity),
+  //         shop: shop._id,
+  //         category: category._id,
+  //         grocery: product._id,
+  //       },
+  //     ],
+  //   });
+  // }
+
+  // await cart.save();
 
   // Manually populate the cart with product details and calculate total price
   const populatedProducts = await Promise.all(
@@ -563,6 +172,45 @@ exports.addToCart = catchAsync(async (req, res, next) => {
     totalCartPrice,
   });
 });
+
+// exports.addToCart = catchAsync(async (req, res, next) => {
+//   const { productId, quantity } = req.body;
+//   const userId = req.user.id;
+
+//   if (!productId || !quantity) {
+//     return next(new AppError("Product ID and quantity are required", 400));
+//   }
+
+//   const productIdObject = new mongoose.Types.ObjectId(productId);
+
+//   try {
+//     const { shop, product } = await findShopAndProduct(productIdObject);
+//     checkStockAvailability(product, quantity);
+//     const category = findCategory(shop, product);
+
+//     const cart = await updateOrCreateCart(
+//       userId,
+//       productIdObject,
+//       quantity,
+//       shop,
+//       category,
+//       product
+//     );
+//     const { populatedProducts, totalCartPrice } = await populateCartProducts(
+//       cart
+//     );
+
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Product added to cart",
+//       data: populatedProducts,
+//       totalCartPrice,
+//     });
+//   } catch (error) {
+//     return next(error);
+//   }
+// });
 
 //// remove product from cart
 
