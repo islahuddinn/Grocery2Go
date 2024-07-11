@@ -31,8 +31,7 @@ exports.createShop = catchAsync(async (req, res, next) => {
     success: true,
     status: 201,
     message: "Shop created successfully",
-    data: newShop,
-    user: user,
+    data: { newShop, user },
   });
 });
 
@@ -388,7 +387,7 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
           "productName price description productImages volume manufacturedBy quantity stockStatus",
         populate: {
           path: "shop",
-          select: "shopTitle location images owner categories",
+          select: "shopTitle location image owner categories",
         },
       });
 
