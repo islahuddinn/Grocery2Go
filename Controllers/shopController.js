@@ -238,9 +238,53 @@ exports.getRandomGroceries = catchAsync(async (req, res, next) => {
 exports.getAllProduct = factory.getAll(Shop);
 // exports.deleteProduct = factory.deleteOne(Shop);
 
+// exports.addProduct = catchAsync(async (req, res, next) => {
+//   const {
+//     shopId,
+//     categoryName,
+//     productName,
+//     price,
+//     volume,
+//     manufacturedBy,
+//     quantity,
+//     description,
+//     productImages,
+//   } = req.body;
+
+//   const shop = await Shop.findById(shopId);
+
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+
+//   const validCategoryNames = shop.categories.map((cat) => cat.categoryName);
+
+//   if (!validCategoryNames.includes(categoryName)) {
+//     return next(new AppError("Invalid category name", 400));
+//   }
+
+//   const newProduct = {
+//     productName,
+//     categoryName: [{ categoryName }],
+//     price,
+//     volume,
+//     manufacturedBy,
+//     quantity,
+//     description,
+//     productImages,
+//   };
+//   shop.groceries.push(newProduct);
+//   await shop.save();
+
+//   res.status(201).json({
+//     success: true,
+//     status: 201,
+//     data: shop,
+//   });
+// });
+
 exports.addProduct = catchAsync(async (req, res, next) => {
   const {
-    shopId,
     categoryName,
     productName,
     price,
@@ -251,7 +295,9 @@ exports.addProduct = catchAsync(async (req, res, next) => {
     productImages,
   } = req.body;
 
-  const shop = await Shop.findById(shopId);
+  // Find the shop associated with the logged-in user
+  const userId = req.user.id;
+  const shop = await Shop.findOne({ owner: userId });
 
   if (!shop) {
     return next(new AppError("Shop not found", 404));
@@ -273,6 +319,7 @@ exports.addProduct = catchAsync(async (req, res, next) => {
     description,
     productImages,
   };
+
   shop.groceries.push(newProduct);
   await shop.save();
 
@@ -558,5 +605,31 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
       pendingOrders,
       totalEarnings,
     },
+  });
+});
+//////-----get all categories-----/////
+
+exports.getAllCategories = catchAsync(async (req, res, next) => {
+  // Fetch all shops
+  const shops = await Shop.find();
+
+  if (!shops || shops.length === 0) {
+    return next(new AppError("No shops found", 404));
+  }
+
+  // Extract and aggregate unique categories
+  const categoriesSet = new Set();
+  shops.forEach((shop) => {
+    shop.categories.forEach((category) => {
+      categoriesSet.add(category.categoryName);
+    });
+  });
+
+  const categories = Array.from(categoriesSet);
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    data: categories,
   });
 });
