@@ -410,7 +410,7 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
         shop: {
           shopTitle: shop.shopTitle,
           location: shop.location,
-          images: shop.images,
+          image: shop.image,
           owner: shop.owner,
           categories: shop.categories.map((cat) => cat.categoryName),
         },
@@ -432,13 +432,20 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
 /////Delete shop product
 
 exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
-  const { shopId, productId } = req.body;
-
-  const shop = await Shop.findById(shopId);
+  const { productId } = req.body;
+  const userId = req.user.id;
+  const shop = await Shop.findOne({ owner: userId });
+  console.log(shop, "here is the owner shop");
 
   if (!shop) {
     return next(new AppError("Shop not found", 404));
   }
+
+  // const shop = await Shop.findById(shopId);
+
+  // if (!shop) {
+  //   return next(new AppError("Shop not found", 404));
+  // }
 
   let productFound = false;
 
@@ -467,13 +474,20 @@ exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
 /////update product
 
 exports.updateProductInShop = catchAsync(async (req, res, next) => {
-  const { shopId, productId, productDetails } = req.body;
+  const { productId, productDetails } = req.body;
 
-  const shop = await Shop.findById(shopId);
+  const userId = req.user.id;
+  const shop = await Shop.findOne({ owner: userId });
+  console.log(shop, "here is the owner shop");
 
   if (!shop) {
     return next(new AppError("Shop not found", 404));
   }
+  // const shop = await Shop.findById(shopId);
+
+  // if (!shop) {
+  //   return next(new AppError("Shop not found", 404));
+  // }
 
   let productFound = false;
 
@@ -490,27 +504,41 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
   }
 
   await shop.save();
+  const updatedShop = shop.groceries.map((product) => ({
+    ...product.toObject(),
+    shopTitle: shop.shopTitle,
+    shopType: shop.shopType,
+  }));
 
   res.status(200).json({
     success: true,
     status: 200,
     message: "Product updated successfully",
-    data: shop,
+    data: updatedShop,
   });
 });
 
 //////------Shop Statistics by owner------//////
 
 exports.getShopOrderStats = catchAsync(async (req, res, next) => {
-  const shopId = req.params.id;
-  console.log(shopId, "here is the shop id");
+  // const shopId = req.params.id;
+  // console.log(shopId, "here is the shop id");
 
-  if (!shopId) {
-    return res.status(400).json({
-      success: false,
-      status: 400,
-      message: "Shop ID is required",
-    });
+  // if (!shopId) {
+  //   return res.status(400).json({
+  //     success: false,
+  //     status: 400,
+  //     message: "Shop ID is required",
+  //   });
+  // }
+
+  const userId = req.user.id;
+  const shop = await Shop.findOne({ owner: userId });
+  const shopId = shop._id;
+  console.log(shop, shopId, "here is the owner shop");
+
+  if (!shop) {
+    return next(new AppError("Shop not found", 404));
   }
 
   const completedOrders = await Order.countDocuments({
@@ -610,18 +638,26 @@ exports.getAllCategories = catchAsync(async (req, res, next) => {
 /////---get products of a shop-----////
 
 exports.getShopProducts = catchAsync(async (req, res, next) => {
-  const shopId = req.params.id;
-
-  // Find the shop by ID
-  const shop = await Shop.findById(shopId);
+  const userId = req.user.id;
+  const shop = await Shop.findOne({ owner: userId });
+  console.log(shop, "here is the owner shop");
 
   if (!shop) {
     return next(new AppError("Shop not found", 404));
   }
+  // const shopId = req.params.id;
+
+  // // Find the shop by ID
+  // const shop = await Shop.findById(shopId);
+
+  // if (!shop) {
+  //   return next(new AppError("Shop not found", 404));
+  // }
 
   const products = shop.groceries.map((product) => ({
     ...product.toObject(),
     shopTitle: shop.shopTitle,
+    shopType: shop.shopType,
   }));
 
   res.status(200).json({
@@ -634,14 +670,22 @@ exports.getShopProducts = catchAsync(async (req, res, next) => {
 //////------get one product details----/////
 
 exports.getProductDetail = catchAsync(async (req, res, next) => {
-  const { shopId, productId } = req.body;
+  const { productId } = req.body;
 
-  // Find the shop by ID
-  const shop = await Shop.findById(shopId);
+  const userId = req.user.id;
+  const shop = await Shop.findOne({ owner: userId });
+  console.log(shop, "here is the owner shop");
 
   if (!shop) {
     return next(new AppError("Shop not found", 404));
   }
+
+  // Find the shop by ID
+  // const shop = await Shop.findById(shopId);
+
+  // if (!shop) {
+  //   return next(new AppError("Shop not found", 404));
+  // }
 
   // Find the specific product within the shop's groceries array
   const product = shop.groceries.id(productId);
@@ -653,6 +697,7 @@ exports.getProductDetail = catchAsync(async (req, res, next) => {
   const productWithShopTitle = {
     ...product.toObject(),
     shopTitle: shop.shopTitle,
+    shopType: shop.shopType,
   };
 
   res.status(200).json({
