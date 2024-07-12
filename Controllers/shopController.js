@@ -619,16 +619,20 @@ exports.getShopProducts = catchAsync(async (req, res, next) => {
     return next(new AppError("Shop not found", 404));
   }
 
-  const products = shop.groceries;
+  const products = shop.groceries.map((product) => ({
+    ...product.toObject(),
+    shopTitle: shop.shopTitle,
+  }));
 
   res.status(200).json({
     success: true,
     status: 200,
-    data: { products, shopTitle: shop.shopTitle },
+    data: products,
   });
 });
 
 //////------get one product details----/////
+
 exports.getProductDetail = catchAsync(async (req, res, next) => {
   const { shopId, productId } = req.body;
 
@@ -646,9 +650,14 @@ exports.getProductDetail = catchAsync(async (req, res, next) => {
     return next(new AppError("Product not found", 404));
   }
 
+  const productWithShopTitle = {
+    ...product.toObject(),
+    shopTitle: shop.shopTitle,
+  };
+
   res.status(200).json({
     success: true,
     status: 200,
-    data: { product, shopTitle: shop.shopTitle },
+    data: productWithShopTitle,
   });
 });
