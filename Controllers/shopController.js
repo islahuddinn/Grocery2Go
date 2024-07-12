@@ -619,12 +619,36 @@ exports.getShopProducts = catchAsync(async (req, res, next) => {
     return next(new AppError("Shop not found", 404));
   }
 
-  // Extract the groceries (products) from the shop
   const products = shop.groceries;
 
   res.status(200).json({
     success: true,
     status: 200,
-    data: products,
+    data: { products, shopTitle: shop.shopTitle },
+  });
+});
+
+//////------get one product details----/////
+exports.getProductDetail = catchAsync(async (req, res, next) => {
+  const { shopId, productId } = req.body;
+
+  // Find the shop by ID
+  const shop = await Shop.findById(shopId);
+
+  if (!shop) {
+    return next(new AppError("Shop not found", 404));
+  }
+
+  // Find the specific product within the shop's groceries array
+  const product = shop.groceries.id(productId);
+
+  if (!product) {
+    return next(new AppError("Product not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    data: { product, shopTitle: shop.shopTitle },
   });
 });
