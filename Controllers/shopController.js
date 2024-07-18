@@ -431,45 +431,97 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
 
 /////Delete shop product
 
-exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
-  const { productId } = req.body;
-  const userId = req.user.id;
-  const shop = await Shop.findOne({ owner: userId });
-  console.log(shop, "here is the owner shop");
+// exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
+//   try {
+//     const { productId } = req.body;
+//     const userId = req.user.id;
 
-  if (!shop) {
-    return next(new AppError("Shop not found", 404));
-  }
+//     console.log(
+//       `User ID: ${userId} - Attempting to delete product: ${productId}`
+//     );
 
-  // const shop = await Shop.findById(shopId);
+//     // Find the shop associated with the logged-in user
+//     const shop = await Shop.findOne({ owner: userId });
+//     if (!shop) {
+//       console.error(`Shop not found for user: ${userId}`);
+//       return next(new AppError("Shop not found", 404));
+//     }
 
-  // if (!shop) {
-  //   return next(new AppError("Shop not found", 404));
-  // }
+//     console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
 
-  let productFound = false;
+//     // Check if the product exists in the shop's groceries
+//     let productFound = false;
 
-  for (let grocery of shop.groceries) {
-    if (grocery._id.equals(productId)) {
-      shop.groceries.pull(productId);
-      productFound = true;
-      break;
+//     for (let grocery of shop.groceries) {
+//       if (grocery._id.equals(productId)) {
+//         shop.groceries.pull(productId);
+//         productFound = true;
+//         console.log(`Product found and removed: ${productId}`);
+//         break;
+//       }
+//     }
+
+//     if (!productFound) {
+//       console.error(`Product not found in shop: ${productId}`);
+//       return next(new AppError("Product not found in shop", 404));
+//     }
+
+//     // Save the updated shop
+//     await shop.save();
+//     console.log(
+//       `Shop saved successfully after product deletion. Shop ID: ${shop._id}`
+//     );
+
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Product deleted successfully",
+//       data: shop,
+//     });
+//   } catch (error) {
+//     console.error(`Error in deleteProductFromShop: ${error.message}`);
+//     return next(new AppError("Internal Server Error", 500));
+//   }
+// });
+
+exports.deleteProductFromShop = async (req, res, next) => {
+  try {
+    const { productId } = req.body;
+    const userId = req.user.id;
+
+    console.log(
+      `User ID: ${userId} - Attempting to delete product: ${productId}`
+    );
+
+    // Find and update the shop by pulling the product from groceries array
+    const shop = await Shop.findOneAndUpdate(
+      { owner: userId, "groceries._id": productId },
+      { $pull: { groceries: { _id: productId } } },
+      { new: true }
+    );
+
+    if (!shop) {
+      console.error(
+        `Shop or product not found for user: ${userId} and product: ${productId}`
+      );
+      return next(new AppError("Shop or product not found", 404));
     }
+
+    console.log(
+      `Product removed successfully from shop: ${shop.shopTitle} - Shop ID: ${shop._id}`
+    );
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Product deleted successfully",
+      data: shop,
+    });
+  } catch (error) {
+    console.error(`Error in deleteProductFromShop: ${error.message}`);
+    return next(new AppError("Internal Server Error", 500));
   }
-
-  if (!productFound) {
-    return next(new AppError("Product not found in shop", 404));
-  }
-
-  await shop.save();
-
-  res.status(200).json({
-    success: true,
-    status: 200,
-    message: "Product deleted successfully",
-    data: shop,
-  });
-});
+};
 
 /////update product
 
@@ -669,40 +721,94 @@ exports.getShopProducts = catchAsync(async (req, res, next) => {
 
 //////------get one product details----/////
 
-exports.getProductDetail = catchAsync(async (req, res, next) => {
-  const { productId } = req.body;
+// exports.getProductDetail = catchAsync(async (req, res, next) => {
+//   const { productId } = req.body;
 
-  const userId = req.user.id;
-  const shop = await Shop.findOne({ owner: userId });
-  console.log(shop, "here is the owner shop");
+//   const userId = req.user.id;
+//   const shop = await Shop.findOne({ owner: userId });
+//   console.log(shop, "here is the owner shop");
 
-  if (!shop) {
-    return next(new AppError("Shop not found", 404));
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+
+//   // Find the shop by ID
+//   // const shop = await Shop.findById(shopId);
+
+//   // if (!shop) {
+//   //   return next(new AppError("Shop not found", 404));
+//   // }
+
+//   // Find the specific product within the shop's groceries array
+//   const product = shop.groceries.id(productId);
+
+//   if (!product) {
+//     return next(new AppError("Product not found", 404));
+//   }
+
+//   const productWithShopTitle = {
+//     ...product.toObject(),
+//     shopTitle: shop.shopTitle,
+//     shopType: shop.shopType,
+//   };
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: productWithShopTitle,
+//   });
+// });
+
+exports.getProductDetail = async (req, res, next) => {
+  try {
+    const { productId } = req.body;
+    const userId = req.user.id;
+
+    console.log(
+      `User ID: ${userId} - Attempting to get details for product: ${productId}`
+    );
+
+    // Find the shop owned by the logged-in user
+    const shop = await Shop.findOne({ owner: userId });
+
+    if (!shop) {
+      console.error(`Shop not found for user: ${userId}`);
+      return next(new AppError("Shop not found", 404));
+    }
+
+    console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
+
+    // Find the specific product within the shop's groceries array
+    const product = shop.groceries.id(productId);
+
+    if (!product) {
+      console.error(
+        `Product not found in shop: ${shop.shopTitle} - Product ID: ${productId}`
+      );
+      return next(new AppError("Product not found", 404));
+    }
+
+    console.log(
+      `Product found: ${product.productName} - Product ID: ${productId}`
+    );
+
+    const productWithShopTitle = {
+      ...product.toObject(),
+      shopTitle: shop.shopTitle,
+      shopType: shop.shopType,
+    };
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      data: productWithShopTitle,
+    });
+
+    console.log(
+      `Product details returned successfully for product: ${productId}`
+    );
+  } catch (error) {
+    console.error(`Error in getProductDetail: ${error.message}`);
+    return next(new AppError("Internal Server Error", 500));
   }
-
-  // Find the shop by ID
-  // const shop = await Shop.findById(shopId);
-
-  // if (!shop) {
-  //   return next(new AppError("Shop not found", 404));
-  // }
-
-  // Find the specific product within the shop's groceries array
-  const product = shop.groceries.id(productId);
-
-  if (!product) {
-    return next(new AppError("Product not found", 404));
-  }
-
-  const productWithShopTitle = {
-    ...product.toObject(),
-    shopTitle: shop.shopTitle,
-    shopType: shop.shopType,
-  };
-
-  res.status(200).json({
-    success: true,
-    status: 200,
-    data: productWithShopTitle,
-  });
-});
+};
