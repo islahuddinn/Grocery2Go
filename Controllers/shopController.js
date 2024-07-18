@@ -486,7 +486,7 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
 
 exports.deleteProductFromShop = async (req, res, next) => {
   try {
-    const { productId } = req.body;
+    const productId = req.params.id;
     const userId = req.user.id;
 
     console.log(
@@ -761,7 +761,7 @@ exports.getShopProducts = catchAsync(async (req, res, next) => {
 
 exports.getProductDetail = async (req, res, next) => {
   try {
-    const { productId } = req.body;
+    const productId = req.params.id;
     const userId = req.user.id;
 
     console.log(

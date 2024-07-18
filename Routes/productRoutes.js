@@ -12,9 +12,9 @@ router.get("/all-categories", shopController.getAllCategories);
 router.post("/mark-favorite-unfavorite", shopController.toggleProductFavorite);
 router.get("/", shopController.getAllProduct);
 router.get("/get-shop-products", shopController.getShopProducts);
-router.get("/get-product-details", shopController.getProductDetail);
+router.get("/get-product-details/:id", shopController.getProductDetail);
 router.patch("/update-product", shopController.updateProductInShop);
-router.delete("/delete-product", shopController.deleteProductFromShop);
+router.delete("/delete-product/:id", shopController.deleteProductFromShop);
 // router
 //   .route("/:id")
 // .get(shopController.getOneProduct)
