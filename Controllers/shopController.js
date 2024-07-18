@@ -72,15 +72,11 @@ exports.deleteShop = factory.deleteOne(Shop);
 //     });
 //   }
 // });
-
 exports.toggleShopFavorite = async (req, res, next) => {
   try {
     const shopId = req.params.id;
-    const userId = req.user.id;
 
-    console.log(
-      `User ID: ${userId} - Attempting to toggle favorite status for shop: ${shopId}`
-    );
+    console.log(`Attempting to toggle favorite status for shop: ${shopId}`);
 
     // Find the shop by ID
     const shop = await Shop.findById(shopId);
@@ -91,16 +87,6 @@ exports.toggleShopFavorite = async (req, res, next) => {
     }
 
     console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
-
-    // Check if the shop is owned by the logged-in user
-    if (shop.owner.toString() !== userId.toString()) {
-      console.error(
-        `User ${userId} is not authorized to toggle favorite status for shop ${shopId}`
-      );
-      return next(
-        new AppError("You are not authorized to perform this action", 403)
-      );
-    }
 
     // Toggle the isFavorite field
     shop.isFavorite = !shop.isFavorite;
@@ -298,47 +284,16 @@ exports.addProduct = catchAsync(async (req, res, next) => {
 });
 
 ///// Mark a product as favorite
-// exports.toggleProductFavorite = catchAsync(async (req, res, next) => {
-//   const { productId } = req.body;
-//   const userId = req.user._id;
-
-//   // Check if the product is already marked as favorite
-//   const favorite = await Favorite.findOne({ user: userId, product: productId });
-
-//   if (favorite) {
-//     await Favorite.findOneAndDelete({ user: userId, product: productId });
-
-//     return next(new AppError("Product unmarked as favorite", 200));
-//   } else {
-//     // Mark as favorite
-//     const newFavorite = await Favorite.create({
-//       user: userId,
-//       product: productId,
-//     });
-
-//     return res.status(201).json({
-//       success: true,
-//       status: 201,
-//       message: "Product marked as favorite",
-//       data: newFavorite,
-//     });
-//   }
-// });
 
 exports.toggleProductFavorite = async (req, res, next) => {
   try {
     const productId = req.params.id;
-    const userId = req.user._id;
 
-    console.log(
-      `User ID: ${userId} - Attempting to toggle favorite status for product: ${productId}`
-    );
-
-    // Find the shop owned by the logged-in user
-    const shop = await Shop.findOne({ owner: userId });
+    // Find the shop that contains the product with the given productId
+    const shop = await Shop.findOne({ "groceries._id": productId });
 
     if (!shop) {
-      console.error(`Shop not found for user: ${userId}`);
+      console.error(`Shop not found for product: ${productId}`);
       return next(new AppError("Shop not found", 404));
     }
 
@@ -367,6 +322,7 @@ exports.toggleProductFavorite = async (req, res, next) => {
     const message = product.isFavorite
       ? "Product marked as favorite"
       : "Product unmarked as favorite";
+
     console.log(`${message} - Product ID: ${productId}`);
 
     res.status(200).json({
