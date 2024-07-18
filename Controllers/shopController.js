@@ -525,49 +525,115 @@ exports.deleteProductFromShop = async (req, res, next) => {
 
 /////update product
 
+// exports.updateProductInShop = catchAsync(async (req, res, next) => {
+//   const { productId, productDetails } = req.body;
+
+//   const userId = req.user.id;
+//   const shop = await Shop.findOne({ owner: userId });
+//   console.log(shop, "here is the owner shop");
+
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+//   // const shop = await Shop.findById(shopId);
+
+//   // if (!shop) {
+//   //   return next(new AppError("Shop not found", 404));
+//   // }
+
+//   let productFound = false;
+
+//   for (let grocery of shop.groceries) {
+//     if (grocery._id.equals(productId)) {
+//       Object.assign(grocery, productDetails);
+//       productFound = true;
+//       break;
+//     }
+//   }
+
+//   if (!productFound) {
+//     return next(new AppError("Product not found in shop", 404));
+//   }
+
+//   await shop.save();
+//   const updatedShop = shop.groceries.map((product) => ({
+//     ...product.toObject(),
+//     shopTitle: shop.shopTitle,
+//     shopType: shop.shopType,
+//   }));
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Product updated successfully",
+//     data: updatedShop,
+//   });
+// });
+
 exports.updateProductInShop = catchAsync(async (req, res, next) => {
-  const { productId, productDetails } = req.body;
+  try {
+    const { productId, productDetails, categoryName } = req.body;
+    const userId = req.user.id;
 
-  const userId = req.user.id;
-  const shop = await Shop.findOne({ owner: userId });
-  console.log(shop, "here is the owner shop");
+    console.log(
+      `User ID: ${userId} - Attempting to update product: ${productId}`
+    );
 
-  if (!shop) {
-    return next(new AppError("Shop not found", 404));
-  }
-  // const shop = await Shop.findById(shopId);
+    // Find the shop owned by the logged-in user
+    const shop = await Shop.findOne({ owner: userId });
 
-  // if (!shop) {
-  //   return next(new AppError("Shop not found", 404));
-  // }
-
-  let productFound = false;
-
-  for (let grocery of shop.groceries) {
-    if (grocery._id.equals(productId)) {
-      Object.assign(grocery, productDetails);
-      productFound = true;
-      break;
+    if (!shop) {
+      console.error(`Shop not found for user: ${userId}`);
+      return next(new AppError("Shop not found", 404));
     }
+
+    console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
+
+    // Find the specific product within the shop's groceries array
+    const product = shop.groceries.id(productId);
+
+    if (!product) {
+      console.error(
+        `Product not found in shop: ${shop.shopTitle} - Product ID: ${productId}`
+      );
+      return next(new AppError("Product not found", 404));
+    }
+
+    // Update the product details
+    Object.assign(product, productDetails);
+
+    // Update the category name if provided
+    if (categoryName) {
+      const category = shop.categories.find(
+        (cat) => cat.categoryName === categoryName
+      );
+      if (!category) {
+        console.error(`Category not found: ${categoryName}`);
+        return next(new AppError("Category not found", 404));
+      }
+      product.categoryName = [{ categoryName: category.categoryName }];
+    }
+
+    await shop.save();
+
+    const updatedProduct = {
+      ...product.toObject(),
+      shopTitle: shop.shopTitle,
+      shopType: shop.shopType,
+    };
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Product updated successfully",
+      data: updatedProduct,
+    });
+
+    console.log(`Product updated successfully: ${productId}`);
+  } catch (error) {
+    console.error(`Error in updateProductInShop: ${error.message}`);
+    return next(new AppError("Internal Server Error", 500));
   }
-
-  if (!productFound) {
-    return next(new AppError("Product not found in shop", 404));
-  }
-
-  await shop.save();
-  const updatedShop = shop.groceries.map((product) => ({
-    ...product.toObject(),
-    shopTitle: shop.shopTitle,
-    shopType: shop.shopType,
-  }));
-
-  res.status(200).json({
-    success: true,
-    status: 200,
-    message: "Product updated successfully",
-    data: updatedShop,
-  });
 });
 
 //////------Shop Statistics by owner------//////
