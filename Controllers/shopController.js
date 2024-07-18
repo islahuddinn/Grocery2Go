@@ -113,25 +113,44 @@ exports.toggleShopFavorite = async (req, res, next) => {
 
 ///////// Get all favorite shops for a user////////
 
+// exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
+//   const favorites = await Favorite.find({
+//     user: req.user.id,
+//     shop: { $exists: true },
+//   }).populate({
+//     path: "shop",
+//     select: "shopTitle location images owner categories",
+//     populate: {
+//       path: "categories",
+//     },
+//     populate: {
+//       path: "groceries",
+//     },
+//   });
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: favorites.map((fav) => fav.shop).filter((shop) => shop !== null),
+//   });
+// });
 exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
-  const favorites = await Favorite.find({
-    user: req.user.id,
-    shop: { $exists: true },
-  }).populate({
-    path: "shop",
-    select: "shopTitle location images owner categories",
-    populate: {
+  // Find all shops where any product is marked as favorite
+  const favoriteShops = await Shop.find({ "groceries.isFavorite": true })
+    .populate({
       path: "categories",
-    },
-    populate: {
+    })
+    .populate({
       path: "groceries",
-    },
-  });
+      match: { isFavorite: true },
+      select:
+        "productName price description productImages volume manufacturedBy quantity stockStatus",
+    });
 
   res.status(200).json({
     success: true,
     status: 200,
-    data: favorites.map((fav) => fav.shop).filter((shop) => shop !== null),
+    data: favoriteShops,
   });
 });
 
@@ -338,64 +357,114 @@ exports.toggleProductFavorite = async (req, res, next) => {
   }
 };
 
-exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
-  const favorites = await Favorite.find({
-    user: req.user._id,
-    product: { $exists: true },
-  });
+// exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
+//   const favorites = await Favorite.find({
+//     user: req.user._id,
+//     product: { $exists: true },
+//   });
 
-  if (!favorites || favorites.length === 0) {
+//   if (!favorites || favorites.length === 0) {
+//     return next(new AppError("No favorite product found", 404));
+//   }
+
+//   // Retrieve product details
+//   const favoriteProducts = await Promise.all(
+//     favorites.map(async (favorite) => {
+//       const shop = await Shop.findOne({
+//         "groceries._id": favorite.product,
+//       }).populate({
+//         path: "groceries._id",
+//         select:
+//           "productName price description productImages volume manufacturedBy quantity stockStatus",
+//         populate: {
+//           path: "shop",
+//           select: "shopTitle location image owner categories",
+//         },
+//       });
+
+//       if (!shop) {
+//         return null;
+//       }
+
+//       // Find the specific grocery within the groceries array
+//       const grocery = shop.groceries.find((g) =>
+//         g._id.equals(favorite.product)
+//       );
+//       if (!grocery) {
+//         return null;
+//       }
+
+//       return {
+//         ...grocery.toObject(),
+//         shop: {
+//           shopTitle: shop.shopTitle,
+//           location: shop.location,
+//           image: shop.image,
+//           owner: shop.owner,
+//           categories: shop.categories.map((cat) => cat.categoryName),
+//         },
+//       };
+//     })
+//   );
+
+//   const filteredProducts = favoriteProducts.filter(
+//     (product) => product !== null
+//   );
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: filteredProducts,
+//   });
+// });
+exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
+  // Find all products that are marked as favorite
+  const favoriteProducts = await Shop.aggregate([
+    { $unwind: "$groceries" },
+    { $match: { "groceries.isFavorite": true } },
+    {
+      $lookup: {
+        from: "shops", // Assuming collection name is "shops"
+        localField: "groceries._id",
+        foreignField: "groceries._id",
+        as: "shop",
+      },
+    },
+    {
+      $addFields: {
+        shop: { $arrayElemAt: ["$shop", 0] },
+      },
+    },
+    {
+      $project: {
+        _id: "$groceries._id",
+        productName: "$groceries.productName",
+        price: "$groceries.price",
+        description: "$groceries.description",
+        productImages: "$groceries.productImages",
+        volume: "$groceries.volume",
+        manufacturedBy: "$groceries.manufacturedBy",
+        quantity: "$groceries.quantity",
+        stockStatus: "$groceries.stockStatus",
+        shop: {
+          shopTitle: "$shop.shopTitle",
+          location: "$shop.location",
+          image: "$shop.image",
+          owner: "$shop.owner",
+          categories: "$shop.categories",
+        },
+      },
+    },
+  ]);
+
+  if (!favoriteProducts || favoriteProducts.length === 0) {
     return next(new AppError("No favorite product found", 404));
   }
-
-  // Retrieve product details
-  const favoriteProducts = await Promise.all(
-    favorites.map(async (favorite) => {
-      const shop = await Shop.findOne({
-        "groceries._id": favorite.product,
-      }).populate({
-        path: "groceries._id",
-        select:
-          "productName price description productImages volume manufacturedBy quantity stockStatus",
-        populate: {
-          path: "shop",
-          select: "shopTitle location image owner categories",
-        },
-      });
-
-      if (!shop) {
-        return null;
-      }
-
-      // Find the specific grocery within the groceries array
-      const grocery = shop.groceries.find((g) =>
-        g._id.equals(favorite.product)
-      );
-      if (!grocery) {
-        return null;
-      }
-
-      return {
-        ...grocery.toObject(),
-        shop: {
-          shopTitle: shop.shopTitle,
-          location: shop.location,
-          image: shop.image,
-          owner: shop.owner,
-          categories: shop.categories.map((cat) => cat.categoryName),
-        },
-      };
-    })
-  );
-
-  const filteredProducts = favoriteProducts.filter(
-    (product) => product !== null
-  );
 
   res.status(200).json({
     success: true,
     status: 200,
-    data: filteredProducts,
+    data: favoriteProducts,
   });
 });
 
