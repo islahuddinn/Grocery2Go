@@ -9,7 +9,10 @@ router.post("/create", shopController.addProduct);
 router.get("/get-all-favorite-products", shopController.getAllFavoriteProducts);
 router.get("/all-categories", shopController.getAllCategories);
 
-router.post("/mark-favorite-unfavorite", shopController.toggleProductFavorite);
+router.post(
+  "/mark-favorite-unfavorite/:id",
+  shopController.toggleProductFavorite
+);
 router.get("/", shopController.getAllProduct);
 router.get("/get-shop-products", shopController.getShopProducts);
 router.get("/get-product-details/:id", shopController.getProductDetail);
