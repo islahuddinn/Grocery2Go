@@ -787,62 +787,80 @@ exports.getShopProducts = catchAsync(async (req, res, next) => {
 
 //////------get one product details----/////
 
-// exports.getProductDetail = catchAsync(async (req, res, next) => {
-//   const { productId } = req.body;
+// exports.getProductDetail = async (req, res, next) => {
+//   try {
+//     const productId = req.params.id;
+//     const userId = req.user.id;
 
-//   const userId = req.user.id;
-//   const shop = await Shop.findOne({ owner: userId });
-//   console.log(shop, "here is the owner shop");
+//     console.log(
+//       `User ID: ${userId} - Attempting to get details for product: ${productId}`
+//     );
 
-//   if (!shop) {
-//     return next(new AppError("Shop not found", 404));
+//     // Find the shop owned by the logged-in user
+//     const shop = await Shop.findOne({ owner: userId });
+
+//     if (!shop) {
+//       console.error(`Shop not found for user: ${userId}`);
+//       return next(new AppError("Shop not found", 404));
+//     }
+
+//     console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
+
+//     // Find the specific product within the shop's groceries array
+//     const product = shop.groceries.id(productId);
+
+//     if (!product) {
+//       console.error(
+//         `Product not found in shop: ${shop.shopTitle} - Product ID: ${productId}`
+//       );
+//       return next(new AppError("Product not found", 404));
+//     }
+
+//     console.log(
+//       `Product found: ${product.productName} - Product ID: ${productId}`
+//     );
+
+//     const productWithShopTitle = {
+//       ...product.toObject(),
+//       shopDetails: shop,
+//       // shopType: shop.shopType,
+//     };
+
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       data: productWithShopTitle,
+//     });
+
+//     console.log(
+//       `Product details returned successfully for product: ${productId}`
+//     );
+//   } catch (error) {
+//     console.error(`Error in getProductDetail: ${error.message}`);
+//     return next(new AppError("Internal Server Error", 500));
 //   }
-
-//   // Find the shop by ID
-//   // const shop = await Shop.findById(shopId);
-
-//   // if (!shop) {
-//   //   return next(new AppError("Shop not found", 404));
-//   // }
-
-//   // Find the specific product within the shop's groceries array
-//   const product = shop.groceries.id(productId);
-
-//   if (!product) {
-//     return next(new AppError("Product not found", 404));
-//   }
-
-//   const productWithShopTitle = {
-//     ...product.toObject(),
-//     shopTitle: shop.shopTitle,
-//     shopType: shop.shopType,
-//   };
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: productWithShopTitle,
-//   });
-// });
+// };
 
 exports.getProductDetail = async (req, res, next) => {
   try {
     const productId = req.params.id;
-    const userId = req.user.id;
+    // const userId = req.user.id;
 
-    console.log(
-      `User ID: ${userId} - Attempting to get details for product: ${productId}`
-    );
+    // console.log(
+    //   `User ID: ${userId} - Attempting to get details for product: ${productId}`
+    // );
 
-    // Find the shop owned by the logged-in user
-    const shop = await Shop.findOne({ owner: userId });
+    // Find the shop that contains the product
+    const shop = await Shop.findOne({ "groceries._id": productId });
 
     if (!shop) {
-      console.error(`Shop not found for user: ${userId}`);
-      return next(new AppError("Shop not found", 404));
+      console.error(`No shop contains the product with ID: ${productId}`);
+      return next(new AppError("Product not found in any shop", 404));
     }
 
-    console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
+    console.log(
+      `Shop found containing the product: ${shop.shopTitle} - Shop ID: ${shop._id}`
+    );
 
     // Find the specific product within the shop's groceries array
     const product = shop.groceries.id(productId);
@@ -858,16 +876,21 @@ exports.getProductDetail = async (req, res, next) => {
       `Product found: ${product.productName} - Product ID: ${productId}`
     );
 
-    const productWithShopTitle = {
+    const productWithShopDetails = {
       ...product.toObject(),
-      shopDetails: shop,
-      // shopType: shop.shopType,
+      shopDetails: {
+        shopTitle: shop.shopTitle,
+        shopType: shop.shopType,
+        location: shop.location,
+        operatingHours: shop.operatingHours,
+        categories: shop.categories,
+      },
     };
 
     res.status(200).json({
       success: true,
       status: 200,
-      data: productWithShopTitle,
+      data: productWithShopDetails,
     });
 
     console.log(
