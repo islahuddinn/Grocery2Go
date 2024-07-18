@@ -477,7 +477,7 @@ exports.removeFromCart = catchAsync(async (req, res, next) => {
 
 exports.getCart = catchAsync(async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
 
     // Find the cart for the current user
     const cart = await Cart.findOne({ user: userId });
