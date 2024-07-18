@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(authController.protect);
 router.post("/create", shopController.createShop);
 router.get("/get-all-favorite-shop", shopController.getAllFavoriteShops);
-router.post("/mark-favorite-unfavorite", shopController.toggleShopFavorite);
+router.post("/mark-favorite-unfavorite/:id", shopController.toggleShopFavorite);
 
 router.get("/getAllShop", shopController.getAllShop);
 router.get("/get-nearby-shops", shopController.getNearbyShops);
