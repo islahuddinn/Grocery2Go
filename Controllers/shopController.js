@@ -794,8 +794,8 @@ exports.getProductDetail = async (req, res, next) => {
 
     const productWithShopTitle = {
       ...product.toObject(),
-      shopTitle: shop.shopTitle,
-      shopType: shop.shopType,
+      shopDetails: shop,
+      // shopType: shop.shopType,
     };
 
     res.status(200).json({
