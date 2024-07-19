@@ -788,14 +788,14 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   // }
 
   // Find user's cart and populate product details including shop
-  // const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
-  // if (!cart || cart.products.length === 0) {
-  //   return res.status(404).json({
-  //     success: false,
-  //     status: 404,
-  //     message: "Your Cart is Empty",
-  //   });
-  // }
+  const cart = await Cart.findOne({ user: user._id }).populate("products.shop");
+  if (!cart || cart.products.length === 0) {
+    return res.status(404).json({
+      success: false,
+      status: 404,
+      message: "Your Cart is Empty",
+    });
+  }
 
   // Generate a unique order number (e.g., using a timestamp)
   const orderNumber = `ORD-${Date.now()}`;
