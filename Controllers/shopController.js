@@ -157,23 +157,21 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 ////-----Shops near me -----////
 
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
-  const maxDistance = req.body.maxDistance;
-  const latitude = req.body.latitude;
-  const longitude = req.body.longitude;
+  const { latitude, longitude, maxDistance } = req.body;
   console.log(latitude, longitude, maxDistance, "here is the data");
 
-  if (
-    typeof latitude !== "string" ||
-    typeof longitude !== "string" ||
-    typeof maxDistance !== "string"
-  ) {
-    return next(
-      new AppError(
-        "Please provide valid latitude, longitude, and maxDistance",
-        400
-      )
-    );
-  }
+  // if (
+  //   typeof latitude !== "string" ||
+  //   typeof longitude !== "string" ||
+  //   typeof maxDistance !== "string"
+  // ) {
+  //   return next(
+  //     new AppError(
+  //       "Please provide valid latitude, longitude, and maxDistance",
+  //       400
+  //     )
+  //   );
+  // }
 
   // Find nearby shops
   const nearbyShops = await Shop.find({
