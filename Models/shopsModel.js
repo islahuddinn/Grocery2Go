@@ -98,7 +98,7 @@ const shopSchema = new mongoose.Schema(
         type: String,
         default: "Point",
       },
-      coordinates: { type: [Number], default: [0, 0] },
+      coordinates: { type: [Number], default: [0.0, 0.0] },
       address: String,
     },
     operatingHours: { type: String, default: "08:00 am-10:00 pm" },
