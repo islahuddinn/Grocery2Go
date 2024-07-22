@@ -156,74 +156,58 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 
 ////-----Shops near me -----////
 
-// exports.getNearbyShops = catchAsync(async (req, res, next) => {
-//   console.log("REQ_BODY IS:", req.body);
-//   const location = req.body.location;
-//   console.log(location, "here is the data");
-
-//   if (!location) {
-//     return next(
-//       new AppError(
-//         "Please provide valid latitude, longitude, and maxDistance",
-//         400
-//       )
-//     );
-//   }
-
-//   // Find nearby shops
-//   const nearbyShops = await Shop.find({
-//     location: {
-//       $near: {
-//         $geometry: {
-//           type: "Point",
-//           coordinates: [location.longitude, location.latitude],
-//         },
-//         $maxDistance: location.maxDistance,
-//       },
-//     },
-//   });
-
-//   // If no nearby shops found, get at least two default shops
-//   if (!nearbyShops || nearbyShops.length === 0) {
-//     const defaultShops = await Shop.find().limit(2);
-//     if (!defaultShops || defaultShops.length === 0) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: "No shops found",
-//         data: [],
-//       });
-//     }
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No nearby shops found. Here are some default shops.",
-//       data: defaultShops,
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Nearby shops retrieved successfully",
-//     data: nearbyShops,
-//   });
-// });
-
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
-  console.log("REQUEST IS:", req);
   console.log("REQ_BODY IS:", req.body);
-  const { name } = req.body;
-  console.log("Name IS:", name);
-  if (!name) {
-    return next(new AppError("Name not found in body", 400));
+  const { latitude, longitude, maxDistance } = req.query;
+
+  console.log(latitude, longitude, maxDistance, "here is the data");
+
+  if (!latitude || !longitude || !maxDistance) {
+    return next(
+      new AppError(
+        "Please provide valid latitude, longitude, and maxDistance",
+        400
+      )
+    );
+  }
+
+  // Find nearby shops
+  const nearbyShops = await Shop.find({
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+        },
+        $maxDistance: maxDistance,
+      },
+    },
+  });
+
+  // If no nearby shops found, get at least two default shops
+  if (!nearbyShops || nearbyShops.length === 0) {
+    const defaultShops = await Shop.find().limit(2);
+    if (!defaultShops || defaultShops.length === 0) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: "No shops found",
+        data: [],
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "No nearby shops found. Here are some default shops.",
+      data: defaultShops,
+    });
   }
 
   res.status(200).json({
     success: true,
     status: 200,
     message: "Nearby shops retrieved successfully",
-    name,
+    data: nearbyShops,
   });
 });
 
