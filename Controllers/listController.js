@@ -482,24 +482,99 @@ exports.requestRider = catchAsync(async (req, res, next) => {
 /////-----Aaccept or Reject list order by rider -----////
 
 exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
-  const { orderId, action } = req.body;
+  const { listId, action } = req.body;
 
-  // Find the order by ID
-  const order = await Order.findById(orderId);
-  if (!order) {
-    return next(new AppError("Order not found", 404));
+  // Retrieve the list by listId
+  const list = await List.findById(listId).populate("user");
+  if (!list) {
+    return next(new AppError("List not found", 404));
   }
 
-  // Check if the order is still pending
-  if (order.orderStatus !== "pending") {
-    return next(new AppError("Order is not pending", 400));
+  /// Extract product names from the list
+  const productNames = list.items.map((item) => item.productName);
+
+  // Fetch all products with their prices from the shop model
+  const shopProducts = await Shop.aggregate([
+    { $unwind: "$groceries" },
+    { $match: { "groceries.productName": { $in: productNames } } },
+    {
+      $project: {
+        "groceries.productName": 1,
+        "groceries.price": 1,
+      },
+    },
+  ]);
+
+  ///// Create a map for product prices
+  const priceMap = {};
+  shopProducts.forEach((shopProduct) => {
+    const productName = shopProduct.groceries.productName;
+    const productPrice = shopProduct.groceries.price;
+    priceMap[productName] = productPrice;
+  });
+
+  ///// Generate a unique order number (e.g., using a timestamp)
+  const orderNumber = `ORD-${Date.now()}`;
+
+  ////// Calculate items total and construct products array
+  const products = [];
+  let itemsTotal = 0;
+
+  for (const item of list.items) {
+    const price = priceMap[item.productName];
+    if (!price) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: `Price not found for item: ${item.productName} or item not available`,
+      });
+    }
+    const totalPrice = item.quantity * price;
+    itemsTotal += totalPrice;
+    products.push({
+      productName: item.productName,
+      quantity: item.quantity,
+      price: price,
+    });
   }
+
+  ///// Assuming startLocation is the first shop's location for simplicity
+  const shop = await Shop.findOne({
+    "groceries.productName": productNames[0],
+  });
+  if (!shop || !shop.location) {
+    return next(
+      new AppError("Shop not found or invalid coordinates/location", 404)
+    );
+  }
+  const startLocation = shop.location;
+
+  const serviceFee = 0.5;
+  const adminFee = 0.1;
+  const totalPayment = itemsTotal + serviceFee + adminFee;
+
+  /// // Calculate delivery charges
+  // const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
+
+  // Create the order
+  const newOrder = await Order.create({
+    orderNumber,
+    customer: list.user._id,
+    listItems: products,
+    startLocation: startLocation,
+    endLocation: endLocation,
+    itemsTotal: itemsTotal,
+    serviceFee,
+    adminFee,
+    totalPayment: totalPayment,
+    // deliveryCharges: deliveryCharges,
+  });
 
   // Handle the action
   if (action === "accept") {
-    order.orderStatus = "ready for pickup";
-    order.driver = req.user.id;
-    await order.save();
+    newOrder.orderStatus = "rider accepted";
+    newOrder.driver = req.user.id;
+    await newOrder.save();
 
     // Send a notification to the customer about the order status change
     // Assuming you have a function to send notifications
@@ -509,11 +584,11 @@ exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "Order accepted and status updated to ready for pickup",
-      order,
+      newOrder,
     });
   } else if (action === "reject") {
     // Optionally, you can log the rejection or notify the customer about the rejection
-    // sendNotificationToCustomer(order.customer, 'Your order has been rejected');
+    // sendNotificationToCustomer(newOrder.customer, 'Your order has been rejected');
 
     return next(new AppError("Order rejected ", 200));
   } else {

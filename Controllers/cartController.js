@@ -771,118 +771,6 @@ exports.checkout = catchAsync(async (req, res, next) => {
 
 /////-----verify payment------///////
 
-// exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
-//   const { user } = req;
-//   const { paymentIntentId, deliveryLocation, cart } = req.body;
-
-//   // Uncomment these lines if you are using Stripe for payment processing
-//   // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-//   // if (paymentIntent.status !== "succeeded") {
-//   //   return res.status(400).json({
-//   //     success: false,
-//   //     status: 400,
-//   //     message: "Payment not successful",
-//   //     data: paymentIntent,
-//   //   });
-//   // }
-
-//   const productDetails = [];
-//   let totalItems = 0;
-//   let itemsTotal = 0;
-//   let startLocation = null;
-//   const shopDetails = [];
-
-//   for (let item of cart.products) {
-//     const shop = await Shop.findById(item.shop);
-
-//     if (!shop) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Shop with ID ${item.shop} not found`,
-//       });
-//     }
-
-//     const category = shop.categories.id(item.category);
-//     if (!category) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Category with ID ${item.category} not found in shop ${shop._id}`,
-//       });
-//     }
-
-//     const grocery = shop.groceries.id(item.grocery);
-//     if (!grocery) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Grocery with ID ${item.grocery} not found in shop ${shop._id}`,
-//       });
-//     }
-
-//     totalItems += item.quantity;
-//     itemsTotal += item.quantity * grocery.price;
-
-//     productDetails.push({
-//       name: grocery.productName,
-//       volume: grocery.volume,
-//       images: grocery.productImages,
-//       price: grocery.price,
-//       quantity: item.quantity,
-//     });
-
-//     shopDetails.push({
-//       shopName: shop.shopTitle,
-//       images: shop.image,
-//       location: shop.location,
-//     });
-
-//     if (!startLocation) {
-//       startLocation = shop.location;
-//     }
-//   }
-
-//   const serviceFee = 10; // example service fee
-//   const adminFee = 5; // example admin fee
-//   const totalPayment = itemsTotal + serviceFee + adminFee;
-
-//   const newOrder = await Order.create({
-//     orderNumber: `ORD-${Date.now()}`,
-//     customer: user._id,
-//     products: cart.products,
-//     startLocation,
-//     endLocation: deliveryLocation,
-//     itemsTotal,
-//     serviceFee,
-//     adminFee,
-//     totalPayment,
-//     paymentStatus: "paid",
-//     orderStatus: "pending",
-//   });
-
-//   res.status(201).json({
-//     success: true,
-//     status: 201,
-//     message: "Order created successfully",
-//     order: {
-//       orderId: newOrder.id,
-//       orderNumber: newOrder.orderNumber,
-//       orderStatus: newOrder.orderStatus,
-//       startLocation: newOrder.startLocation,
-//       endLocation: newOrder.endLocation,
-//       customer: newOrder.customer,
-//       itemsTotal: newOrder.itemsTotal,
-//       serviceFee: newOrder.serviceFee,
-//       adminFee: newOrder.adminFee,
-//       totalPayment: newOrder.totalPayment,
-//       paymentStatus: newOrder.paymentStatus,
-//       products: productDetails,
-//       shopDetails,
-//     },
-//   });
-// });
-
 exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const { user } = req;
   const { paymentIntentId, deliveryLocation, cart } = req.body;
@@ -905,35 +793,46 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const shopDetails = [];
 
   for (let item of cart.products) {
-    const shop = await Shop.findById(item.shop);
+    const groceryId = new mongoose.Types.ObjectId(item.grocery);
+    console.log(`Searching for shop with grocery ID: ${groceryId}`);
+
+    const shop = await Shop.findOne({
+      "groceries._id": groceryId,
+    });
 
     if (!shop) {
+      console.error(`Shop not found for grocery ID: ${groceryId}`);
       return res.status(404).json({
         success: false,
         status: 404,
-        message: `Shop with ID ${item.shop} not found`,
+        message: `Shop not found for grocery with ID ${groceryId}`,
       });
     }
 
-    const grocery = shop.groceries.id(item.grocery);
+    console.log(`Shop found: ${shop.shopTitle}`);
+
+    const grocery = shop.groceries.id(groceryId);
     if (!grocery) {
+      console.error(
+        `Grocery not found for ID: ${groceryId} in shop ID: ${shop._id}`
+      );
       return res.status(404).json({
         success: false,
         status: 404,
-        message: `Grocery with ID ${item.grocery} not found in shop ${shop._id}`,
+        message: `Grocery with ID ${groceryId} not found in shop ${shop._id}`,
       });
     }
 
     totalItems += item.quantity;
     itemsTotal += item.quantity * grocery.price;
 
-    const category = grocery.categoryName
+    const categoryNames = grocery.categoryName
       .map((cat) => cat.categoryName)
       .join(", ");
 
     productDetails.push({
       name: grocery.productName,
-      category,
+      category: categoryNames,
       volume: grocery.volume,
       images: grocery.productImages,
       price: grocery.price,
@@ -972,7 +871,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   res.status(201).json({
     success: true,
     status: 201,
-    message: "Order created successfully",
+    message: "Payment veified and Order created successfully",
     order: {
       orderId: newOrder.id,
       orderNumber: newOrder.orderNumber,
