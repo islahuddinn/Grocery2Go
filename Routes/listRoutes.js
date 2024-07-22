@@ -9,6 +9,7 @@ router.post("/create-list", listController.addProductsToList);
 router.patch("/edit-product", listController.editProductInList);
 router.patch("/delete-product", listController.deleteProductFromList);
 router.get("/", listController.getAllLists);
+router.get("/get-all-user-lists", listController.getUserLists);
 router.get("/get-all-riders", listController.getAllRiders);
 router.get("/get-rider-details/:id", listController.getRiderDetails);
 router.get("/request-rider", listController.requestRider);

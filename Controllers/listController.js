@@ -687,6 +687,26 @@ exports.markOrderAsCompleted = catchAsync(async (req, res, next) => {
   });
 });
 
+/////----get all user lists
+exports.getUserLists = catchAsync(async (req, res, next) => {
+  const userId = req.user._id;
+
+  const lists = await List.find({ user: userId })
+    .populate("shop", "shopTitle")
+    .populate("rider", "name");
+
+  if (!lists || lists.length === 0) {
+    return next(new AppError("No lists found for this user", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Lists retrieved successfully",
+    data: lists,
+  });
+});
+
 exports.getAllLists = Factory.getAll(List);
 exports.updateList = Factory.updateOne(List);
 exports.getOneList = Factory.getOne(List);
