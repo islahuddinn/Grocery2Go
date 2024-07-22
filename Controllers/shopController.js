@@ -157,7 +157,7 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 ////-----Shops near me -----////
 
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
-  console.log("REQ_BODY IS:", req.body);
+  console.log("REQ_BODY IS:", req.query);
   const { latitude, longitude, maxDistance } = req.query;
 
   console.log(latitude, longitude, maxDistance, "here is the data");
