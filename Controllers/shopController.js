@@ -159,9 +159,6 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
   console.log("REQ_BODY IS:", req.body);
   const location = req.body.location;
-  // const latitude = req.body.latitude;
-  // const longitude = req.body.longitude;
-  // const maxDistance = req.body.maxDistance;
   console.log(location, "here is the data");
 
   if (!location) {
