@@ -158,13 +158,13 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
   console.log("REQ_BODY IS:", req.body);
-  const { latitude, longitude, maxDistance } = req.body;
+  const location = req.body.location;
   // const latitude = req.body.latitude;
   // const longitude = req.body.longitude;
   // const maxDistance = req.body.maxDistance;
-  console.log(latitude, longitude, maxDistance, "here is the data");
+  console.log(location, "here is the data");
 
-  if (!latitude || !longitude || !maxDistance) {
+  if (!location) {
     return next(
       new AppError(
         "Please provide valid latitude, longitude, and maxDistance",
@@ -179,9 +179,9 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
       $near: {
         $geometry: {
           type: "Point",
-          coordinates: [longitude, latitude],
+          coordinates: [location.longitude, location.latitude],
         },
-        $maxDistance: maxDistance,
+        $maxDistance: location.maxDistance,
       },
     },
   });
