@@ -696,7 +696,12 @@ exports.getUserLists = catchAsync(async (req, res, next) => {
     .populate("rider", "name");
 
   if (!lists || lists.length === 0) {
-    return next(new AppError("No lists found for this user", 404));
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "User have no list",
+      data: lists,
+    });
   }
 
   res.status(200).json({
