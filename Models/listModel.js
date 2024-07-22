@@ -37,6 +37,9 @@ const listSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    listStatus: {
+      enum: ["pending", "accepted", "completed", "cancelled"],
+    },
   },
   { timestamps: true }
 );

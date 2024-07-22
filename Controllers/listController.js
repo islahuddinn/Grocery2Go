@@ -150,6 +150,285 @@ exports.getRiderDetails = catchAsync(async (req, res, next) => {
 
 // // ------Select rider for list order delivery ----- ////
 
+// exports.requestRider = catchAsync(async (req, res, next) => {
+//   const { endLocation, riderId, listId } = req.body;
+//   const { user } = req;
+
+//   // Validate that the rider exists
+//   const rider = await User.findOne({ _id: riderId, userType: "Rider" });
+//   if (!rider) {
+//     return next(new AppError("Rider not found", 404));
+//   }
+//   // Retrieve the list by listId
+//   const list = await List.findById(listId).populate("user");
+//   if (!list) {
+//     return next(new AppError("List not found", 404));
+//   }
+
+//   // Extract product names from the list
+//   const productNames = list.items.map((item) => item.productName);
+//   console.log("List product names:", productNames);
+
+//   // Fetch all products with their prices from the shop model
+//   const shopProducts = await Shop.aggregate([
+//     { $unwind: "$categories" },
+//     { $unwind: "$categories.groceries" },
+//     { $match: { "categories.groceries.productName": { $in: productNames } } },
+//     {
+//       $project: {
+//         "categories.groceries.productName": 1,
+//         "categories.groceries.price": 1,
+//       },
+//     },
+//   ]);
+
+//   console.log("Shop products details:", shopProducts);
+
+//   // Create a map for product prices
+//   const priceMap = {};
+//   shopProducts.forEach((shopProduct) => {
+//     const productName = shopProduct.categories.groceries.productName;
+//     const productPrice = shopProduct.categories.groceries.price;
+//     priceMap[productName] = productPrice;
+//   });
+
+//   console.log("Mapped prices:", priceMap);
+
+//   // // Check if all items have a price
+//   // for (const item of list.items) {
+//   //   if (!priceMap[item.productName]) {
+//   //     return res.status(404).json({
+//   //       success: false,
+//   //       status: 404,
+//   //       message: `Price not found for item: ${item.productName} or item not available`,
+//   //     });
+//   //   }
+//   // }
+
+//   // Generate a unique order number (e.g., using a timestamp)
+//   const orderNumber = `ORD-${Date.now()}`;
+
+//   // Calculate items total and construct products array
+//   const products = [];
+//   let itemsTotal = 0;
+
+//   for (const item of list.items) {
+//     const price = priceMap[item.productName];
+//     console.log("what the heck is this price:", price);
+//     const totalPrice = item.quantity * price;
+//     itemsTotal += totalPrice;
+//     products.push({
+//       productName: item.productName,
+//       quantity: item.quantity,
+//       price: price,
+//     });
+//   }
+
+//   // Assuming startLocation is the first shop's location for simplicity
+//   const shop = await Shop.findOne({
+//     "groceries.productName": productNames[0],
+//   });
+//   if (!shop || !shop.location) {
+//     return next(
+//       new AppError("Shop not found or invalid coordinates/location", 404)
+//     );
+//   }
+//   const startLocation = shop.location;
+//   console.log("rider start:", startLocation);
+//   const serviceFee = 0.5;
+//   const adminFee = 0.1;
+//   const totalPayment = itemsTotal + serviceFee + adminFee;
+
+//   // Calculate delivery charges
+//   const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
+//   console.log("Calculated delivery charges:", deliveryCharges);
+
+//   // Create the order
+//   const newOrder = await Order.create({
+//     orderNumber,
+//     customer: list.user._id,
+//     listItems: products,
+//     startLocation: startLocation,
+//     endLocation: endLocation,
+//     // driver
+//     itemsTotal: itemsTotal,
+//     serviceFee,
+//     adminFee,
+//     totalPayment: totalPayment,
+//     deliveryCharges: deliveryCharges,
+//   });
+
+//   ///// Notification for the rider
+//   // const FCMToken = rider.deviceToken;
+//   // const notification = await Notification.create({
+//   //   sender: user._id,
+//   //   receiver: rider._id,
+//   //   data: `New order from ${user.firstName}. Please accept or reject the order.`,
+//   // });
+
+//   // await SendNotification({
+//   //   token: FCMToken,
+//   //   title: `New Order from ${user.firstName}`,
+//   //   body: "Please accept or reject the order delivery request.",
+//   // });
+
+//   // Return the order details
+//   res.status(201).json({
+//     success: true,
+//     status: 201,
+//     message: "Order created successfully, rider has been notified.",
+//     order: {
+//       orderId: newOrder.id,
+//       orderNumber: newOrder.orderNumber,
+//       orderStatus: newOrder.orderStatus,
+//       startLocation: newOrder.startLocation,
+//       endLocation: newOrder.endLocation,
+//       customer: newOrder.customer,
+//       itemsTotal: newOrder.itemsTotal,
+//       serviceFee: newOrder.serviceFee,
+//       adminFee: newOrder.adminFee,
+//       totalPayment: newOrder.totalPayment,
+//       paymentStatus: newOrder.paymentStatus,
+//       deliveryCharges: newOrder.deliveryCharges,
+//       deliveryPaymentStatus: newOrder.deliveryPaymentStatus,
+//       listItems: newOrder.listItems,
+//       // notification,
+//     },
+//   });
+// });
+// exports.requestRider = catchAsync(async (req, res, next) => {
+//   const { endLocation, riderId, listId } = req.body;
+//   const { user } = req;
+
+//   // Validate that the rider exists
+//   const rider = await User.findOne({ _id: riderId, userType: "Rider" });
+//   if (!rider) {
+//     return next(new AppError("Rider not found", 404));
+//   }
+
+//   // Retrieve the list by listId
+//   const list = await List.findById(listId).populate("user");
+//   if (!list) {
+//     return next(new AppError("List not found", 404));
+//   }
+
+//   // Extract product names from the list
+//   // const productNames = list.items.map((item) => item.productName);
+
+//   // // Fetch all products with their prices from the shop model
+//   // const shopProducts = await Shop.aggregate([
+//   //   { $unwind: "$groceries" },
+//   //   { $match: { "groceries.productName": { $in: productNames } } },
+//   //   {
+//   //     $project: {
+//   //       "groceries.productName": 1,
+//   //       "groceries.price": 1,
+//   //     },
+//   //   },
+//   // ]);
+
+//   // Create a map for product prices
+//   // const priceMap = {};
+//   // shopProducts.forEach((shopProduct) => {
+//   //   const productName = shopProduct.groceries.productName;
+//   //   const productPrice = shopProduct.groceries.price;
+//   //   priceMap[productName] = productPrice;
+//   // });
+
+//   // Generate a unique order number (e.g., using a timestamp)
+//   // const orderNumber = `ORD-${Date.now()}`;
+
+//   // Calculate items total and construct products array
+//   // const products = [];
+//   // let itemsTotal = 0;
+
+//   // for (const item of list.items) {
+//   //   const price = priceMap[item.productName];
+//   //   if (!price) {
+//   //     return res.status(404).json({
+//   //       success: false,
+//   //       status: 404,
+//   //       message: `Price not found for item: ${item.productName} or item not available`,
+//   //     });
+//   //   }
+//   //   const totalPrice = item.quantity * price;
+//   //   itemsTotal += totalPrice;
+//   //   products.push({
+//   //     productName: item.productName,
+//   //     quantity: item.quantity,
+//   //     price: price,
+//   //   });
+//   // }
+
+//   // Assuming startLocation is the first shop's location for simplicity
+//   // const shop = await Shop.findOne({
+//   //   "groceries.productName": productNames[0],
+//   // });
+//   // if (!shop || !shop.location) {
+//   //   return next(
+//   //     new AppError("Shop not found or invalid coordinates/location", 404)
+//   //   );
+//   // }
+//   // const startLocation = shop.location;
+
+//   // const serviceFee = 0.5;
+//   // const adminFee = 0.1;
+//   // const totalPayment = itemsTotal + serviceFee + adminFee;
+
+//   // Calculate delivery charges
+//   // const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
+
+//   // // Create the order
+//   // const newOrder = await Order.create({
+//   //   orderNumber,
+//   //   customer: list.user._id,
+//   //   listItems: products,
+//   //   startLocation: startLocation,
+//   //   endLocation: endLocation,
+//   //   itemsTotal: itemsTotal,
+//   //   serviceFee,
+//   //   adminFee,
+//   //   totalPayment: totalPayment,
+//   //   deliveryCharges: deliveryCharges,
+//   // });
+
+//   // Notification for the rider
+//   // const FCMToken = rider.deviceToken;
+//   // const notification = await Notification.create({
+//   //   sender: user._id,
+//   //   receiver: rider._id,
+//   //   data: `New order from ${user.firstName}. Please accept or reject the order.`,
+//   // });
+//   // await SendNotification({
+//   //   token: FCMToken,
+//   //   title: `New Order from ${user.firstName}`,
+//   //   body: "Please accept or reject the order delivery request.",
+//   // });
+
+//   // Return the order details
+//   res.status(201).json({
+//     success: true,
+//     status: 201,
+//     message: "Rider has been notified.",
+//     order: {
+//       // orderId: newOrder.id,
+//       // orderNumber: newOrder.orderNumber,
+//       // orderStatus: newOrder.orderStatus,
+//       // startLocation: newOrder.startLocation,
+//       // endLocation: newOrder.endLocation,
+//       // customer: newOrder.customer,
+//       // itemsTotal: newOrder.itemsTotal,
+//       // serviceFee: newOrder.serviceFee,
+//       // adminFee: newOrder.adminFee,
+//       // totalPayment: newOrder.totalPayment,
+//       // paymentStatus: newOrder.paymentStatus,
+//       // deliveryCharges: newOrder.deliveryCharges,
+//       // deliveryPaymentStatus: newOrder.deliveryPaymentStatus,
+//       // listItems: newOrder.listItems,
+//       // notification,
+//     },
+//   });
+// });
 exports.requestRider = catchAsync(async (req, res, next) => {
   const { endLocation, riderId, listId } = req.body;
   const { user } = req;
@@ -159,140 +438,43 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   if (!rider) {
     return next(new AppError("Rider not found", 404));
   }
+
   // Retrieve the list by listId
   const list = await List.findById(listId).populate("user");
   if (!list) {
     return next(new AppError("List not found", 404));
   }
 
-  // Extract product names from the list
-  const productNames = list.items.map((item) => item.productName);
-  console.log("List product names:", productNames);
-
-  // Fetch all products with their prices from the shop model
-  const shopProducts = await Shop.aggregate([
-    { $unwind: "$categories" },
-    { $unwind: "$categories.groceries" },
-    { $match: { "categories.groceries.productName": { $in: productNames } } },
-    {
-      $project: {
-        "categories.groceries.productName": 1,
-        "categories.groceries.price": 1,
-      },
-    },
-  ]);
-
-  console.log("Shop products details:", shopProducts);
-
-  // Create a map for product prices
-  const priceMap = {};
-  shopProducts.forEach((shopProduct) => {
-    const productName = shopProduct.categories.groceries.productName;
-    const productPrice = shopProduct.categories.groceries.price;
-    priceMap[productName] = productPrice;
-  });
-
-  console.log("Mapped prices:", priceMap);
-
-  // // Check if all items have a price
-  // for (const item of list.items) {
-  //   if (!priceMap[item.productName]) {
-  //     return res.status(404).json({
-  //       success: false,
-  //       status: 404,
-  //       message: `Price not found for item: ${item.productName} or item not available`,
-  //     });
-  //   }
-  // }
-
-  // Generate a unique order number (e.g., using a timestamp)
-  const orderNumber = `ORD-${Date.now()}`;
-
-  // Calculate items total and construct products array
-  const products = [];
-  let itemsTotal = 0;
-
-  for (const item of list.items) {
-    const price = priceMap[item.productName];
-    console.log("what the heck is this price:", price);
-    const totalPrice = item.quantity * price;
-    itemsTotal += totalPrice;
-    products.push({
-      productName: item.productName,
-      quantity: item.quantity,
-      price: price,
-    });
-  }
-
-  // Assuming startLocation is the first shop's location for simplicity
-  const shop = await Shop.findOne({
-    "categories.groceries.productName": productNames[0],
-  });
-  if (!shop || !shop.location || !shop.location) {
-    return next(
-      new AppError("Sshop not found or invalid coordinates/location", 404)
-    );
-  }
-  const startLocation = shop.location;
-  console.log("rider start:", startLocation);
-  const serviceFee = 0.5;
-  const adminFee = 0.1;
-  const totalPayment = itemsTotal + serviceFee + adminFee;
-
-  // Calculate delivery charges
-  const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
-  console.log("Calculated delivery charges:", deliveryCharges);
-
-  // Create the order
-  const newOrder = await Order.create({
-    orderNumber,
-    customer: list.user._id,
-    listItems: products,
-    startLocation: startLocation,
-    endLocation: endLocation,
-    // driver
-    itemsTotal: itemsTotal,
-    serviceFee,
-    adminFee,
-    totalPayment: totalPayment,
-    deliveryCharges: deliveryCharges,
-  });
-
-  ///// Notification for the rider
+  // Notify the rider (mock notification for now)
   // const FCMToken = rider.deviceToken;
   // const notification = await Notification.create({
   //   sender: user._id,
   //   receiver: rider._id,
-  //   data: `New order from ${user.firstName}. Please accept or reject the order.`,
+  //   data: `New delivery request from ${user.firstName}. Please accept or reject the request.`,
   // });
-
   // await SendNotification({
   //   token: FCMToken,
-  //   title: `New Order from ${user.firstName}`,
-  //   body: "Please accept or reject the order delivery request.",
+  //   title: `New Delivery Request from ${user.firstName}`,
+  //   body: "Please accept or reject the delivery request.",
   // });
-
-  // Return the order details
-  res.status(201).json({
+  // const listStatus = (await list.listStatus) === "pending";
+  // await list.save();
+  // Return rider with list details and status
+  res.status(200).json({
     success: true,
-    status: 201,
-    message: "Order created successfully, rider has been notified.",
-    order: {
-      orderId: newOrder.id,
-      orderNumber: newOrder.orderNumber,
-      orderStatus: newOrder.orderStatus,
-      startLocation: newOrder.startLocation,
-      endLocation: newOrder.endLocation,
-      customer: newOrder.customer,
-      itemsTotal: newOrder.itemsTotal,
-      serviceFee: newOrder.serviceFee,
-      adminFee: newOrder.adminFee,
-      totalPayment: newOrder.totalPayment,
-      paymentStatus: newOrder.paymentStatus,
-      deliveryCharges: newOrder.deliveryCharges,
-      deliveryPaymentStatus: newOrder.deliveryPaymentStatus,
-      listItems: newOrder.listItems,
-      // notification,
+    status: 200,
+    message: "Rider notified successfully.",
+    rider: {
+      id: rider._id,
+      name: rider.name,
+      deviceToken: rider.deviceToken,
+      deliveryAddress: endLocation,
+      list: {
+        id: list._id,
+        items: list.items,
+        user: list.user,
+        // listStatus, // Status of the list
+      },
     },
   });
 });
