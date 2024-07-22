@@ -71,18 +71,116 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 });
 /////-----order-details-----////
 
-exports.getOrderDetails = catchAsync(async (req, res, next) => {
-  const { orderId } = req.body;
+// exports.getOrderDetails = catchAsync(async (req, res, next) => {
+//   const orderId = req.params.id;
 
-  // Find the order by ID and populate necessary fields
+//   // Find the order by ID and populate necessary fields
+//   const order = await Order.findById(orderId)
+//     .populate({
+//       path: "products.shop",
+//       select: "shopTitle images location categories",
+//     })
+//     .populate({
+//       path: "products.grocery",
+//       select: "productName price volume productImages",
+//     })
+//     .populate("customer", "firstName email image")
+//     .populate("driver", "name");
+
+//   if (!order) {
+//     return next(new AppError("Order not found", 404));
+//   }
+
+//   const productDetails = [];
+//   const shopDetails = [];
+
+//   // Iterate over the products in the order to get their details
+//   for (let item of order.products) {
+//     const shop = item.shop;
+//     if (!shop) {
+//       return next(new AppError("Shop not found", 404));
+//     }
+
+//     // Find the corresponding category within the shop
+//     const category = shop.categories.id(item.category);
+//     if (!category) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Category with ID ${item.category} not found in shop ${shop._id}`,
+//       });
+//     }
+
+//     // Find the corresponding grocery within the category
+//     const grocery = category.groceries.id(item.grocery);
+//     if (!grocery) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
+//       });
+//     }
+
+//     // Extract product details
+//     productDetails.push({
+//       name: grocery.productName,
+//       volume: grocery.volume,
+//       images: grocery.productImages,
+//       price: grocery.price,
+//       quantity: item.quantity,
+//     });
+
+//     // Extract shop details (unique shops only)
+//     if (!shopDetails.find((shopDetail) => shopDetail.name === shop.shopTitle)) {
+//       shopDetails.push({
+//         name: shop.shopTitle,
+//         image: shop.images,
+//         location: shop.location,
+//       });
+//     }
+//   }
+
+//   // Prepare order summary
+//   const orderSummary = {
+//     itemsTotal: order.itemsTotal,
+//     serviceFee: order.serviceFee,
+//     adminFee: order.adminFee,
+//     totalPayment: order.totalPayment,
+//     paymentStatus: order.paymentStatus,
+//     deliveryFee: order.deliveryCharges,
+//     deliveryPaymentStatus: order.deliveryPaymentStatus,
+//   };
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Order details retrieved successfully",
+//     order: {
+//       orderNumber: order.orderNumber,
+//       orderStatus: order.orderStatus,
+//       customer: {
+//         name: order.customer.name,
+//         email: order.customer.email,
+//       },
+//       shopDetails,
+//       productDetails,
+//       Rider: order.driver ? order.driver.id : null,
+//       orderSummary,
+//     },
+//   });
+// });
+
+exports.getOrderDetails = catchAsync(async (req, res, next) => {
+  const orderId = req.params.id;
+
   const order = await Order.findById(orderId)
     .populate({
       path: "products.shop",
-      select: "shopTitle images location categories",
+      select: "shopTitle images location groceries",
     })
     .populate({
       path: "products.grocery",
-      select: "productName price volume productImages",
+      select: "productName price volume productImages categoryName",
     })
     .populate("customer", "firstName email image")
     .populate("driver", "name");
@@ -94,53 +192,43 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const productDetails = [];
   const shopDetails = [];
 
-  // Iterate over the products in the order to get their details
   for (let item of order.products) {
     const shop = item.shop;
     if (!shop) {
       return next(new AppError("Shop not found", 404));
     }
 
-    // Find the corresponding category within the shop
-    const category = shop.categories.id(item.category);
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: `Category with ID ${item.category} not found in shop ${shop._id}`,
-      });
-    }
-
-    // Find the corresponding grocery within the category
-    const grocery = category.groceries.id(item.grocery);
+    const grocery = shop.groceries.id(item.grocery);
     if (!grocery) {
       return res.status(404).json({
         success: false,
         status: 404,
-        message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
+        message: `Grocery with ID ${item.grocery} not found in shop ${shop._id}`,
       });
     }
 
-    // Extract product details
+    const category = grocery.categoryName
+      .map((cat) => cat.categoryName)
+      .join(", ");
+
     productDetails.push({
       name: grocery.productName,
+      category,
       volume: grocery.volume,
       images: grocery.productImages,
       price: grocery.price,
       quantity: item.quantity,
     });
 
-    // Extract shop details (unique shops only)
     if (!shopDetails.find((shopDetail) => shopDetail.name === shop.shopTitle)) {
       shopDetails.push({
         name: shop.shopTitle,
-        image: shop.images,
+        image: shop.image,
         location: shop.location,
       });
     }
   }
 
-  // Prepare order summary
   const orderSummary = {
     itemsTotal: order.itemsTotal,
     serviceFee: order.serviceFee,
@@ -159,12 +247,13 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       customer: {
-        name: order.customer.name,
+        name: order.customer.firstName,
         email: order.customer.email,
+        image: order.customer.image,
       },
       shopDetails,
       productDetails,
-      Rider: order.driver ? order.driver.id : null,
+      rider: order.driver ? order.driver.name : null,
       orderSummary,
     },
   });
@@ -190,12 +279,12 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
   if (action === "reject") {
     const allRiders = await User.find({ userType: "Rider" });
     console.log(allRiders, "All riders");
-    const FCMTokens = allRiders.map((rider) => rider.deviceToken);
-    await SendNotificationMultiCast({
-      tokens: FCMTokens,
-      title: "New order delivery request ",
-      body: `Accept or reject the order ${order}`,
-    });
+    // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
+    // await SendNotificationMultiCast({
+    //   tokens: FCMTokens,
+    //   title: "New order delivery request ",
+    //   body: `Accept or reject the order ${order}`,
+    // });
     return res.status(200).json({
       success: true,
       status: 200,
@@ -228,7 +317,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     return next(new AppError("Order not found", 404));
   }
 
-  //////Check if the order is still pending
+  // //////Check if the order is still pending
   if (order.orderStatus !== "pending") {
     return next(new AppError("Order is not in pending state ", 400));
   }
@@ -242,14 +331,14 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     // Send a notification to the all riders about the new order
     const allRiders = await User.find({ userType: "Rider" });
     console.log(allRiders, "All riders");
-    const FCMTokens = allRiders.map((rider) => rider.deviceToken);
-    console.log(FCMTokens, "FCMToken of all riders");
+    // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
+    // console.log(FCMTokens, "FCMToken of all riders");
 
-    await SendNotificationMultiCast({
-      tokens: FCMTokens,
-      title: "New order on shop",
-      body: `Accept or reject the order ${order}`,
-    });
+    // await SendNotificationMultiCast({
+    //   tokens: FCMTokens,
+    //   title: "New order on shop",
+    //   body: `Accept or reject the order ${order}`,
+    // });
     return res.status(200).json({
       success: true,
       status: 200,
