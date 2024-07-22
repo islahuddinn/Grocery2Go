@@ -12,6 +12,10 @@ const listSchema = new mongoose.Schema(
       ref: "Shop",
       // required: true,
     },
+    listTitle: {
+      type: String,
+      // required: true,
+    },
     items: [
       {
         productName: {
