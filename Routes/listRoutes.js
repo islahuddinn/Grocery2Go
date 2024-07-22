@@ -12,7 +12,7 @@ router.get("/", listController.getAllLists);
 router.get("/get-all-user-lists", listController.getUserLists);
 router.get("/get-all-riders", listController.getAllRiders);
 router.get("/get-rider-details/:id", listController.getRiderDetails);
-router.get("/request-rider", listController.requestRider);
+router.post("/request-rider", listController.requestRider);
 router.get("/order-details/:id", listController.getOneOrder);
 router.post("/send-list-bill", listController.sendListBill);
 router.post("/add-tip-to-rider", listController.addTipToRider);
