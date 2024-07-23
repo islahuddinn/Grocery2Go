@@ -550,6 +550,59 @@ exports.toggleProductFavorite = catchAsync(async (req, res, next) => {
   });
 });
 
+// exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
+//   const { user } = req;
+
+//   // Retrieve the user's favorite records with shop and grocery details
+//   const favoriteProducts = await Favorite.aggregate([
+//     { $match: { user: user._id } },
+//     {
+//       $lookup: {
+//         from: "shops",
+//         localField: "shop",
+//         foreignField: "_id",
+//         as: "shopDetails",
+//       },
+//     },
+//     { $unwind: "$shopDetails" },
+//     {
+//       $project: {
+//         product: {
+//           $filter: {
+//             input: "$shopDetails.groceries",
+//             as: "grocery",
+//             cond: { $eq: ["$$grocery._id", "$grocery"] },
+//           },
+//         },
+//         shopDetails: 1,
+//       },
+//     },
+//     { $unwind: "$product" },
+//     {
+//       $project: {
+//         shop: {
+//           _id: "$shopDetails._id",
+//           shopTitle: "$shopDetails.shopTitle",
+//           location: "$shopDetails.location",
+//           owner: "$shopDetails.owner",
+//           operatingHours: "$shopDetails.operatingHours",
+//         },
+//         product: 1,
+//       },
+//     },
+//   ]);
+
+//   if (!favoriteProducts || favoriteProducts.length === 0) {
+//     return next(new AppError("No favorite products found for this user", 404));
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: favoriteProducts,
+//   });
+// });
+
 exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
   const { user } = req;
 
@@ -580,14 +633,23 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
     { $unwind: "$product" },
     {
       $project: {
-        shop: {
-          _id: "$shopDetails._id",
+        data: {
+          _id: "$product._id",
+          productName: "$product.productName",
+          price: "$product.price",
+          description: "$product.description",
+          productImages: "$product.productImages",
+          volume: "$product.volume",
+          manufacturedBy: "$product.manufacturedBy",
+          quantity: "$product.quantity",
+          stockStatus: "$product.stockStatus",
+          isFavorite: "$product.isFavorite",
+        },
+        shopDetail: {
           shopTitle: "$shopDetails.shopTitle",
           location: "$shopDetails.location",
           owner: "$shopDetails.owner",
-          operatingHours: "$shopDetails.operatingHours",
         },
-        product: 1,
       },
     },
   ]);
@@ -602,6 +664,35 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
     data: favoriteProducts,
   });
 });
+
+// exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
+//   const { user } = req;
+
+//   // Retrieve all favorite records for the user that are marked as favorite products
+//   const favoriteRecords = await Favorite.find({
+//     user: user._id,
+//     grocery: { $ne: null }, // Ensure that the favorite records have a grocery
+//   }).populate("grocery"); // Populate the grocery details
+
+//   if (!favoriteRecords || favoriteRecords.length === 0) {
+//     return next(new AppError("No favorite products found for this user", 404));
+//   }
+
+//   // Filter out products that are marked as favorite by checking `isFavorite` status
+//   const favoriteProducts = favoriteRecords
+//     .map((record) => record.grocery)
+//     .filter((product) => product.isFavorite);
+
+//   if (favoriteProducts.length === 0) {
+//     return next(new AppError("No favorite products marked as favorite", 404));
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: favoriteProducts,
+//   });
+// });
 
 /////Delete shop product////
 
@@ -643,53 +734,6 @@ exports.deleteProductFromShop = async (req, res, next) => {
     return next(new AppError("Internal Server Error", 500));
   }
 };
-
-/////update product
-
-// exports.updateProductInShop = catchAsync(async (req, res, next) => {
-//   const { productId, productDetails } = req.body;
-
-//   const userId = req.user.id;
-//   const shop = await Shop.findOne({ owner: userId });
-//   console.log(shop, "here is the owner shop");
-
-//   if (!shop) {
-//     return next(new AppError("Shop not found", 404));
-//   }
-//   // const shop = await Shop.findById(shopId);
-
-//   // if (!shop) {
-//   //   return next(new AppError("Shop not found", 404));
-//   // }
-
-//   let productFound = false;
-
-//   for (let grocery of shop.groceries) {
-//     if (grocery._id.equals(productId)) {
-//       Object.assign(grocery, productDetails);
-//       productFound = true;
-//       break;
-//     }
-//   }
-
-//   if (!productFound) {
-//     return next(new AppError("Product not found in shop", 404));
-//   }
-
-//   await shop.save();
-//   const updatedShop = shop.groceries.map((product) => ({
-//     ...product.toObject(),
-//     shopTitle: shop.shopTitle,
-//     shopType: shop.shopType,
-//   }));
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Product updated successfully",
-//     data: updatedShop,
-//   });
-// });
 
 exports.updateProductInShop = catchAsync(async (req, res, next) => {
   try {
@@ -817,30 +861,6 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
 });
 //////-----get all categories-----/////
 
-// exports.getAllCategories = catchAsync(async (req, res, next) => {
-//   // Fetch all shops
-//   const shops = await Shop.find();
-
-//   if (!shops || shops.length === 0) {
-//     return next(new AppError("No shops found", 404));
-//   }
-
-//   // Extract and aggregate unique categories
-//   const categoriesSet = new Set();
-//   shops.forEach((shop) => {
-//     shop.categories.forEach((category) => {
-//       categoriesSet.add(category.categoryName);
-//     });
-//   });
-
-//   const categories = Array.from(categoriesSet);
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: categories,
-//   });
-// });
 exports.getAllCategories = catchAsync(async (req, res, next) => {
   // Fetch all shops
   const shops = await Shop.find();
