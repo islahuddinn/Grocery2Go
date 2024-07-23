@@ -10,19 +10,15 @@ const favoriteSchema = new mongoose.Schema(
     shop: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Shop",
+      required: true,
     },
-    product: {
+    grocery: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
+      // required: true,
     },
   },
   { timestamps: true }
 );
-// favoriteSchema.pre([/^find/, "save"], function (next) {
-//   this.populate({
-//     path: "shop",
-//   });
-//   next();
-// });
+
 const Favorite = mongoose.model("Favorite", favoriteSchema);
 module.exports = Favorite;

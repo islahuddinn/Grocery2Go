@@ -44,108 +44,186 @@ exports.getAllShop = factory.getAll(Shop);
 exports.deleteShop = factory.deleteOne(Shop);
 //////---- Mark a shop as favorite----////
 
-// exports.toggleShopFavorite = catchAsync(async (req, res, next) => {
-//   const { shopId } = req.body;
-//   const userId = req.user.id;
+// exports.toggleShopFavorite = async (req, res, next) => {
+//   try {
+//     const shopId = req.params.id;
 
-//   // Check if the shop is already marked as favorite
-//   const favorite = await Favorite.findOne({ user: userId, shop: shopId });
+//     console.log(`Attempting to toggle favorite status for shop: ${shopId}`);
 
-//   if (favorite) {
-//     // Unmark as favorite
-//     await Favorite.findOneAndDelete({ user: userId, shop: shopId });
+//     // Find the shop by ID
+//     const shop = await Shop.findById(shopId);
 
-//     return res.status(200).json({
+//     if (!shop) {
+//       console.error(`Shop not found with ID: ${shopId}`);
+//       return next(new AppError("Shop not found", 404));
+//     }
+
+//     console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
+
+//     // Toggle the isFavorite field
+//     shop.isFavorite = !shop.isFavorite;
+
+//     // Save the shop document
+//     await shop.save();
+
+//     const message = shop.isFavorite
+//       ? "Shop marked as favorite"
+//       : "Shop unmarked as favorite";
+//     console.log(`${message} - Shop ID: ${shopId}`);
+
+//     res.status(200).json({
 //       success: true,
 //       status: 200,
-//       message: "Shop unmarked as favorite",
+//       message: message,
+//       data: shop,
 //     });
-//   } else {
-//     // Mark as favorite
-//     const newFavorite = await Favorite.create({ user: userId, shop: shopId });
-
-//     return res.status(201).json({
-//       success: true,
-//       status: 201,
-//       message: "Shop marked as favorite",
-//       data: newFavorite,
-//     });
+//   } catch (error) {
+//     console.error(`Error in toggleShopFavorite: ${error.message}`);
+//     return next(new AppError("Internal Server Error", 500));
 //   }
-// });
-exports.toggleShopFavorite = async (req, res, next) => {
-  try {
-    const shopId = req.params.id;
+// };
 
-    console.log(`Attempting to toggle favorite status for shop: ${shopId}`);
+// exports.toggleShopFavorite = catchAsync(async (req, res, next) => {
+//   const { user } = req;
+//   const shopId = req.params.id;
 
-    // Find the shop by ID
-    const shop = await Shop.findById(shopId);
+//   console.log(`Attempting to toggle favorite status for shop: ${shopId}`);
 
-    if (!shop) {
-      console.error(`Shop not found with ID: ${shopId}`);
-      return next(new AppError("Shop not found", 404));
-    }
+//   // Find the shop by ID
+//   const shop = await Shop.findById(shopId);
 
-    console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
+//   if (!shop) {
+//     console.error(`Shop not found with ID: ${shopId}`);
+//     return next(new AppError("Shop not found", 404));
+//   }
 
-    // Toggle the isFavorite field
-    shop.isFavorite = !shop.isFavorite;
+//   console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
 
-    // Save the shop document
-    await shop.save();
-
-    const message = shop.isFavorite
-      ? "Shop marked as favorite"
-      : "Shop unmarked as favorite";
-    console.log(`${message} - Shop ID: ${shopId}`);
-
-    res.status(200).json({
-      success: true,
-      status: 200,
-      message: message,
-      data: shop,
-    });
-  } catch (error) {
-    console.error(`Error in toggleShopFavorite: ${error.message}`);
-    return next(new AppError("Internal Server Error", 500));
-  }
-};
-
-///////// Get all favorite shops for a user////////
-
-// exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
-//   const favorites = await Favorite.find({
-//     user: req.user.id,
-//     shop: { $exists: true },
-//   }).populate({
-//     path: "shop",
-//     select: "shopTitle location images owner categories",
-//     populate: {
-//       path: "categories",
-//     },
-//     populate: {
-//       path: "groceries",
-//     },
+//   // Check if the shop is currently a favorite for the user
+//   const favoriteRecord = await Favorite.findOne({
+//     user: user._id,
+//     shop: shopId,
 //   });
+
+//   if (favoriteRecord) {
+//     // If the shop is already a favorite, remove it from the user's favorites
+//     await Favorite.deleteOne({ user: user._id, shop: shopId });
+//     shop.isFavorite = false; // Update shop's isFavorite status
+//   } else {
+//     // If the shop is not a favorite, add it to the user's favorites
+//     await Favorite.create({ user: user._id, shop: shopId });
+//     shop.isFavorite = true; // Update shop's isFavorite status
+//   }
+
+//   // Save the shop document
+//   await shop.save();
+
+//   const message = shop.isFavorite
+//     ? "Shop marked as favorite"
+//     : "Shop unmarked as favorite";
+
+//   console.log(`${message} - Shop ID: ${shopId}`);
 
 //   res.status(200).json({
 //     success: true,
 //     status: 200,
-//     data: favorites.map((fav) => fav.shop).filter((shop) => shop !== null),
+//     message: message,
+//     data: shop,
+//   });
+// });
+
+exports.toggleShopFavorite = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const shopId = req.params.id;
+
+  console.log(`Attempting to toggle favorite status for shop: ${shopId}`);
+
+  // Find the shop by ID
+  const shop = await Shop.findById(shopId);
+
+  if (!shop) {
+    console.error(`Shop not found with ID: ${shopId}`);
+    return next(new AppError("Shop not found", 404));
+  }
+
+  console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
+
+  // Check if the shop is currently a favorite for the user
+  const favoriteRecord = await Favorite.findOne({
+    user: user._id,
+    shop: shopId,
+  });
+
+  let message;
+  if (favoriteRecord) {
+    // If the shop is already a favorite, remove it from the user's favorites
+    await Favorite.deleteOne({ user: user._id, shop: shopId });
+    shop.isFavorite = false; // Update shop's isFavorite status
+    message = "Shop unmarked as favorite";
+  } else {
+    // If the shop is not a favorite, add it to the user's favorites
+    await Favorite.create({ user: user._id, shop: shopId });
+    shop.isFavorite = true; // Update shop's isFavorite status
+    message = "Shop marked as favorite";
+  }
+
+  // Save the shop document
+  await shop.save();
+
+  console.log(`${message} - Shop ID: ${shopId}`);
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: message,
+    data: shop,
+  });
+});
+
+///////// Get all favorite shops for a user////////
+
+// exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
+//   const { user } = req;
+
+//   // Retrieve the user's favorite records
+//   const favoriteRecords = await Favorite.find({ user: user._id }).populate(
+//     "shop"
+//   );
+
+//   if (!favoriteRecords || favoriteRecords.length === 0) {
+//     return next(new AppError("No favorite shops found for this user", 404));
+//   }
+
+//   // Extract shop details from favorite records
+//   const favoriteShops = favoriteRecords.map((fav) => fav.shop);
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: favoriteShops,
 //   });
 // });
 exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
-  // Find all shops where any product is marked as favorite
-  const favoriteShops = await Shop.find({ "groceries.isFavorite": true })
-    .populate({
-      path: "categories",
-    })
-    .populate({
-      path: "groceries",
-      match: { isFavorite: true },
-      select:
-        "productName price description productImages volume manufacturedBy quantity stockStatus",
-    });
+  const { user } = req;
+
+  // Retrieve all favorite records for the user that are marked as favorite shops
+  const favoriteRecords = await Favorite.find({
+    user: user._id,
+    shop: { $ne: null }, // Ensure that the favorite records have a shop
+  }).populate("shop"); // Populate the shop details
+
+  if (!favoriteRecords || favoriteRecords.length === 0) {
+    return next(new AppError("No favorite shops found for this user", 404));
+  }
+
+  // Filter out shops that are marked as favorite by checking `isFavorite` status
+  const favoriteShops = favoriteRecords
+    .map((record) => record.shop)
+    .filter((shop) => shop.isFavorite);
+
+  if (favoriteShops.length === 0) {
+    return next(new AppError("No favorite shops marked as favorite", 404));
+  }
 
   res.status(200).json({
     success: true,
@@ -156,9 +234,63 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 
 ////-----Shops near me -----////
 
+// exports.getNearbyShops = catchAsync(async (req, res, next) => {
+//   console.log("REQ_BODY IS:", req.query);
+//   const { latitude, longitude, maxDistance, keyword } = req.query;
+
+//   console.log(latitude, longitude, maxDistance, "here is the data");
+
+//   if (!latitude || !longitude || !maxDistance) {
+//     return next(
+//       new AppError(
+//         "Please provide valid latitude, longitude, and maxDistance",
+//         400
+//       )
+//     );
+//   }
+
+//   // Find nearby shops
+//   const nearbyShops = await Shop.find({
+//     location: {
+//       $near: {
+//         $geometry: {
+//           type: "Point",
+//           coordinates: [longitude, latitude],
+//         },
+//         $maxDistance: maxDistance,
+//       },
+//     },
+//   });
+
+//   // If no nearby shops found, get at least two default shops
+//   if (!nearbyShops || nearbyShops.length === 0) {
+//     const defaultShops = await Shop.find().limit(2);
+//     if (!defaultShops || defaultShops.length === 0) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: "No shops found",
+//         data: [],
+//       });
+//     }
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "No nearby shops found. Here are some default shops.",
+//       data: defaultShops,
+//     });
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Nearby shops retrieved successfully",
+//     data: nearbyShops,
+//   });
+// });
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
   console.log("REQ_BODY IS:", req.query);
-  const { latitude, longitude, maxDistance } = req.query;
+  const { latitude, longitude, maxDistance, keyword } = req.query;
 
   console.log(latitude, longitude, maxDistance, "here is the data");
 
@@ -177,9 +309,9 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
       $near: {
         $geometry: {
           type: "Point",
-          coordinates: [longitude, latitude],
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
         },
-        $maxDistance: maxDistance,
+        $maxDistance: parseInt(maxDistance, 10),
       },
     },
   });
@@ -201,6 +333,40 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
       message: "No nearby shops found. Here are some default shops.",
       data: defaultShops,
     });
+  }
+
+  // If keyword is provided, filter the nearby shops using text search
+  if (keyword) {
+    try {
+      const keywordQuery = {
+        $text: { $search: keyword },
+      };
+
+      // Apply text search to the filtered nearby shops
+      const filteredShops = nearbyShops.filter((shop) =>
+        Shop.find({ _id: shop._id, ...keywordQuery })
+      );
+
+      // If no shops found after keyword filter
+      if (!filteredShops || filteredShops.length === 0) {
+        return res.status(404).json({
+          success: false,
+          status: 404,
+          message: "No shops found with the given keyword.",
+          data: [],
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        status: 200,
+        message: "Nearby shops with the given keyword retrieved successfully.",
+        data: filteredShops,
+      });
+    } catch (error) {
+      console.error("Error applying text search:", error);
+      return next(new AppError("Error applying text search", 500));
+    }
   }
 
   res.status(200).json({
@@ -303,161 +469,131 @@ exports.addProduct = catchAsync(async (req, res, next) => {
 
 ///// Mark a product as favorite
 
-exports.toggleProductFavorite = async (req, res, next) => {
-  try {
-    const productId = req.params.id;
+exports.toggleProductFavorite = catchAsync(async (req, res, next) => {
+  const { user } = req;
+  const groceryId = req.params.id;
 
-    // Find the shop that contains the product with the given productId
-    const shop = await Shop.findOne({ "groceries._id": productId });
+  // Find the shop that contains the grocery with the given groceryId
+  const shop = await Shop.findOne({ "groceries._id": groceryId });
 
-    if (!shop) {
-      console.error(`Shop not found for product: ${productId}`);
-      return next(new AppError("Shop not found", 404));
-    }
-
-    console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
-
-    // Find the specific product within the shop's groceries array
-    const product = shop.groceries.id(productId);
-
-    if (!product) {
-      console.error(
-        `Product not found in shop: ${shop.shopTitle} - Product ID: ${productId}`
-      );
-      return next(new AppError("Product not found", 404));
-    }
-
-    console.log(
-      `Product found: ${product.productName} - Product ID: ${productId}`
-    );
-
-    // Toggle the isFavorite field
-    product.isFavorite = !product.isFavorite;
-
-    // Save the shop document
-    await shop.save();
-
-    const message = product.isFavorite
-      ? "Product marked as favorite"
-      : "Product unmarked as favorite";
-
-    console.log(`${message} - Product ID: ${productId}`);
-
-    res.status(200).json({
-      success: true,
-      status: 200,
-      message: message,
-      data: product,
-      shopDetail: shop,
-    });
-  } catch (error) {
-    console.error(`Error in toggleProductFavorite: ${error.message}`);
-    return next(new AppError("Internal Server Error", 500));
+  if (!shop) {
+    console.error(`Shop not found for grocery: ${groceryId}`);
+    return next(new AppError("Shop not found", 404));
   }
-};
 
-// exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
-//   const favorites = await Favorite.find({
-//     user: req.user._id,
-//     product: { $exists: true },
-//   });
+  console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
 
-//   if (!favorites || favorites.length === 0) {
-//     return next(new AppError("No favorite product found", 404));
-//   }
+  // Find the specific grocery within the shop's groceries array
+  const grocery = shop.groceries.id(groceryId);
 
-//   // Retrieve product details
-//   const favoriteProducts = await Promise.all(
-//     favorites.map(async (favorite) => {
-//       const shop = await Shop.findOne({
-//         "groceries._id": favorite.product,
-//       }).populate({
-//         path: "groceries._id",
-//         select:
-//           "productName price description productImages volume manufacturedBy quantity stockStatus",
-//         populate: {
-//           path: "shop",
-//           select: "shopTitle location image owner categories",
-//         },
-//       });
+  if (!grocery) {
+    console.error(
+      `Grocery not found in shop: ${shop.shopTitle} - Grocery ID: ${groceryId}`
+    );
+    return next(new AppError("Grocery not found", 404));
+  }
 
-//       if (!shop) {
-//         return null;
-//       }
+  console.log(
+    `Grocery found: ${grocery.productName} - Grocery ID: ${groceryId}`
+  );
 
-//       // Find the specific grocery within the groceries array
-//       const grocery = shop.groceries.find((g) =>
-//         g._id.equals(favorite.product)
-//       );
-//       if (!grocery) {
-//         return null;
-//       }
+  // Check if the grocery is currently a favorite for the user
+  const favoriteRecord = await Favorite.findOne({
+    user: user._id,
+    grocery: groceryId,
+  });
 
-//       return {
-//         ...grocery.toObject(),
-//         shop: {
-//           shopTitle: shop.shopTitle,
-//           location: shop.location,
-//           image: shop.image,
-//           owner: shop.owner,
-//           categories: shop.categories.map((cat) => cat.categoryName),
-//         },
-//       };
-//     })
-//   );
+  if (favoriteRecord) {
+    // If the grocery is already a favorite, remove it from the user's favorites
+    await Favorite.deleteOne({ user: user._id, grocery: groceryId });
+    grocery.isFavorite = false; // Set isFavorite to false
+  } else {
+    // If the grocery is not a favorite, add it to the user's favorites
+    await Favorite.create({
+      user: user._id,
+      shop: shop._id,
+      grocery: groceryId,
+    });
+    grocery.isFavorite = true; // Set isFavorite to true
+  }
 
-//   const filteredProducts = favoriteProducts.filter(
-//     (product) => product !== null
-//   );
+  // Save the shop document
+  await shop.save();
 
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: filteredProducts,
-//   });
-// });
+  const message = grocery.isFavorite
+    ? "Grocery marked as favorite"
+    : "Grocery unmarked as favorite";
+
+  console.log(`${message} - Grocery ID: ${groceryId}`);
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: message,
+    data: {
+      _id: grocery._id,
+      productName: grocery.productName,
+      price: grocery.price,
+      description: grocery.description,
+      productImages: grocery.productImages,
+      volume: grocery.volume,
+      manufacturedBy: grocery.manufacturedBy,
+      quantity: grocery.quantity,
+      stockStatus: grocery.stockStatus,
+      isFavorite: grocery.isFavorite,
+    },
+    shopDetail: {
+      shopTitle: shop.shopTitle,
+      location: shop.location,
+      owner: shop.owner,
+    },
+  });
+});
+
 exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
-  // Find all products that are marked as favorite
-  const favoriteProducts = await Shop.aggregate([
-    { $unwind: "$groceries" },
-    { $match: { "groceries.isFavorite": true } },
+  const { user } = req;
+
+  // Retrieve the user's favorite records with shop and grocery details
+  const favoriteProducts = await Favorite.aggregate([
+    { $match: { user: user._id } },
     {
       $lookup: {
-        from: "shops", // Assuming collection name is "shops"
-        localField: "groceries._id",
-        foreignField: "groceries._id",
-        as: "shop",
+        from: "shops",
+        localField: "shop",
+        foreignField: "_id",
+        as: "shopDetails",
       },
     },
-    {
-      $addFields: {
-        shop: { $arrayElemAt: ["$shop", 0] },
-      },
-    },
+    { $unwind: "$shopDetails" },
     {
       $project: {
-        _id: "$groceries._id",
-        productName: "$groceries.productName",
-        price: "$groceries.price",
-        description: "$groceries.description",
-        productImages: "$groceries.productImages",
-        volume: "$groceries.volume",
-        manufacturedBy: "$groceries.manufacturedBy",
-        quantity: "$groceries.quantity",
-        stockStatus: "$groceries.stockStatus",
-        shop: {
-          shopTitle: "$shop.shopTitle",
-          location: "$shop.location",
-          image: "$shop.image",
-          owner: "$shop.owner",
-          categories: "$shop.categories",
+        product: {
+          $filter: {
+            input: "$shopDetails.groceries",
+            as: "grocery",
+            cond: { $eq: ["$$grocery._id", "$grocery"] },
+          },
         },
+        shopDetails: 1,
+      },
+    },
+    { $unwind: "$product" },
+    {
+      $project: {
+        shop: {
+          _id: "$shopDetails._id",
+          shopTitle: "$shopDetails.shopTitle",
+          location: "$shopDetails.location",
+          owner: "$shopDetails.owner",
+          operatingHours: "$shopDetails.operatingHours",
+        },
+        product: 1,
       },
     },
   ]);
 
   if (!favoriteProducts || favoriteProducts.length === 0) {
-    return next(new AppError("No favorite product found", 404));
+    return next(new AppError("No favorite products found for this user", 404));
   }
 
   res.status(200).json({
@@ -467,60 +603,7 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
   });
 });
 
-/////Delete shop product
-
-// exports.deleteProductFromShop = catchAsync(async (req, res, next) => {
-//   try {
-//     const { productId } = req.body;
-//     const userId = req.user.id;
-
-//     console.log(
-//       `User ID: ${userId} - Attempting to delete product: ${productId}`
-//     );
-
-//     // Find the shop associated with the logged-in user
-//     const shop = await Shop.findOne({ owner: userId });
-//     if (!shop) {
-//       console.error(`Shop not found for user: ${userId}`);
-//       return next(new AppError("Shop not found", 404));
-//     }
-
-//     console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
-
-//     // Check if the product exists in the shop's groceries
-//     let productFound = false;
-
-//     for (let grocery of shop.groceries) {
-//       if (grocery._id.equals(productId)) {
-//         shop.groceries.pull(productId);
-//         productFound = true;
-//         console.log(`Product found and removed: ${productId}`);
-//         break;
-//       }
-//     }
-
-//     if (!productFound) {
-//       console.error(`Product not found in shop: ${productId}`);
-//       return next(new AppError("Product not found in shop", 404));
-//     }
-
-//     // Save the updated shop
-//     await shop.save();
-//     console.log(
-//       `Shop saved successfully after product deletion. Shop ID: ${shop._id}`
-//     );
-
-//     res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "Product deleted successfully",
-//       data: shop,
-//     });
-//   } catch (error) {
-//     console.error(`Error in deleteProductFromShop: ${error.message}`);
-//     return next(new AppError("Internal Server Error", 500));
-//   }
-// });
+/////Delete shop product////
 
 exports.deleteProductFromShop = async (req, res, next) => {
   try {

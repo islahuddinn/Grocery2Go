@@ -352,11 +352,11 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     const FCMToken = customer.deviceToken;
     console.log(customer, "here is the deviceToken of costume bhaya");
     console.log(FCMToken, "here is the FCMToken of costume g");
-    await SendNotification({
-      token: FCMToken,
-      title: "Your order is rejected by the owner ",
-      body: `Owner rejected the order ${order}`,
-    });
+    // await SendNotification({
+    //   token: FCMToken,
+    //   title: "Your order is rejected by the owner ",
+    //   body: `Owner rejected the order ${order}`,
+    // });
 
     return res.status(200).json({
       success: true,

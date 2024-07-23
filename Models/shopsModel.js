@@ -142,7 +142,11 @@ const shopSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-shopSchema.index({ location: "2dsphere" });
+shopSchema.index({
+  location: "2dsphere",
+  shopTitle: "text",
+  description: "text",
+});
 
 const Shop = mongoose.model("Shop", shopSchema);
 module.exports = Shop;
