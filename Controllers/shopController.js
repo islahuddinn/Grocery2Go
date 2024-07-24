@@ -661,7 +661,27 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     status: 200,
-    data: favoriteProducts,
+    data: favoriteProducts.map((fp) => ({
+      _id: fp.data._id,
+      productName: fp.data.productName,
+      price: fp.data.price,
+      description: fp.data.description,
+      productImages: fp.data.productImages,
+      volume: fp.data.volume,
+      manufacturedBy: fp.data.manufacturedBy,
+      quantity: fp.data.quantity,
+      stockStatus: fp.data.stockStatus,
+      isFavorite: fp.data.isFavorite,
+      shopDetail: {
+        shopTitle: fp.shopDetail.shopTitle,
+        location: {
+          type: fp.shopDetail.location.type,
+          coordinates: fp.shopDetail.location.coordinates,
+          address: fp.shopDetail.location.address,
+        },
+        owner: fp.shopDetail.owner,
+      },
+    })),
   });
 });
 
