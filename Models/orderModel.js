@@ -76,6 +76,10 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    shop: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shop",
+    },
     driver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -59,9 +59,29 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
   });
 });
 
+/////get user orders-----////
+
+// exports.getUserOrders = catchAsync(async (req, res, next) => {
+//   const orders = await Order.find({ customer: req.user.id });
+//   console.log(orders, "here is the order details ");
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: orders,
+//   });
+// });
+
 exports.getUserOrders = catchAsync(async (req, res, next) => {
-  const orders = await Order.find({ customer: req.user.id });
-  console.log(orders, "here is the order details ");
+  // Find all orders for the current user and populate the shop details
+  const orders = await Order.find({ customer: req.user.id }).populate({
+    path: "shop",
+    select: "shopTitle location owner",
+  });
+
+  if (!orders || orders.length === 0) {
+    return next(new AppError("No orders found for this user", 404));
+  }
 
   res.status(200).json({
     success: true,
@@ -69,6 +89,59 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
     data: orders,
   });
 });
+
+/////----get shop all orders-----////
+
+exports.getAllShopOrders = catchAsync(async (req, res, next) => {
+  const shopId = req.params.id;
+
+  // Find the shop by ID to ensure it exists
+  const shop = await Shop.findById(shopId);
+
+  if (!shop) {
+    return next(new AppError("Shop not found", 404));
+  }
+
+  // Find all orders associated with the shop
+  const orders = await Order.find({ shop: shopId })
+    .populate({
+      path: "customer",
+      select: "name email",
+    })
+    .populate({
+      path: "driver",
+      select: "name email",
+    })
+    .populate({
+      path: "products.shop",
+      select: "shopTitle location owner",
+    })
+    .populate({
+      path: "vendor",
+      select: "name email",
+    });
+
+  if (!orders || orders.length === 0) {
+    return next(new AppError("No orders found for this shop", 404));
+  }
+
+  // Returning the shop details and orders
+  res.status(200).json({
+    success: true,
+    status: 200,
+    data: {
+      shop: {
+        shopTitle: shop.shopTitle,
+        location: shop.location,
+        owner: shop.owner,
+      },
+      orders,
+    },
+  });
+});
+
+/////----get all orders of the riders----/////
+
 /////-----order-details-----////
 
 // exports.getOrderDetails = catchAsync(async (req, res, next) => {
