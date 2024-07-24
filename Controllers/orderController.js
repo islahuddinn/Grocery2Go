@@ -67,22 +67,44 @@ exports.getAllOrdersByUser = async (req, res) => {
     const userId = req.user.id;
     const orders = await Order.find({ customer: userId })
       .populate("products.shop")
-      .populate("products.category")
+      // .populate("products.category")
       .populate("products.grocery")
-      .populate("vendor")
-      .populate("driver");
+      .select("products") // Only include product details in orders
+      .exec();
 
-    if (!orders) {
-      return res
-        .status(404)
-        .json({ message: "No orders found for this user." });
+    if (!orders.length) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: "No orders found for this user.",
+      });
     }
 
-    res.status(200).json({ succes: true, status: 200, orders });
+    // Extract details of one shop from the orders
+    const shopDetails = orders
+      .flatMap((order) => order.products.map((product) => product.shop))
+      .find((shop) => shop !== undefined); // Return only one shop details
+
+    // Extract just product details from orders
+    const simplifiedOrders = orders.map((order) => ({
+      products: order.products.map((product) => ({
+        productName: product.productName,
+        quantity: product.quantity,
+        isAvailable: product.isAvailable,
+        shop: product.shop, // Include the shop details with product if needed
+      })),
+    }));
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      orders: simplifiedOrders,
+      shopDetails,
+    });
   } catch (error) {
     res
       .status(500)
-      .json({ succes: false, status: 500, message: "Server error", error });
+      .json({ success: false, status: 500, message: "Server error", error });
   }
 };
 
