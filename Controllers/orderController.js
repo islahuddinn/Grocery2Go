@@ -62,34 +62,29 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 
 /////get user orders-----////
 
-// exports.getUserOrders = catchAsync(async (req, res, next) => {
-//   const orders = await Order.find({ customer: req.user.id });
-//   console.log(orders, "here is the order details ");
+exports.getAllOrdersByUser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const orders = await Order.find({ customer: userId })
+      .populate("products.shop")
+      .populate("products.category")
+      .populate("products.grocery")
+      .populate("vendor")
+      .populate("driver");
 
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: orders,
-//   });
-// });
+    if (!orders) {
+      return res
+        .status(404)
+        .json({ message: "No orders found for this user." });
+    }
 
-exports.getUserOrders = catchAsync(async (req, res, next) => {
-  // Find all orders for the current user and populate the shop details
-  const orders = await Order.find({ customer: req.user.id }).populate({
-    path: "shop",
-    select: "shopTitle location owner image",
-  });
-
-  if (!orders || orders.length === 0) {
-    return next(new AppError("No orders found for this user", 404));
+    res.status(200).json({ succes: true, status: 200, orders });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ succes: false, status: 500, message: "Server error", error });
   }
-
-  res.status(200).json({
-    success: true,
-    status: 200,
-    data: orders,
-  });
-});
+};
 
 /////----get shop all orders-----////
 
@@ -141,6 +136,32 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 //   });
 // });
 
+exports.getAllAcceptedByOwnerOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ orderStatus: "accepted by owner" })
+      .populate("products.shop")
+      .populate("products.category")
+      .populate("products.grocery")
+      .populate("vendor")
+      .populate("driver");
+
+    if (!orders.length) {
+      return res.status(404).json({
+        succes: true,
+        status: 200,
+        message: "No orders accepted by owner found.",
+        orders,
+      });
+    }
+
+    res.status(200).json({ succes: true, status: 200, orders });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ succes: false, status: 500, message: "Server error", error });
+  }
+};
+
 /////----get all orders of the riders----/////
 
 // exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
@@ -190,75 +211,33 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 //     },
 //   });
 // });
-exports.getAllShopOrders = catchAsync(async (req, res, next) => {
-  // Filter based on owner's document
-  const orders = await Order.find({
-    $and: [
-      { "vendor.ownerId": { $exists: true } }, // Ensure vendor has an ownerId
-    ],
-  })
-    .populate("customer", "firstName email image")
-    .populate("driver", "name");
 
-  if (!orders.length) {
-    return res.status(200).json({
-      success: true,
-      message: "No shop orders found",
-      orders: [],
-    });
-  }
+exports.getAllOrdersByShop = async (req, res) => {
+  try {
+    const shopId = req.params.id;
+    const orders = await Order.find({ "products.shop": shopId })
+      .populate("products.shop")
+      .populate("products.category")
+      .populate("products.grocery")
+      .populate("customer")
+      .populate("vendor")
+      .populate("driver");
 
-  const detailedOrders = [];
-  for (const order of orders) {
-    const shopDetails = await Shop.findById(order.vendor); // Fetch shop details
-
-    const productDetails = [];
-    for (const product of order.products) {
-      const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
-        .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
-
-      if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
-        continue; // Skip product if grocery not found
-      }
-
-      const grocery = fetchedGrocery.groceries[0];
-      productDetails.push({
-        name: grocery.productName,
-        category: grocery.categoryName.join(", "),
-        volume: grocery.volume,
-        images: grocery.productImages,
-        price: grocery.price,
-        quantity: product.quantity,
+    if (!orders.length) {
+      return res.status(404).json({
+        succes: true,
+        status: 404,
+        message: "No orders found for this shop.",
       });
     }
 
-    detailedOrders.push({
-      _id: order._id,
-      orderNumber: order.orderNumber,
-      orderStatus: order.orderStatus, // Include order status for reference
-      customer: {
-        name: order.customer.firstName,
-        email: order.customer.email,
-        image: order.customer.image,
-      },
-      shopDetails: {
-        shopId: shopDetails._id,
-        name: shopDetails.shopTitle,
-        image: shopDetails.image,
-        location: shopDetails.location,
-      },
-      productDetails,
-      rider: order.driver ? order.driver.name : null,
-      // Include other order details like deliveryCharges, totalPayment, etc.
-    });
+    res.status(200).json({ succes: true, status: 200, orders });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ succes: false, status: 500, message: "Server error", error });
   }
-
-  res.status(200).json({
-    success: true,
-    message: "Shop orders retrieved successfully",
-    orders: detailedOrders,
-  });
-});
+};
 
 /////------Get all orders accepted by ht shop owner----///
 
