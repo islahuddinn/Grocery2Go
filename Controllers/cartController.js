@@ -914,36 +914,21 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const shopDetails = [];
   const shopIds = new Set();
 
-  for (let item of cart.products) {
+  // Collect all shop details in parallel
+  const shopPromises = cart.products.map(async (item) => {
     const groceryId = new mongoose.Types.ObjectId(item.grocery);
     console.log(`Searching for shop with grocery ID: ${groceryId}`);
 
-    const shop = await Shop.findOne({
-      "groceries._id": groceryId,
-    });
-    const shopId = shop.id;
-    console.log(shopId, "here is the eid of the shop,,,,,,,,,,,,");
+    const shop = await Shop.findOne({ "groceries._id": groceryId });
     if (!shop) {
-      console.error(`Shop not found for grocery ID: ${groceryId}`);
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: `Shop not found for grocery with ID ${groceryId}`,
-      });
+      throw new Error(`Shop not found for grocery ID: ${groceryId}`);
     }
-
-    console.log(`Shop found: ${shop.shopTitle}`);
 
     const grocery = shop.groceries.id(groceryId);
     if (!grocery) {
-      console.error(
+      throw new Error(
         `Grocery not found for ID: ${groceryId} in shop ID: ${shop._id}`
       );
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: `Grocery with ID ${groceryId} not found in shop ${shop._id}`,
-      });
     }
 
     totalItems += item.quantity;
@@ -962,34 +947,52 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
       quantity: item.quantity,
     });
 
-    shopDetails.push({
-      shopName: shop.shopTitle,
-      images: shop.image,
-      location: shop.location,
-      shop: shop.id,
-    });
+    if (!shopIds.has(shop._id.toString())) {
+      shopDetails.push({
+        shopId: shop._id,
+        shopName: shop.shopTitle,
+        images: shop.image,
+        location: shop.location,
+      });
 
-    shopIds.add(shop._id.toString());
+      shopIds.add(shop._id.toString());
+    }
 
     if (!startLocation) {
       startLocation = shop.location;
     }
-  }
+  });
+
+  // Wait for all shop details to be collected
+  await Promise.all(shopPromises);
 
   const serviceFee = 10; // example service fee
   const adminFee = 5; // example admin fee
   const totalPayment = itemsTotal + serviceFee + adminFee;
 
+  // Map products to include the shopId
+  const productWithShopIds = await Promise.all(
+    cart.products.map(async (item) => {
+      const shop = await Shop.findOne({ "groceries._id": item.grocery });
+      return {
+        shop: shop._id,
+        grocery: item.grocery,
+        quantity: item.quantity,
+      };
+    })
+  );
+
+  // Create the order with resolved shop details
   const newOrder = await Order.create({
     orderNumber: `ORD-${Date.now()}`,
     customer: user._id,
-    products: cart.products,
+    products: productWithShopIds,
     startLocation,
     endLocation: deliveryLocation,
     itemsTotal,
     serviceFee,
     adminFee,
-    shop: Array.from(shopIds),
+    deliveryCharges: 0, // Assuming zero delivery charges for this example
     totalPayment,
     paymentStatus: "paid",
     orderStatus: "pending",

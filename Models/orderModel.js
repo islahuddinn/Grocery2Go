@@ -11,6 +11,7 @@ const orderSchema = new mongoose.Schema(
       enum: [
         "pending",
         "accepted",
+        "accepted by owner",
         "ready for pickup",
         "rider accepted",
         "buying grocery",
@@ -75,10 +76,6 @@ const orderSchema = new mongoose.Schema(
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-    },
-    shop: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Shop",
     },
     driver: {
       type: mongoose.Schema.Types.ObjectId,

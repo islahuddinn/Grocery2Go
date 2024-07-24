@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const catchAsync = require("../Utils/catchAsync");
 const AppError = require("../Utils/appError");
 const Order = require("../Models/orderModel");
@@ -92,217 +93,269 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
 
 /////----get shop all orders-----////
 
-exports.getAllShopOrders = catchAsync(async (req, res, next) => {
-  const shopId = req.params.id;
+// exports.getAllShopOrders = catchAsync(async (req, res, next) => {
+//   const shopId = req.params.id;
 
-  // Find the shop by ID to ensure it exists
-  const shop = await Shop.findById(shopId);
+//   // Find the shop by ID to ensure it exists
+//   const shop = await Shop.findById(shopId);
 
-  if (!shop) {
-    return next(new AppError("Shop not found", 404));
-  }
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
 
-  // Find all orders associated with the shop
-  const orders = await Order.find({ shop: shopId })
-    .populate({
-      path: "customer",
-      select: "name email",
-    })
-    .populate({
-      path: "driver",
-      select: "name email",
-    })
-    .populate({
-      path: "products.shop",
-      select: "shopTitle location owner",
-    })
-    .populate({
-      path: "vendor",
-      select: "name email",
-    });
+//   // Find all orders associated with the shop
+//   const orders = await Order.find({ shop: shopId })
+//     .populate({
+//       path: "customer",
+//       select: "name email",
+//     })
+//     .populate({
+//       path: "driver",
+//       select: "name email",
+//     })
+//     .populate({
+//       path: "products.shop",
+//       select: "shopTitle location owner",
+//     })
+//     .populate({
+//       path: "vendor",
+//       select: "name email",
+//     });
 
-  if (!orders || orders.length === 0) {
-    return next(new AppError("No orders found for this shop", 404));
-  }
+//   if (!orders || orders.length === 0) {
+//     return next(new AppError("No orders found for this shop", 404));
+//   }
 
-  // Returning the shop details and orders
-  res.status(200).json({
-    success: true,
-    status: 200,
-    data: {
-      shop: {
-        shopTitle: shop.shopTitle,
-        location: shop.location,
-        owner: shop.owner,
-      },
-      orders,
-    },
-  });
-});
+//   // Returning the shop details and orders
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: {
+//       shop: {
+//         shopTitle: shop.shopTitle,
+//         location: shop.location,
+//         owner: shop.owner,
+//       },
+//       orders,
+//     },
+//   });
+// });
 
 /////----get all orders of the riders----/////
 
-exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
-  const riderId = req.params.id;
+// exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
+//   const riderId = req.params.id;
 
-  // Find the shop by ID to ensure it exists
-  const rider = await User.findById(riderId);
+//   // Find the shop by ID to ensure it exists
+//   const rider = await User.findById(riderId);
 
-  if (!rider) {
-    return next(new AppError("Rider not found", 404));
-  }
+//   if (!rider) {
+//     return next(new AppError("Rider not found", 404));
+//   }
 
-  // Find all orders associated with the shop
-  const orders = await Order.find({ driver: riderId })
-    .populate({
-      path: "customer",
-      select: "name email",
-    })
-    .populate({
-      path: "driver",
-      select: "firstName email",
-    })
-    .populate({
-      path: "products.shop",
-      select: "shopTitle location owner",
-    })
-    .populate({
-      path: "vendor",
-      select: "firstName email",
+//   // Find all orders associated with the shop
+//   const orders = await Order.find({ driver: riderId })
+//     .populate({
+//       path: "customer",
+//       select: "name email",
+//     })
+//     .populate({
+//       path: "driver",
+//       select: "firstName email",
+//     })
+//     .populate({
+//       path: "products.shop",
+//       select: "shopTitle location owner",
+//     })
+//     .populate({
+//       path: "vendor",
+//       select: "firstName email",
+//     });
+
+//   if (!orders || orders.length === 0) {
+//     return next(new AppError("No orders found for this rider", 404));
+//   }
+
+//   // Returning the shop details and orders
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     data: {
+//       rider: {
+//         riderNmae: rider.firstName,
+//         location: rider.location,
+//         // owner: rider.owner,
+//       },
+//       orders,
+//     },
+//   });
+// });
+exports.getAllShopOrders = catchAsync(async (req, res, next) => {
+  // Filter based on owner's document
+  const orders = await Order.find({
+    $and: [
+      { "vendor.ownerId": { $exists: true } }, // Ensure vendor has an ownerId
+    ],
+  })
+    .populate("customer", "firstName email image")
+    .populate("driver", "name");
+
+  if (!orders.length) {
+    return res.status(200).json({
+      success: true,
+      message: "No shop orders found",
+      orders: [],
     });
-
-  if (!orders || orders.length === 0) {
-    return next(new AppError("No orders found for this rider", 404));
   }
 
-  // Returning the shop details and orders
+  const detailedOrders = [];
+  for (const order of orders) {
+    const shopDetails = await Shop.findById(order.vendor); // Fetch shop details
+
+    const productDetails = [];
+    for (const product of order.products) {
+      const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
+        .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
+
+      if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
+        continue; // Skip product if grocery not found
+      }
+
+      const grocery = fetchedGrocery.groceries[0];
+      productDetails.push({
+        name: grocery.productName,
+        category: grocery.categoryName.join(", "),
+        volume: grocery.volume,
+        images: grocery.productImages,
+        price: grocery.price,
+        quantity: product.quantity,
+      });
+    }
+
+    detailedOrders.push({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus, // Include order status for reference
+      customer: {
+        name: order.customer.firstName,
+        email: order.customer.email,
+        image: order.customer.image,
+      },
+      shopDetails: {
+        shopId: shopDetails._id,
+        name: shopDetails.shopTitle,
+        image: shopDetails.image,
+        location: shopDetails.location,
+      },
+      productDetails,
+      rider: order.driver ? order.driver.name : null,
+      // Include other order details like deliveryCharges, totalPayment, etc.
+    });
+  }
+
   res.status(200).json({
     success: true,
-    status: 200,
-    data: {
-      rider: {
-        riderNmae: rider.firstName,
-        location: rider.location,
-        // owner: rider.owner,
-      },
-      orders,
-    },
+    message: "Shop orders retrieved successfully",
+    orders: detailedOrders,
   });
 });
 
-/////-----order-details-----////
+/////------Get all orders accepted by ht shop owner----///
 
-// exports.getOrderDetails = catchAsync(async (req, res, next) => {
-//   const orderId = req.params.id;
-
-//   // Find the order by ID and populate necessary fields
-//   const order = await Order.findById(orderId)
+// exports.getAllAcceptedOrders = catchAsync(async (req, res, next) => {
+//   // Find all orders with the status "accepted by owner"
+//   const orders = await Order.find({ orderStatus: "accepted by owner" })
+//     .populate("customer", "firstName email image")
+//     .populate("driver", "name")
 //     .populate({
 //       path: "products.shop",
-//       select: "shopTitle images location categories",
-//     })
-//     .populate({
-//       path: "products.grocery",
-//       select: "productName price volume productImages",
-//     })
-//     .populate("customer", "firstName email image")
-//     .populate("driver", "name");
-
-//   if (!order) {
-//     return next(new AppError("Order not found", 404));
-//   }
-
-//   const productDetails = [];
-//   const shopDetails = [];
-
-//   // Iterate over the products in the order to get their details
-//   for (let item of order.products) {
-//     const shop = item.shop;
-//     if (!shop) {
-//       return next(new AppError("Shop not found", 404));
-//     }
-
-//     // Find the corresponding category within the shop
-//     const category = shop.categories.id(item.category);
-//     if (!category) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Category with ID ${item.category} not found in shop ${shop._id}`,
-//       });
-//     }
-
-//     // Find the corresponding grocery within the category
-//     const grocery = category.groceries.id(item.grocery);
-//     if (!grocery) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Grocery with ID ${item.grocery} not found in category ${category._id}`,
-//       });
-//     }
-
-//     // Extract product details
-//     productDetails.push({
-//       name: grocery.productName,
-//       volume: grocery.volume,
-//       images: grocery.productImages,
-//       price: grocery.price,
-//       quantity: item.quantity,
+//       select: "shopTitle image location groceries",
 //     });
 
-//     // Extract shop details (unique shops only)
-//     if (!shopDetails.find((shopDetail) => shopDetail.name === shop.shopTitle)) {
-//       shopDetails.push({
-//         name: shop.shopTitle,
-//         image: shop.images,
-//         location: shop.location,
-//       });
-//     }
+//   if (!orders || orders.length === 0) {
+//     return next(
+//       new AppError('No orders with status "accepted by owner" found', 404)
+//     );
 //   }
 
-//   // Prepare order summary
-//   const orderSummary = {
-//     itemsTotal: order.itemsTotal,
-//     serviceFee: order.serviceFee,
-//     adminFee: order.adminFee,
-//     totalPayment: order.totalPayment,
-//     paymentStatus: order.paymentStatus,
-//     deliveryFee: order.deliveryCharges,
-//     deliveryPaymentStatus: order.deliveryPaymentStatus,
-//   };
+//   const formattedOrders = orders.map((order) => {
+//     const productDetails = [];
+//     const shopDetails = [];
+
+//     order.products.forEach((item) => {
+//       const shop = item.shop;
+//       if (shop) {
+//         const grocery = shop.groceries.id(item.grocery);
+//         if (grocery) {
+//           const category = grocery.categoryName
+//             .map((cat) => cat.categoryName)
+//             .join(", ");
+
+//           productDetails.push({
+//             name: grocery.productName,
+//             category,
+//             volume: grocery.volume,
+//             images: grocery.productImages,
+//             price: grocery.price,
+//             quantity: item.quantity,
+//           });
+
+//           if (
+//             !shopDetails.find(
+//               (shopDetail) =>
+//                 shopDetail.shopId.toString() === shop._id.toString()
+//             )
+//           ) {
+//             shopDetails.push({
+//               shopId: shop._id,
+//               name: shop.shopTitle,
+//               image: shop.image,
+//               location: shop.location,
+//             });
+//           }
+//         }
+//       }
+//     });
+
+//     const orderSummary = {
+//       itemsTotal: order.itemsTotal,
+//       serviceFee: order.serviceFee,
+//       adminFee: order.adminFee,
+//       totalPayment: order.totalPayment,
+//       paymentStatus: order.paymentStatus,
+//       deliveryFee: order.deliveryCharges,
+//       deliveryPaymentStatus: order.deliveryPaymentStatus,
+//     };
+
+//     return {
+//       orderNumber: order.orderNumber,
+//       orderStatus: order.orderStatus,
+//       customer: {
+//         name: order.customer.firstName,
+//         email: order.customer.email,
+//         image: order.customer.image,
+//       },
+//       shopDetails,
+//       productDetails,
+//       rider: order.driver ? order.driver.name : null,
+//       orderSummary,
+//     };
+//   });
 
 //   res.status(200).json({
 //     success: true,
 //     status: 200,
-//     message: "Order details retrieved successfully",
-//     order: {
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       customer: {
-//         name: order.customer.name,
-//         email: order.customer.email,
-//       },
-//       shopDetails,
-//       productDetails,
-//       Rider: order.driver ? order.driver.id : null,
-//       orderSummary,
-//     },
+//     message: "Accepted orders retrieved successfully",
+//     orders: formattedOrders,
 //   });
 // });
+
+/////-----order-details-----////
 
 exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const orderId = req.params.id;
 
   const order = await Order.findById(orderId)
-    .populate({
-      path: "products.shop",
-      select: "shopTitle images location groceries",
-    })
-    .populate({
-      path: "products.grocery",
-      select: "productName price volume productImages categoryName",
-    })
     .populate("customer", "firstName email image")
     .populate("driver", "name");
 
@@ -311,44 +364,47 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   }
 
   const productDetails = [];
-  const shopDetails = [];
+  const shopDetailsMap = new Map(); // Use Map to prevent duplicates
 
-  for (let item of order.products) {
-    const shop = item.shop;
-    if (!shop) {
-      return next(new AppError("Shop not found", 404));
-    }
+  for (const { shop, grocery, quantity } of order.products) {
+    try {
+      const fetchedShop = await Shop.findById(shop);
+      if (!fetchedShop) {
+        console.error(`Shop with ID ${shop} not found.`);
+        continue; // Skip to the next product
+      }
 
-    const grocery = shop.groceries.id(item.grocery);
-    if (!grocery) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: `Grocery with ID ${item.grocery} not found in shop ${shop._id}`,
-      });
-    }
+      const fetchedGrocery = fetchedShop.groceries.id(grocery);
+      if (!fetchedGrocery) {
+        console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
+        continue; // Skip to the next product
+      }
 
-    const category = grocery.categoryName
-      .map((cat) => cat.categoryName)
-      .join(", ");
+      const productDetail = {
+        name: fetchedGrocery.productName,
+        category: fetchedGrocery.categoryName.join(", "),
+        volume: fetchedGrocery.volume,
+        images: fetchedGrocery.productImages,
+        price: fetchedGrocery.price,
+      };
 
-    productDetails.push({
-      name: grocery.productName,
-      category,
-      volume: grocery.volume,
-      images: grocery.productImages,
-      price: grocery.price,
-      quantity: item.quantity,
-    });
+      productDetails.push(productDetail);
 
-    if (!shopDetails.find((shopDetail) => shopDetail.name === shop.shopTitle)) {
-      shopDetails.push({
-        name: shop.shopTitle,
-        image: shop.image,
-        location: shop.location,
-      });
+      if (!shopDetailsMap.has(shop.toString())) {
+        shopDetailsMap.set(shop, {
+          shopId: shop,
+          name: fetchedShop.shopTitle,
+          image: fetchedShop.image,
+          location: fetchedShop.location,
+        });
+      }
+    } catch (error) {
+      console.error(`Error processing shop or grocery item: ${error.message}`);
+      continue; // Continue processing other items even if there's an error
     }
   }
+
+  const shopDetails = [...shopDetailsMap.values()]; // Convert Map to array
 
   const orderSummary = {
     itemsTotal: order.itemsTotal,
@@ -379,6 +435,73 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+///////-----Get all orders----////
+
+// exports.getAllShopOrders = catchAsync(async (req, res, next) => {
+//   const orders = await Order.find({ vendor: { $ne: null } }) // Exclude non-shop orders
+//     .populate("customer", "firstName email image")
+//     .populate("driver", "name");
+
+//   if (!orders.length) {
+//     return res.status(200).json({
+//       success: true,
+//       message: "No shop orders found",
+//       orders: [],
+//     });
+//   }
+
+//   const detailedOrders = [];
+//   for (const order of orders) {
+//     const shopDetails = await Shop.findById(order.vendor); // Fetch shop details
+
+//     const productDetails = [];
+//     for (const product of order.products) {
+//       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
+//         .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
+
+//       if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
+//         continue; // Skip product if grocery not found
+//       }
+
+//       const grocery = fetchedGrocery.groceries[0];
+//       productDetails.push({
+//         name: grocery.productName,
+//         category: grocery.categoryName.join(", "),
+//         volume: grocery.volume,
+//         images: grocery.productImages,
+//         price: grocery.price,
+//         quantity: product.quantity,
+//       });
+//     }
+
+//     detailedOrders.push({
+//       _id: order._id,
+//       orderNumber: order.orderNumber,
+//       orderStatus: order.orderStatus,
+//       customer: {
+//         name: order.customer.firstName,
+//         email: order.customer.email,
+//         image: order.customer.image,
+//       },
+//       shopDetails: {
+//         shopId: shopDetails._id,
+//         name: shopDetails.shopTitle,
+//         image: shopDetails.image,
+//         location: shopDetails.location,
+//       },
+//       productDetails,
+//       rider: order.driver ? order.driver.name : null,
+//       // Include other order details like deliveryCharges, totalPayment, etc.
+//     });
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     message: "Shop orders retrieved successfully",
+//     orders: detailedOrders,
+//   });
+// });
 
 /////----Accept or Reject the order function for rider-------////
 
@@ -445,7 +568,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
 
   // Handle the action
   if (action === "accept") {
-    order.orderStatus = "accepted";
+    order.orderStatus = "accepted by owner";
     // order.driver = req.user.id;
     await order.save();
 
