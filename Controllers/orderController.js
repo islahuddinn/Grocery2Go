@@ -76,7 +76,7 @@ exports.getUserOrders = catchAsync(async (req, res, next) => {
   // Find all orders for the current user and populate the shop details
   const orders = await Order.find({ customer: req.user.id }).populate({
     path: "shop",
-    select: "shopTitle location owner",
+    select: "shopTitle location owner image",
   });
 
   if (!orders || orders.length === 0) {
@@ -141,6 +141,54 @@ exports.getAllShopOrders = catchAsync(async (req, res, next) => {
 });
 
 /////----get all orders of the riders----/////
+
+exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
+  const riderId = req.params.id;
+
+  // Find the shop by ID to ensure it exists
+  const rider = await User.findById(riderId);
+
+  if (!rider) {
+    return next(new AppError("Rider not found", 404));
+  }
+
+  // Find all orders associated with the shop
+  const orders = await Order.find({ driver: riderId })
+    .populate({
+      path: "customer",
+      select: "name email",
+    })
+    .populate({
+      path: "driver",
+      select: "firstName email",
+    })
+    .populate({
+      path: "products.shop",
+      select: "shopTitle location owner",
+    })
+    .populate({
+      path: "vendor",
+      select: "firstName email",
+    });
+
+  if (!orders || orders.length === 0) {
+    return next(new AppError("No orders found for this rider", 404));
+  }
+
+  // Returning the shop details and orders
+  res.status(200).json({
+    success: true,
+    status: 200,
+    data: {
+      rider: {
+        riderNmae: rider.firstName,
+        location: rider.location,
+        // owner: rider.owner,
+      },
+      orders,
+    },
+  });
+});
 
 /////-----order-details-----////
 
