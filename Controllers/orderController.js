@@ -309,9 +309,54 @@ exports.getAllAcceptedByOwnerOrders = async (req, res) => {
 //   });
 // });
 
-exports.getAllOrdersByShop = async (req, res) => {
+// exports.getAllOrdersByShop = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const shopId = await Shop.findById({ owner: userId });
+//     console.log(shopId, "here is the shop id");
+//     // const shopId = req.params.id;
+//     const orders = await Order.find({ "products.shop": shopId })
+//       .populate("products.shop")
+//       .populate("products.category")
+//       .populate("products.grocery")
+//       .populate("customer")
+//       .populate("vendor")
+//       .populate("driver");
+
+//     if (!orders.length) {
+//       return res.status(404).json({
+//         succes: true,
+//         status: 404,
+//         message: "No orders found for this shop.",
+//       });
+//     }
+
+//     res.status(200).json({ succes: true, status: 200, orders });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ succes: false, status: 500, message: "Server error", error });
+//   }
+// };
+
+exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
   try {
-    const shopId = req.params.id;
+    const userId = req.user.id;
+
+    // Find the shop associated with the user
+    const shop = await Shop.findOne({ owner: userId });
+
+    if (!shop) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: "Shop not found for this user",
+      });
+    }
+
+    const shopId = shop._id; // Get shop ID from the found shop
+
+    // Find orders for the shop ID using existing logic
     const orders = await Order.find({ "products.shop": shopId })
       .populate("products.shop")
       .populate("products.category")
@@ -321,20 +366,29 @@ exports.getAllOrdersByShop = async (req, res) => {
       .populate("driver");
 
     if (!orders.length) {
-      return res.status(404).json({
-        succes: true,
-        status: 404,
-        message: "No orders found for this shop.",
+      return res.status(200).json({
+        success: true,
+        status: 200,
+        message: "No orders found for this shop",
+        orders: [],
       });
     }
 
-    res.status(200).json({ succes: true, status: 200, orders });
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Orders retrieved successfully",
+      orders,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ succes: false, status: 500, message: "Server error", error });
+    next({
+      success: false,
+      status: 500,
+      // message: "No orders found for this shop",
+      error,
+    }); // Pass error to error handler
   }
-};
+});
 
 /////------Get all orders accepted by ht shop owner----///
 

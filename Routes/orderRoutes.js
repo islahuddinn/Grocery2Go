@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.use(authController.protect);
 // router.post("/create", orderController.createOrder);
-router.get("/get-shop-orders/:id", orderController.getAllOrdersByShop);
+router.get("/get-shop-orders", orderController.getAllOrdersByShop);
 // router.get("/get-all-orders", orderController.get);
 router.get("/get-user-orders", orderController.getAllOrdersByUser);
 router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders);
