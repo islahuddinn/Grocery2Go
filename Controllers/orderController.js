@@ -354,7 +354,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Find all orders for the current user
   const orders = await Order.find({
-    customer: req.user.id,
+    // customer: req.user.id,
     orderStatus: "accepted by owner",
   });
 
