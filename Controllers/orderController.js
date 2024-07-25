@@ -753,7 +753,7 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
       order,
     });
   } else if (action === "accept") {
-    order.orderStatus = "ready for pickup";
+    order.orderStatus = "accepted by rider";
     order.driver = req.user.id;
     await order.save();
 
