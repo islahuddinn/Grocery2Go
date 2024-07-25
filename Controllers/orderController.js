@@ -62,51 +62,74 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 
 /////get user orders-----////
 
-exports.getAllOrdersByUser = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const orders = await Order.find({ customer: userId })
-      .populate("products.shop")
-      // .populate("products.category")
-      .populate("products.grocery")
-      .select("products") // Only include product details in orders
-      .exec();
+// exports.getAllOrdersByUser = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const orders = await Order.find({ customer: userId })
+//       .populate("products.shop")
+//       // .populate("products.category")
+//       .populate("products.grocery")
+//       .select("products") // Only include product details in orders
+//       .exec();
 
-    if (!orders.length) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: "No orders found for this user.",
-      });
-    }
+//     if (!orders.length) {
+//       return res.status(404).json({
+//         success: true,
+//         status: 200,
+//         message: "No orders found for this user.",
+//         orders,
+//       });
+//     }
 
-    // Extract details of one shop from the orders
-    const shopDetails = orders
-      .flatMap((order) => order.products.map((product) => product.shop))
-      .find((shop) => shop !== undefined); // Return only one shop details
+//     // Extract details of one shop from the orders
+//     const shopDetails = orders
+//       .flatMap((order) => order.products.map((product) => product.shop))
+//       .find((shop) => shop !== undefined); // Return only one shop details
 
-    // Extract just product details from orders
-    const simplifiedOrders = orders.map((order) => ({
-      products: order.products.map((product) => ({
-        productName: product.productName,
-        quantity: product.quantity,
-        isAvailable: product.isAvailable,
-        shop: product.shop, // Include the shop details with product if needed
-      })),
-    }));
+//     // Extract just product details from orders
+//     const simplifiedOrders = orders.map((order) => ({
+//       products: order.products.map((product) => ({
+//         productName: product.productName,
+//         quantity: product.quantity,
+//         isAvailable: product.isAvailable,
+//         shop: product.shop, // Include the shop details with product if needed
+//       })),
+//     }));
 
-    res.status(200).json({
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       orders: simplifiedOrders,
+//       shopDetails,
+//     });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ success: false, status: 500, message: "Server error", error });
+//   }
+// };
+
+exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
+  // Find all orders for the current user and populate the shop details
+  const orders = await Order.find({ customer: req.user.id }).populate({
+    path: "products.shop",
+    select: "shopTitle location owner image",
+  });
+
+  if (!orders || orders.length === 0) {
+    return res.status(200).json({
       success: true,
       status: 200,
-      orders: simplifiedOrders,
-      shopDetails,
+      orders,
     });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, status: 500, message: "Server error", error });
   }
-};
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    data: orders,
+  });
+});
 
 /////----get shop all orders-----////
 
