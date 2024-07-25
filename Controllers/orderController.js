@@ -233,31 +233,31 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 
 ////////// this is the controller function to get rider orders
 
-exports.getAllAcceptedByOwnerOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ orderStatus: "accepted by owner" })
-      .populate("products.shop")
-      .populate("products.category")
-      .populate("products.grocery")
-      .populate("vendor")
-      .populate("driver");
+// exports.getAllAcceptedByOwnerOrders = async (req, res) => {
+//   try {
+//     const orders = await Order.find({ orderStatus: "accepted by owner" })
+//       .populate("products.shop")
+//       .populate("products.category")
+//       .populate("products.grocery")
+//       .populate("vendor")
+//       .populate("driver");
 
-    if (!orders.length) {
-      return res.status(404).json({
-        success: true,
-        status: 200,
-        message: "No orders accepted by owner found.",
-        orders,
-      });
-    }
+//     if (!orders.length) {
+//       return res.status(404).json({
+//         success: true,
+//         status: 200,
+//         message: "No orders accepted by owner found.",
+//         orders,
+//       });
+//     }
 
-    res.status(200).json({ success: true, status: 200, orders });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, status: 500, message: "Server error", error });
-  }
-};
+//     res.status(200).json({ success: true, status: 200, orders });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ success: false, status: 500, message: "Server error", error });
+//   }
+// };
 
 // exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res) => {
 //   try {
@@ -284,26 +284,32 @@ exports.getAllAcceptedByOwnerOrders = async (req, res) => {
 //         success: true,
 //         status: 200,
 //         message: "No orders accepted by owner found.",
-//         orders: [],
+//         data: [], // Changed from orders to data
 //       });
 //     }
 
 //     const ordersWithDetails = orders.map((order) => {
-//       const customer = order.customer;
+//       if (!order.products || !order.products.length) {
+//         return null;
+//       }
+
+//       const customer = order.customer || {};
+//       const shop = order.products[0].shop || {};
 
 //       const shopDetails = {
-//         shopId: order.products[0].shop._id,
-//         name: order.products[0].shop.shopTitle,
-//         image: order.products[0].shop.shopImage,
-//         location: order.products[0].shop.location,
+//         shopId: shop._id || null,
+//         name: shop.shopTitle || "",
+//         image: shop.shopImage || "",
+//         location: shop.location || {},
 //       };
 
 //       const productDetails = order.products.map((product) => {
-//         const grocery = product.grocery;
+//         const grocery = product.grocery || {};
+//         const categories = grocery.category || [];
 
 //         return {
 //           productName: grocery.productName,
-//           category: grocery.category.map((cat) => ({
+//           category: categories.map((cat) => ({
 //             categoryName: cat.categoryName,
 //             categoryImage: cat.categoryImage,
 //             _id: cat._id,
@@ -311,7 +317,7 @@ exports.getAllAcceptedByOwnerOrders = async (req, res) => {
 //           volume: grocery.volume,
 //           productImages: grocery.productImages,
 //           price: grocery.price,
-//           quantity: product.quantity, // Assumes quantity is within the order's product structure
+//           quantity: product.quantity,
 //         };
 //       });
 
@@ -336,14 +342,89 @@ exports.getAllAcceptedByOwnerOrders = async (req, res) => {
 //       data: ordersWithDetails,
 //     });
 //   } catch (error) {
+//     console.error("Error retrieving orders:", error); // Log the error for debugging
 //     res.status(500).json({
 //       success: false,
 //       status: 500,
 //       message: "Server error",
-//       error,
+//       error: error.message || error,
 //     });
 //   }
 // });
+exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
+  // Find all orders for the current user
+  const orders = await Order.find({
+    customer: req.user.id,
+    orderStatus: "accepted by owner",
+  });
+
+  if (!orders || orders.length === 0) {
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "No orders found for this user",
+      orders: [],
+    });
+  }
+
+  const detailedOrders = [];
+  for (const order of orders) {
+    // Extract shop details from the first product
+    const shopId = order.products.length > 0 ? order.products[0].shop : null;
+
+    let shopDetails = {};
+    if (shopId) {
+      const shop = await Shop.findById(shopId);
+      shopDetails = {
+        shopId: shop._id,
+        name: shop.shopTitle,
+        image: shop.image,
+        location: shop.location,
+      };
+    }
+
+    detailedOrders.push({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      customer: {
+        name: req.user.firstName,
+        email: req.user.email,
+        image: req.user.image,
+      },
+      shopDetails,
+      productDetails: [],
+      rider: order.driver ? order.driver.name : null,
+    });
+
+    // Process product details (can be a separate function if needed)
+    for (const product of order.products) {
+      const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
+        .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
+
+      if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
+        continue; // Skip product if grocery not found
+      }
+
+      const grocery = fetchedGrocery.groceries[0];
+      detailedOrders[detailedOrders.length - 1].productDetails.push({
+        productName: grocery.productName,
+        category: grocery.categoryName,
+        volume: grocery.volume,
+        productImages: grocery.productImages,
+        price: grocery.price,
+        quantity: product.quantity,
+      });
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Orders retrieved successfully",
+    data: detailedOrders,
+  });
+});
 
 /////----get all orders of the riders----/////
 
