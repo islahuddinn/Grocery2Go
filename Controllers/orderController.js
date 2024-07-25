@@ -572,7 +572,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
 
   const order = await Order.findById(orderId)
     .populate("customer", "firstName email image")
-    .populate("driver", "name");
+    .populate("driver", "name email location image");
 
   if (!order) {
     return next(new AppError("Order not found", 404));
@@ -643,10 +643,11 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
         name: order.customer.firstName,
         email: order.customer.email,
         image: order.customer.image,
+        location: order.customer.location,
       },
       shopDetails,
       productDetails,
-      rider: order.driver ? order.driver.name : null,
+      rider: order.driver ? order.driver : null,
       orderSummary,
     },
   });
