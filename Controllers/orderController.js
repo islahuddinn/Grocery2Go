@@ -399,6 +399,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
 
     // Find the shop associated with the user
     const shop = await Shop.findOne({ owner: userId });
+    console.log(shop, "here is the shop");
 
     // if (!shop) {
     //   return res.status(404).json({
@@ -420,7 +421,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
       .populate("customer")
       .populate("vendor")
       .populate("driver");
-
+    console.log(orders, "here is the detail of the order");
     if (!orders.length) {
       return res.status(200).json({
         success: true,
