@@ -11,6 +11,7 @@ const orderSchema = new mongoose.Schema(
       enum: [
         "pending",
         "accepted",
+        "rejected",
         "accepted by owner",
         "accepted by rider",
         // "ready for pickup",

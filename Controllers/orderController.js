@@ -339,6 +339,60 @@ exports.getAllAcceptedByOwnerOrders = async (req, res) => {
 //   }
 // };
 
+// exports.getAllOrdersByShop = async (req, res, next) => {
+//   try {
+//     const userId = req.user.id;
+
+//     // Find the shop associated with the user
+//     const shop = await Shop.findOne({ owner: userId });
+
+//     if (!shop) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: "Shop not found for this user",
+//       });
+//     }
+
+//     const shopId = shop._id;
+
+//     // Find orders for the shop ID using existing logic
+//     const orders = await Order.find({
+//       "products.shop": shopId,
+//       orderStatus: "pending",
+//     })
+//       .populate("products.shop")
+//       .populate("products.category")
+//       .populate("products.grocery")
+//       .populate("customer")
+//       .populate("vendor")
+//       .populate("driver");
+
+//     // if (!orders.length > 0) {
+//     //   return res.status(200).json({
+//     //     success: true,
+//     //     status: 200,
+//     //     message: "No orders found for this shop",
+//     //     orders: [],
+//     //   });
+//     // }
+
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Orders retrieved successfully",
+//       orders,
+//     });
+//   } catch (error) {
+//     next({
+//       success: false,
+//       status: 500,
+//       // message: "No orders found for this shop",
+//       error,
+//     }); // Pass error to error handler
+//   }
+// };
+
 exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -346,18 +400,20 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
     // Find the shop associated with the user
     const shop = await Shop.findOne({ owner: userId });
 
-    if (!shop) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: "Shop not found for this user",
-      });
-    }
+    // if (!shop) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     status: 404,
+    //     message: "Shop not found for this user",
+    //   });
+    // }
 
     const shopId = shop._id;
 
-    // Find orders for the shop ID using existing logic
-    const orders = await Order.find({ "products.shop": shopId })
+    const orders = await Order.find({
+      "products.shop": shopId,
+      orderStatus: "pending",
+    })
       .populate("products.shop")
       .populate("products.category")
       .populate("products.grocery")
@@ -381,12 +437,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
       orders,
     });
   } catch (error) {
-    next({
-      success: false,
-      status: 500,
-      // message: "No orders found for this shop",
-      error,
-    }); // Pass error to error handler
+    next(error); // Pass error to error handler
   }
 });
 
@@ -639,12 +690,13 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     order: {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
-      customer: {
-        name: order.customer.firstName,
-        email: order.customer.email,
-        image: order.customer.image,
-        location: order.customer.location,
-      },
+      // customer: {
+      //   name: order.customer.firstName,
+      //   email: order.customer.email,
+      //   image: order.customer.image,
+      //   location: order.customer.location,
+      // },
+      customer: order.customer,
       shopDetails,
       productDetails,
       rider: order.driver ? order.driver : null,
@@ -810,6 +862,8 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     const customer = await User.findById(order.customer).populate(
       "deviceToken"
     );
+    order.orderStatus = "rejected";
+    await order.save();
     const FCMToken = customer.deviceToken;
     console.log(customer, "here is the deviceToken of costume bhaya");
     console.log(FCMToken, "here is the FCMToken of costume g");
