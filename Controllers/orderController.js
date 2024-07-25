@@ -110,24 +110,74 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 // };
 
 exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
-  // Find all orders for the current user and populate the shop details
-  const orders = await Order.find({ customer: req.user.id }).populate({
-    path: "products.shop",
-    select: "shopTitle location owner image",
-  });
+  // Find all orders for the current user
+  const orders = await Order.find({ customer: req.user.id });
 
   if (!orders || orders.length === 0) {
     return res.status(200).json({
       success: true,
       status: 200,
-      orders,
+      message: "No orders found for this user",
+      orders: [],
     });
+  }
+
+  const detailedOrders = [];
+  for (const order of orders) {
+    // Extract shop details from the first product
+    const shopId = order.products.length > 0 ? order.products[0].shop : null;
+
+    let shopDetails = {};
+    if (shopId) {
+      const shop = await Shop.findById(shopId);
+      shopDetails = {
+        shopId: shop._id,
+        name: shop.shopTitle,
+        image: shop.image,
+        location: shop.location,
+      };
+    }
+
+    detailedOrders.push({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      customer: {
+        name: req.user.firstName,
+        email: req.user.email,
+        image: req.user.image,
+      },
+      shopDetails,
+      productDetails: [],
+      rider: order.driver ? order.driver.name : null,
+    });
+
+    // Process product details (can be a separate function if needed)
+    for (const product of order.products) {
+      const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
+        .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
+
+      if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
+        continue; // Skip product if grocery not found
+      }
+
+      const grocery = fetchedGrocery.groceries[0];
+      detailedOrders[detailedOrders.length - 1].productDetails.push({
+        name: grocery.productName,
+        category: grocery.categoryName.join(", "),
+        volume: grocery.volume,
+        images: grocery.productImages,
+        price: grocery.price,
+        quantity: product.quantity,
+      });
+    }
   }
 
   res.status(200).json({
     success: true,
     status: 200,
-    data: orders,
+    message: "Orders retrieved successfully",
+    data: detailedOrders,
   });
 });
 
