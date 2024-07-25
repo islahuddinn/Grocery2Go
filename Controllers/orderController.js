@@ -428,6 +428,91 @@ exports.getAllOrdersByShop = async (req, res) => {
 
 /////-----order-details-----////
 
+// exports.getOrderDetails = catchAsync(async (req, res, next) => {
+//   const orderId = req.params.id;
+
+//   const order = await Order.findById(orderId)
+//     .populate("customer", "firstName email image")
+//     .populate("driver", "name");
+
+//   if (!order) {
+//     return next(new AppError("Order not found", 404));
+//   }
+
+//   const productDetails = [];
+//   const shopDetailsMap = new Map(); // Use Map to prevent duplicates
+
+//   for (const { shop, grocery, quantity } of order.products) {
+//     try {
+//       const fetchedShop = await Shop.findById(shop);
+//       if (!fetchedShop) {
+//         console.error(`Shop with ID ${shop} not found.`);
+//         continue; // Skip to the next product
+//       }
+
+//       const fetchedGrocery = fetchedShop.groceries.id(grocery);
+//       if (!fetchedGrocery) {
+//         console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
+//         continue; // Skip to the next product
+//       }
+
+//       const productDetail = {
+//         productName: fetchedGrocery.productName,
+//         category: fetchedGrocery.categoryName,
+//         volume: fetchedGrocery.volume,
+//         quantity: product.quantity,
+//         productImages: fetchedGrocery.productImages,
+//         price: fetchedGrocery.price,
+//       };
+
+//       productDetails.push(productDetail);
+
+//       if (!shopDetailsMap.has(shop.toString())) {
+//         shopDetailsMap.set(shop, {
+//           shopId: shop,
+//           shopTitle: fetchedShop.shopTitle,
+//           image: fetchedShop.image,
+//           location: fetchedShop.location,
+//         });
+//       }
+//     } catch (error) {
+//       console.error(`Error processing shop or grocery item: ${error.message}`);
+//       continue; // Continue processing other items even if there's an error
+//     }
+//   }
+
+//   const shopDetails = [...shopDetailsMap.values()]; // Convert Map to array
+
+//   const orderSummary = {
+//     itemsTotal: order.itemsTotal,
+//     serviceFee: order.serviceFee,
+//     adminFee: order.adminFee,
+//     totalPayment: order.totalPayment,
+//     paymentStatus: order.paymentStatus,
+//     deliveryFee: order.deliveryCharges,
+//     deliveryPaymentStatus: order.deliveryPaymentStatus,
+//   };
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Order details retrieved successfully",
+//     order: {
+//       orderNumber: order.orderNumber,
+//       orderStatus: order.orderStatus,
+//       customer: {
+//         name: order.customer.firstName,
+//         email: order.customer.email,
+//         image: order.customer.image,
+//       },
+//       shopDetails,
+//       productDetails,
+//       rider: order.driver ? order.driver.name : null,
+//       orderSummary,
+//     },
+//   });
+// });
+
 exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const orderId = req.params.id;
 
@@ -460,6 +545,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
         productName: fetchedGrocery.productName,
         category: fetchedGrocery.categoryName,
         volume: fetchedGrocery.volume,
+        quantity: quantity,
         productImages: fetchedGrocery.productImages,
         price: fetchedGrocery.price,
       };
