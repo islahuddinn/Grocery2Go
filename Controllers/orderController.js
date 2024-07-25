@@ -354,7 +354,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
       });
     }
 
-    const shopId = shop._id; // Get shop ID from the found shop
+    const shopId = shop._id;
 
     // Find orders for the shop ID using existing logic
     const orders = await Order.find({ "products.shop": shopId })
