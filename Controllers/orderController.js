@@ -166,7 +166,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
         productName: grocery.productName,
         category: grocery.categoryName,
         volume: grocery.volume,
-        productImages: [grocery.productImages],
+        productImages: grocery.productImages,
         price: grocery.price,
         quantity: product.quantity,
       });
@@ -460,7 +460,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
         productName: fetchedGrocery.productName,
         category: fetchedGrocery.categoryName,
         volume: fetchedGrocery.volume,
-        productImages: [fetchedGrocery.productImages],
+        productImages: fetchedGrocery.productImages,
         price: fetchedGrocery.price,
       };
 
