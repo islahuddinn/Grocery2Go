@@ -259,6 +259,92 @@ exports.getAllAcceptedByOwnerOrders = async (req, res) => {
   }
 };
 
+// exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res) => {
+//   try {
+//     const orders = await Order.find({ orderStatus: "accepted by owner" })
+//       .populate({
+//         path: "products.grocery",
+//         populate: {
+//           path: "category",
+//           select: "categoryName categoryImage _id",
+//         },
+//       })
+//       .populate({
+//         path: "customer",
+//         select: "name email image",
+//       })
+//       .populate({
+//         path: "products.shop",
+//         select: "shopTitle shopImage location",
+//       })
+//       .exec();
+
+//     if (!orders.length) {
+//       return res.status(200).json({
+//         success: true,
+//         status: 200,
+//         message: "No orders accepted by owner found.",
+//         orders: [],
+//       });
+//     }
+
+//     const ordersWithDetails = orders.map((order) => {
+//       const customer = order.customer;
+
+//       const shopDetails = {
+//         shopId: order.products[0].shop._id,
+//         name: order.products[0].shop.shopTitle,
+//         image: order.products[0].shop.shopImage,
+//         location: order.products[0].shop.location,
+//       };
+
+//       const productDetails = order.products.map((product) => {
+//         const grocery = product.grocery;
+
+//         return {
+//           productName: grocery.productName,
+//           category: grocery.category.map((cat) => ({
+//             categoryName: cat.categoryName,
+//             categoryImage: cat.categoryImage,
+//             _id: cat._id,
+//           })),
+//           volume: grocery.volume,
+//           productImages: grocery.productImages,
+//           price: grocery.price,
+//           quantity: product.quantity, // Assumes quantity is within the order's product structure
+//         };
+//       });
+
+//       return {
+//         _id: order._id,
+//         orderNumber: order.orderNumber,
+//         orderStatus: order.orderStatus,
+//         customer: {
+//           name: customer.name,
+//           email: customer.email,
+//           image: customer.image,
+//         },
+//         shopDetails,
+//         productDetails,
+//       };
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Orders retrieved successfully",
+//       data: ordersWithDetails,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       status: 500,
+//       message: "Server error",
+//       error,
+//     });
+//   }
+// });
+
 /////----get all orders of the riders----/////
 
 // exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
@@ -623,7 +709,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const orderId = req.params.id;
 
   const order = await Order.findById(orderId)
-    .populate("customer", "firstName email image location")
+    .populate("customer", "firstName lastName email image location")
     .populate("driver", "name email location image");
 
   if (!order) {
