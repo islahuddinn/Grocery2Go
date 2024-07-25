@@ -387,10 +387,13 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       _id: order._id,
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
       customer: {
         name: req.user.firstName,
         email: req.user.email,
         image: req.user.image,
+        // location:re.user.location
       },
       shopDetails,
       productDetails: [],
