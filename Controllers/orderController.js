@@ -244,18 +244,18 @@ exports.getAllAcceptedByOwnerOrders = async (req, res) => {
 
     if (!orders.length) {
       return res.status(404).json({
-        succes: true,
+        success: true,
         status: 200,
         message: "No orders accepted by owner found.",
         orders,
       });
     }
 
-    res.status(200).json({ succes: true, status: 200, orders });
+    res.status(200).json({ success: true, status: 200, orders });
   } catch (error) {
     res
       .status(500)
-      .json({ succes: false, status: 500, message: "Server error", error });
+      .json({ success: false, status: 500, message: "Server error", error });
   }
 };
 
@@ -399,7 +399,6 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
 
     // Find the shop associated with the user
     const shop = await Shop.findOne({ owner: userId });
-    console.log(shop, "here is the shop");
 
     // if (!shop) {
     //   return res.status(404).json({
@@ -410,6 +409,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
     // }
 
     const shopId = shop._id;
+    console.log(shopId, "here is the shop id");
 
     const orders = await Order.find({
       "products.shop": shopId,
@@ -623,7 +623,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const orderId = req.params.id;
 
   const order = await Order.findById(orderId)
-    .populate("customer", "firstName email image")
+    .populate("customer", "firstName email image location")
     .populate("driver", "name email location image");
 
   if (!order) {
@@ -681,6 +681,8 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     totalPayment: order.totalPayment,
     paymentStatus: order.paymentStatus,
     deliveryFee: order.deliveryCharges,
+    startLocation: order.startLocation,
+    endLocation: order.endLocation,
     deliveryPaymentStatus: order.deliveryPaymentStatus,
   };
 
