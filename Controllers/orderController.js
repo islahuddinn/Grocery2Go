@@ -163,10 +163,10 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 
       const grocery = fetchedGrocery.groceries[0];
       detailedOrders[detailedOrders.length - 1].productDetails.push({
-        name: grocery.productName,
-        category: grocery.categoryName.join(", "),
+        productName: grocery.productName,
+        category: grocery.categoryName,
         volume: grocery.volume,
-        images: grocery.productImages,
+        productImages: [grocery.productImages],
         price: grocery.price,
         quantity: product.quantity,
       });
@@ -230,6 +230,8 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 //     },
 //   });
 // });
+
+////////// this is the controller function to get rider orders
 
 exports.getAllAcceptedByOwnerOrders = async (req, res) => {
   try {
@@ -455,10 +457,10 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       }
 
       const productDetail = {
-        name: fetchedGrocery.productName,
-        category: fetchedGrocery.categoryName.join(", "),
+        productName: fetchedGrocery.productName,
+        category: fetchedGrocery.categoryName,
         volume: fetchedGrocery.volume,
-        images: fetchedGrocery.productImages,
+        productImages: [fetchedGrocery.productImages],
         price: fetchedGrocery.price,
       };
 
@@ -467,7 +469,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       if (!shopDetailsMap.has(shop.toString())) {
         shopDetailsMap.set(shop, {
           shopId: shop,
-          name: fetchedShop.shopTitle,
+          shopTitle: fetchedShop.shopTitle,
           image: fetchedShop.image,
           location: fetchedShop.location,
         });
