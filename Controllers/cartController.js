@@ -986,6 +986,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   // console.log(productWithShopIds, "Here is the details of shop");
 
   // Create the order with resolved shop details
+  console.log("SHOP ID BEFORE CREATING ORDER:", shop._id);
   const newOrder = await Order.create({
     orderNumber: `ORD-${Date.now()}`,
     customer: user._id,
