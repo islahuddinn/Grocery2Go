@@ -822,6 +822,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     order: {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      _id: order.id,
       // customer: {
       //   name: order.customer.firstName,
       //   email: order.customer.email,
