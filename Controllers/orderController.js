@@ -329,13 +329,13 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       {
         $or: [
           { orderStatus: "accepted by owner" },
-          { orderStatus: "accepted by rider" },
+          //{ orderStatus: "accepted by rider" },
         ],
       },
       { shopId: shopId },
     ],
   });
-
+  console.logs("ORDERS ARE:", orders);
   if (!orders || orders.length === 0) {
     return res.status(200).json({
       success: true,
