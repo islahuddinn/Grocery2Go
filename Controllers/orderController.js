@@ -241,7 +241,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Find all orders for the current user
   const orders = await Order.find({
     orderStatus: "accepted by owner",
-    rejectedBy: { $nin: req.user._id },
+    rejectedBy: { $nin: [req.user._id] },
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {

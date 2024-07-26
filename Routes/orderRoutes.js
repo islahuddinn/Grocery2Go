@@ -12,12 +12,12 @@ router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders);
 router.get(
   "/get-shop-accepted-orders",
   orderController.getAllNewAcceptedByOwnerOrders
-); ///// all owner accepted orders
+); ///// all owner accepted orders use this api on shop
 router.get(
   "/get-rider-accepted-orders",
   orderController.getAllAcceptedByRiderOrders
 );
-router.get("/get-rider-accepted-orders", orderController.getAllRiderOrders);
+router.get("/get-rider-accepted-orders", orderController.getAllRiderOrders); // rider accepted orders my orders
 router.get("/order-details/:id", orderController.getOrderDetails);
 // router.get("/shop-stats", orderController.getOrderDetails);
 router.post(
