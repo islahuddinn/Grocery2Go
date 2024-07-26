@@ -24,6 +24,12 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
+    rejectedBy: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+      },
+    ],
     listItems: [
       {
         productName: {

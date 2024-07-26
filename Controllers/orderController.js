@@ -236,8 +236,8 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Find all orders for the current user
   const orders = await Order.find({
-    // customer: req.user.id,
     orderStatus: "accepted by owner",
+    rejectedBy: { $nin: req.user._id },
   });
 
   if (!orders || orders.length === 0) {
@@ -923,6 +923,8 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
 
   // Handle the action
   if (action === "reject") {
+    order.rejectedBy.push(req.user._id);
+    await order.save();
     const allRiders = await User.find({ userType: "Rider" });
     console.log(allRiders, "All riders");
     // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
@@ -998,7 +1000,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     order.orderStatus = "rejected";
     await order.save();
     const FCMToken = customer.deviceToken;
-    console.log(customer, "here is the deviceToken of costume bhaya");
+    console.log(customer, "here is the deviceToken of costumer  bhaya");
     console.log(FCMToken, "here is the FCMToken of costume g");
     // await SendNotification({
     //   token: FCMToken,
