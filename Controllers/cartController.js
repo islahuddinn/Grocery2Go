@@ -994,13 +994,13 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     startLocation,
     endLocation: deliveryLocation,
     itemsTotal,
-    shopId: shop._id,
     serviceFee,
     adminFee,
     deliveryCharges: 0, // Assuming zero delivery charges for this example
     totalPayment,
     paymentStatus: "paid",
     orderStatus: "pending",
+    shop: shop._id,
   });
 
   console.log("NEWORDER IS:", newOrder);
