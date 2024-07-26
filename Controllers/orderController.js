@@ -238,7 +238,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
     orderStatus: "accepted by owner",
     rejectedBy: { $nin: req.user._id },
-  });
+  }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
     return res.status(200).json({
@@ -271,12 +271,13 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       orderStatus: order.orderStatus,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
-      customer: {
-        name: req.user.firstName,
-        email: req.user.email,
-        image: req.user.image,
-        // location:re.user.location
-      },
+      // customer: {
+      //   name: req.user.firstName,
+      //   email: req.user.email,
+      //   image: req.user.image,
+      //   // location:re.user.location
+      // },
+      customer: order.customer,
       shopDetails,
       productDetails: [],
       rider: order.driver ? order.driver : null,
@@ -317,7 +318,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
     // customer: req.user.id,
     orderStatus: "accepted by rider",
-  });
+  }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
     return res.status(200).json({
@@ -332,7 +333,6 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
   for (const order of orders) {
     // Extract shop details from the first product
     const shopId = order.products.length > 0 ? order.products[0].shop : null;
-
     let shopDetails = {};
     if (shopId) {
       const shop = await Shop.findById(shopId);
@@ -350,12 +350,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
       orderStatus: order.orderStatus,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
-      customer: {
-        name: req.user.firstName,
-        email: req.user.email,
-        image: req.user.image,
-        // location:re.user.location
-      },
+      customer: order.customer,
       shopDetails,
       productDetails: [],
       rider: order.driver ? order.driver : null,
