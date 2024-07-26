@@ -10,6 +10,10 @@ router.get("/get-shop-orders", orderController.getAllOrdersByShop);
 router.get("/get-user-orders", orderController.getAllOrdersByUser);
 router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders);
 router.get(
+  "/get-rider-new-orders",
+  orderController.getAllNewAcceptedByOwnerOrders
+);
+router.get(
   "/get-rider-side-orders",
   orderController.getAllAcceptedByRiderOrders
 );
