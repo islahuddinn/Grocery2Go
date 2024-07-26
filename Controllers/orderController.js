@@ -319,9 +319,21 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 ///////------ get all accepted by owner orders to show on rider new order screen-----/////
 exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Find all orders for the current user
-  const orders = await Order.find({
-    orderStatus: "accepted by owner",
-  }).populate("customer", "firstName lastName email image location");
+  // const orders = await Order.find({
+  //   orderStatus: "accepted by owner",
+
+  // }).populate("customer", "firstName lastName email image location");
+  const order = await Order.find({
+    $and: [
+      {
+        $or: [
+          { orderStatus: "accepted by owner" },
+          { orderStatus: "accepted by rider" },
+        ],
+      },
+      { shop: shopId },
+    ],
+  });
 
   if (!orders || orders.length === 0) {
     return res.status(200).json({

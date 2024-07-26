@@ -73,6 +73,9 @@ const orderSchema = new mongoose.Schema(
       coordinates: { type: [Number], default: [0, 0] },
       address: String,
     },
+    shopId: {
+      type: { type: mongoose.Schema.Types.ObjectId, ref: "Shop" },
+    },
     endLocation: {
       type: { type: String, default: "Point" },
       coordinates: { type: [Number], default: [0, 0] },
