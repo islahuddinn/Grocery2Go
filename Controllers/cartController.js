@@ -1003,6 +1003,8 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     orderStatus: "pending",
   });
 
+  console.log("NEWORDER IS:", newOrder);
+
   res.status(201).json({
     success: true,
     status: 201,
