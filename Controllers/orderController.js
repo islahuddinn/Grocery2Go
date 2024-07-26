@@ -433,6 +433,80 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 //   });
 // });
 
+//////////------Get one rider orders ------/////
+
+exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
+  // Find all orders for the current user
+  const orders = await Order.find({
+    driver: req.user.id,
+    orderStatus: "accepted by rider",
+  }).populate("customer", "firstName lastName email image location");
+
+  if (!orders || orders.length === 0) {
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "No orders found for this user",
+      data: orders,
+    });
+  }
+
+  const detailedOrders = [];
+  for (const order of orders) {
+    // Extract shop details from the first product
+    const shopId = order.products.length > 0 ? order.products[0].shop : null;
+    let shopDetails = {};
+    if (shopId) {
+      const shop = await Shop.findById(shopId);
+      shopDetails = {
+        shopId: shop._id,
+        name: shop.shopTitle,
+        image: shop.image,
+        location: shop.location,
+      };
+    }
+
+    detailedOrders.push({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      customer: order.customer,
+      shopDetails,
+      productDetails: [],
+      rider: order.driver ? order.driver : null,
+    });
+
+    // Process product details (can be a separate function if needed)
+    for (const product of order.products) {
+      const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
+        .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
+
+      if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
+        continue; // Skip product if grocery not found
+      }
+
+      const grocery = fetchedGrocery.groceries[0];
+      detailedOrders[detailedOrders.length - 1].productDetails.push({
+        productName: grocery.productName,
+        category: grocery.categoryName,
+        volume: grocery.volume,
+        productImages: grocery.productImages,
+        price: grocery.price,
+        quantity: product.quantity,
+      });
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Orders retrieved successfully",
+    data: detailedOrders,
+  });
+});
+
 // exports.getAllOrdersByShop = async (req, res) => {
 //   try {
 //     const userId = req.user.id;

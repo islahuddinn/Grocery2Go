@@ -13,6 +13,7 @@ router.get(
   "/get-rider-side-orders",
   orderController.getAllAcceptedByRiderOrders
 );
+router.get("/get-rider-accepted-orders", orderController.getAllRiderOrders);
 router.get("/order-details/:id", orderController.getOrderDetails);
 // router.get("/shop-stats", orderController.getOrderDetails);
 router.post(
