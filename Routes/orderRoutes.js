@@ -5,16 +5,16 @@ const router = express.Router();
 
 router.use(authController.protect);
 // router.post("/create", orderController.createOrder);
+router.get("/get-user-orders", orderController.getAllOrdersByUser);
 router.get("/get-shop-orders", orderController.getAllOrdersByShop);
 // router.get("/get-all-orders", orderController.get);
-router.get("/get-user-orders", orderController.getAllOrdersByUser);
 router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders);
 router.get(
-  "/get-rider-new-orders",
+  "/get-shop-accepted-orders",
   orderController.getAllNewAcceptedByOwnerOrders
-);
+); ///// all owner accepted orders
 router.get(
-  "/get-rider-side-orders",
+  "/get-rider-accepted-orders",
   orderController.getAllAcceptedByRiderOrders
 );
 router.get("/get-rider-accepted-orders", orderController.getAllRiderOrders);
