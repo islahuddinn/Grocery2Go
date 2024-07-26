@@ -18,7 +18,7 @@ exports.addProductsToList = catchAsync(async (req, res, next) => {
     user: req.user.id,
     listTitle,
     items: items,
-    shop: shopId,
+    listStatus: "pending",
   });
 
   res.status(200).json({

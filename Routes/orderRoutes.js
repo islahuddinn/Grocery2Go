@@ -9,7 +9,10 @@ router.get("/get-shop-orders", orderController.getAllOrdersByShop);
 // router.get("/get-all-orders", orderController.get);
 router.get("/get-user-orders", orderController.getAllOrdersByUser);
 router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders);
-// router.get("/get-rider-orders/:id", orderController.getAllRiderOrders);
+router.get(
+  "/get-rider-side-orders",
+  orderController.getAllAcceptedByRiderOrders
+);
 router.get("/order-details/:id", orderController.getOrderDetails);
 // router.get("/shop-stats", orderController.getOrderDetails);
 router.post(
@@ -22,6 +25,7 @@ router.post(
   //   authController.restrictTo("Rider"),
   orderController.acceptOrRejectOrderByRider
 );
+router.post("/ready-for-pickup/:id", orderController.readyForPickup);
 
 // router.get("/get-all-favorite-products", shopController.getAllFavoriteProducts);
 // router.post("/mark-favorite-unfavorite", shopController.toggleProductFavorite);

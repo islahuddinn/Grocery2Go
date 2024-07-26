@@ -233,124 +233,6 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 
 ////////// this is the controller function to get rider orders
 
-// exports.getAllAcceptedByOwnerOrders = async (req, res) => {
-//   try {
-//     const orders = await Order.find({ orderStatus: "accepted by owner" })
-//       .populate("products.shop")
-//       .populate("products.category")
-//       .populate("products.grocery")
-//       .populate("vendor")
-//       .populate("driver");
-
-//     if (!orders.length) {
-//       return res.status(404).json({
-//         success: true,
-//         status: 200,
-//         message: "No orders accepted by owner found.",
-//         orders,
-//       });
-//     }
-
-//     res.status(200).json({ success: true, status: 200, orders });
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ success: false, status: 500, message: "Server error", error });
-//   }
-// };
-
-// exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res) => {
-//   try {
-//     const orders = await Order.find({ orderStatus: "accepted by owner" })
-//       .populate({
-//         path: "products.grocery",
-//         populate: {
-//           path: "category",
-//           select: "categoryName categoryImage _id",
-//         },
-//       })
-//       .populate({
-//         path: "customer",
-//         select: "name email image",
-//       })
-//       .populate({
-//         path: "products.shop",
-//         select: "shopTitle shopImage location",
-//       })
-//       .exec();
-
-//     if (!orders.length) {
-//       return res.status(200).json({
-//         success: true,
-//         status: 200,
-//         message: "No orders accepted by owner found.",
-//         data: [], // Changed from orders to data
-//       });
-//     }
-
-//     const ordersWithDetails = orders.map((order) => {
-//       if (!order.products || !order.products.length) {
-//         return null;
-//       }
-
-//       const customer = order.customer || {};
-//       const shop = order.products[0].shop || {};
-
-//       const shopDetails = {
-//         shopId: shop._id || null,
-//         name: shop.shopTitle || "",
-//         image: shop.shopImage || "",
-//         location: shop.location || {},
-//       };
-
-//       const productDetails = order.products.map((product) => {
-//         const grocery = product.grocery || {};
-//         const categories = grocery.category || [];
-
-//         return {
-//           productName: grocery.productName,
-//           category: categories.map((cat) => ({
-//             categoryName: cat.categoryName,
-//             categoryImage: cat.categoryImage,
-//             _id: cat._id,
-//           })),
-//           volume: grocery.volume,
-//           productImages: grocery.productImages,
-//           price: grocery.price,
-//           quantity: product.quantity,
-//         };
-//       });
-
-//       return {
-//         _id: order._id,
-//         orderNumber: order.orderNumber,
-//         orderStatus: order.orderStatus,
-//         customer: {
-//           name: customer.name,
-//           email: customer.email,
-//           image: customer.image,
-//         },
-//         shopDetails,
-//         productDetails,
-//       };
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "Orders retrieved successfully",
-//       data: ordersWithDetails,
-//     });
-//   } catch (error) {
-//     console.error("Error retrieving orders:", error); // Log the error for debugging
-//     res.status(500).json({
-//       success: false,
-//       status: 500,
-//       message: "Server error",
-//       error: error.message || error,
-//     });
-//   }
-// });
 exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Find all orders for the current user
   const orders = await Order.find({
@@ -397,7 +279,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       },
       shopDetails,
       productDetails: [],
-      rider: order.driver ? order.driver.name : null,
+      rider: order.driver ? order.driver : null,
     });
 
     // Process product details (can be a separate function if needed)
@@ -429,7 +311,84 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   });
 });
 
-/////----get all orders of the riders----/////
+/////----get all orders of the riders side----/////
+exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
+  // Find all orders for the current user
+  const orders = await Order.find({
+    // customer: req.user.id,
+    orderStatus: "accepted by rider",
+  });
+
+  if (!orders || orders.length === 0) {
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "No orders found for this user",
+      orders: [],
+    });
+  }
+
+  const detailedOrders = [];
+  for (const order of orders) {
+    // Extract shop details from the first product
+    const shopId = order.products.length > 0 ? order.products[0].shop : null;
+
+    let shopDetails = {};
+    if (shopId) {
+      const shop = await Shop.findById(shopId);
+      shopDetails = {
+        shopId: shop._id,
+        name: shop.shopTitle,
+        image: shop.image,
+        location: shop.location,
+      };
+    }
+
+    detailedOrders.push({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      customer: {
+        name: req.user.firstName,
+        email: req.user.email,
+        image: req.user.image,
+        // location:re.user.location
+      },
+      shopDetails,
+      productDetails: [],
+      rider: order.driver ? order.driver : null,
+    });
+
+    // Process product details (can be a separate function if needed)
+    for (const product of order.products) {
+      const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
+        .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
+
+      if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
+        continue; // Skip product if grocery not found
+      }
+
+      const grocery = fetchedGrocery.groceries[0];
+      detailedOrders[detailedOrders.length - 1].productDetails.push({
+        productName: grocery.productName,
+        category: grocery.categoryName,
+        volume: grocery.volume,
+        productImages: grocery.productImages,
+        price: grocery.price,
+        quantity: product.quantity,
+      });
+    }
+  }
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Orders retrieved successfully",
+    data: detailedOrders,
+  });
+});
 
 // exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
 //   const riderId = req.params.id;
@@ -1055,3 +1014,98 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     return next(new AppError("Invalid action, use 'accept' or 'reject'", 400));
   }
 });
+
+//// ---- ready for pickup function ----////
+// exports.readyForPickup = catchAsync(async (req, res) => {});
+
+exports.readyForPickup = async (req, res) => {
+  // const orders = await Order.find({
+  //   customer: req.user.id,
+  //   // orderStatus: "accepted by rider",
+  // });
+
+  // if (!orders || orders.length === 0) {
+  //   return res.status(200).json({
+  //     success: true,
+  //     status: 200,
+  //     message: "No orders found for this user",
+  //     orders: [],
+  //   });
+  // }
+  // // Check if the order is accepted by a rider
+  // if (orders.orderStatus !== "accepted by rider") {
+  //   return res.status(200).json({
+  //     success: false,
+  //     status: 200,
+  //     message: "The order is not accepted by a rider yet",
+  //   });
+  // }
+  try {
+    const orderId = req.params.id;
+
+    // Find the order by ID
+    const order = await Order.findById(orderId).populate({
+      path: "driver",
+      // select: "name email",
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: "Order not found",
+      });
+    }
+
+    // Check if the order is accepted by a rider
+    if (order.orderStatus !== "accepted by rider") {
+      return res.status(200).json({
+        success: false,
+        status: 200,
+        message: "The order is not accepted by a rider yet",
+      });
+    }
+
+    // Get rider details
+    const rider = order.driver;
+    if (!rider) {
+      return res.status(500).json({
+        success: false,
+        status: 500,
+        message: "Rider details are missing for the accepted order",
+      });
+    }
+
+    // Notify the rider
+    const notificationMessage = `Order #${order.orderNumber} is ready for pickup.`;
+    const riderDetails = await User.findById(rider.id);
+    console.log(riderDetails, "here is the rider details ......");
+
+    const FCMToken = riderDetails.deviceToken;
+    console.log(FCMToken, "here is the rider fcm token");
+    // notifyRider(rider._id, notificationMessage);
+    // await SendNotification({
+    //   token: FCMToken,
+    //   title: "Your order is raedy for pickup ",
+    //   body: notificationMessage,
+    // });
+
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Rider notified successfully",
+      data: {
+        riderDetails: rider,
+        orderDetails: order,
+      },
+    });
+  } catch (error) {
+    console.error("Error notifying rider:", error);
+    res.status(500).json({
+      success: false,
+      status: 500,
+      message: "Server error",
+      error: error.message || error,
+    });
+  }
+};
