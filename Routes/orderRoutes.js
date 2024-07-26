@@ -14,7 +14,7 @@ router.get(
   orderController.getAllNewAcceptedByOwnerOrders
 ); ///// all owner accepted orders use this api on shop
 router.get(
-  "/get-rider-accepted-orders",
+  "/get-all-rider-accepted-orders",
   orderController.getAllAcceptedByRiderOrders
 );
 router.get("/get-rider-accepted-orders", orderController.getAllRiderOrders); // rider accepted orders my orders
