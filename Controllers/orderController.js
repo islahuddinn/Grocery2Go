@@ -118,7 +118,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "No orders found for this user",
-      orders: [],
+      data: orders,
     });
   }
 
@@ -245,7 +245,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "No orders found for this user",
-      orders: [],
+      data: orders,
     });
   }
 
@@ -324,7 +324,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "No orders found for this user",
-      orders: [],
+      data: orders,
     });
   }
 
@@ -556,7 +556,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
         success: true,
         status: 200,
         message: "No orders found for this shop",
-        orders: [],
+        data: orders,
       });
     }
 
@@ -564,10 +564,14 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "Orders retrieved successfully",
-      orders,
+      data: orders,
     });
   } catch (error) {
-    next(error); // Pass error to error handler
+    next({
+      success: false,
+      status: 500,
+      error: error,
+    });
   }
 });
 
@@ -823,12 +827,6 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       _id: order.id,
-      // customer: {
-      //   name: order.customer.firstName,
-      //   email: order.customer.email,
-      //   image: order.customer.image,
-      //   location: order.customer.location,
-      // },
       customer: order.customer,
       shopDetails,
       productDetails,
@@ -937,7 +935,7 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "Order rejected by any rider and notifies again to all riders",
-      order,
+      data: order,
     });
   } else if (action === "accept") {
     order.orderStatus = "accepted by rider";
@@ -991,7 +989,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "Order accepted and notifies to all riders",
-      order,
+      data: order,
     });
   } else if (action === "reject") {
     const customer = await User.findById(order.customer).populate(
@@ -1011,7 +1009,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     return res.status(200).json({
       success: true,
       status: 200,
-      message: "Order rejected",
+      message: "Order rejected by shop owner",
     });
   } else {
     return next(new AppError("Invalid action, use 'accept' or 'reject'", 400));
