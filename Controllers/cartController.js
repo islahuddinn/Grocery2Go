@@ -915,11 +915,13 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const shopIds = new Set();
 
   // Collect all shop details in parallel
+  let shop;
   const shopPromises = cart.products.map(async (item) => {
     const groceryId = new mongoose.Types.ObjectId(item.grocery);
     console.log(`Searching for shop with grocery ID: ${groceryId}`);
 
-    const shop = await Shop.findOne({ "groceries._id": groceryId });
+    // const shop = await Shop.findOne({ "groceries._id": groceryId });
+    shop = await Shop.findOne({ "groceries._id": groceryId });
     if (!shop) {
       throw new Error(`Shop not found for grocery ID: ${groceryId}`);
     }

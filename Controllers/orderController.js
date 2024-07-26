@@ -323,7 +323,8 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   //   orderStatus: "accepted by owner",
 
   // }).populate("customer", "firstName lastName email image location");
-  const order = await Order.find({
+  const { shopId } = req.params;
+  const orders = await Order.find({
     $and: [
       {
         $or: [
@@ -331,7 +332,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
           { orderStatus: "accepted by rider" },
         ],
       },
-      { shop: shopId },
+      { shopId: shopId },
     ],
   });
 
