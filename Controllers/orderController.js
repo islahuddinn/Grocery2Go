@@ -324,6 +324,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
   // }).populate("customer", "firstName lastName email image location");
   const { shopId } = req.params;
+  console.log("SHOP ID IS:", shopId);
   const orders = await Order.find({
     $and: [
       {
@@ -335,7 +336,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       { shopId: shopId },
     ],
   });
-  console.logs("ORDERS ARE:", orders);
+  console.log("ORDERS ARE:", orders);
   if (!orders || orders.length === 0) {
     return res.status(200).json({
       success: true,
