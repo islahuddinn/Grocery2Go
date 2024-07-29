@@ -915,13 +915,11 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const shopIds = new Set();
 
   // Collect all shop details in parallel
-  let shop;
   const shopPromises = cart.products.map(async (item) => {
     const groceryId = new mongoose.Types.ObjectId(item.grocery);
     console.log(`Searching for shop with grocery ID: ${groceryId}`);
 
-    // const shop = await Shop.findOne({ "groceries._id": groceryId });
-    shop = await Shop.findOne({ "groceries._id": groceryId });
+    const shop = await Shop.findOne({ "groceries._id": groceryId });
     if (!shop) {
       throw new Error(`Shop not found for grocery ID: ${groceryId}`);
     }
@@ -986,7 +984,6 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   // console.log(productWithShopIds, "Here is the details of shop");
 
   // Create the order with resolved shop details
-  console.log("SHOP ID BEFORE CREATING ORDER:", shop._id);
   const newOrder = await Order.create({
     orderNumber: `ORD-${Date.now()}`,
     customer: user._id,
@@ -1000,10 +997,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     totalPayment,
     paymentStatus: "paid",
     orderStatus: "pending",
-    shop: shop._id,
   });
-
-  console.log("NEWORDER IS:", newOrder);
 
   res.status(201).json({
     success: true,

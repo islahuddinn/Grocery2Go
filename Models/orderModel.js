@@ -142,9 +142,10 @@ const orderSchema = new mongoose.Schema(
     shopEarnings: {
       type: Number,
     },
-    shopId: {
-      type: { type: mongoose.Schema.Types.ObjectId, ref: "Shop" },
-    },
+    // shop: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Shop",
+    // },
   },
   { timestamps: true }
 );

@@ -317,26 +317,95 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 });
 
 ///////------ get all accepted by owner orders to show on rider new order screen-----/////
-exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
-  // Find all orders for the current user
-  // const orders = await Order.find({
-  //   orderStatus: "accepted by owner",
+// exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
+//   // Find all orders for the current user
+//   const orders = await Order.find({
+//     orderStatus: "accepted by owner",
+//   }).populate("customer", "firstName lastName email image location");
 
-  // }).populate("customer", "firstName lastName email image location");
-  const { shopId } = req.params;
-  console.log("SHOP ID IS:", shopId);
+//   if (!orders || orders.length === 0) {
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "No orders found for this user",
+//       data: orders,
+//     });
+//   }
+
+//   const detailedOrders = [];
+//   for (const order of orders) {
+//     // Extract shop details from the first product
+//     const shopId = order.products.length > 0 ? order.products[0].shop : null;
+
+//     let shopDetails = {};
+//     if (shopId) {
+//       const shop = await Shop.findById(shopId);
+//       shopDetails = {
+//         shopId: shop._id,
+//         name: shop.shopTitle,
+//         image: shop.image,
+//         location: shop.location,
+//       };
+//     }
+
+//     detailedOrders.push({
+//       _id: order._id,
+//       orderNumber: order.orderNumber,
+//       orderStatus: order.orderStatus,
+//       startLocation: order.startLocation,
+//       endLocation: order.endLocation,
+//       // customer: {
+//       //   name: req.user.firstName,
+//       //   email: req.user.email,
+//       //   image: req.user.image,
+//       //   // location:re.user.location
+//       // },
+//       customer: order.customer,
+//       shopDetails,
+//       productDetails: [],
+//       rider: order.driver ? order.driver : null,
+//     });
+
+//     // Process product details (can be a separate function if needed)
+//     for (const product of order.products) {
+//       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
+//         .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
+
+//       if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
+//         continue; // Skip product if grocery not found
+//       }
+
+//       const grocery = fetchedGrocery.groceries[0];
+//       detailedOrders[detailedOrders.length - 1].productDetails.push({
+//         productName: grocery.productName,
+//         category: grocery.categoryName,
+//         volume: grocery.volume,
+//         productImages: grocery.productImages,
+//         price: grocery.price,
+//         quantity: product.quantity,
+//       });
+//     }
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Orders retrieved successfully",
+//     data: detailedOrders,
+//   });
+// });
+
+exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
+  // Find the shop of the current user
+  const userShop = await Shop.find({ owner: req.user.id });
+  // const shopIds = userShops.map((shop) => shop._id);
+  console.log(userShop, "here is the user shop");
+  // Find all orders for the current user's shop
   const orders = await Order.find({
-    $and: [
-      {
-        $or: [
-          { orderStatus: "accepted by owner" },
-          //{ orderStatus: "accepted by rider" },
-        ],
-      },
-      { shopId: shopId },
-    ],
-  });
-  console.log("ORDERS ARE:", orders);
+    orderStatus: "accepted by owner",
+    "products.shop": { $in: userShop._id },
+  }).populate("customer", "firstName lastName email image location");
+
   if (!orders || orders.length === 0) {
     return res.status(200).json({
       success: true,
@@ -368,12 +437,6 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       orderStatus: order.orderStatus,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
-      // customer: {
-      //   name: req.user.firstName,
-      //   email: req.user.email,
-      //   image: req.user.image,
-      //   // location:re.user.location
-      // },
       customer: order.customer,
       shopDetails,
       productDetails: [],
