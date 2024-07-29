@@ -397,13 +397,21 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
 exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Find the shop of the current user
-  const userShops = await Shop.find({ owner: req.user.id });
-  const shopIds = userShops.map((shop) => shop._id);
-  console.log(shopIds, "here is the user shop");
+  const shop = await Shop.findOne({ owner: req.user.id });
+  const shopId = shop._id;
+  // const shopIds = userShops.map((shop) => shop._id);
+  console.log(shopId, "here is the user shop id");
+  if (!shop) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "No shop found for this user",
+    });
+  }
   // Find all orders for the current user's shop
   const orders = await Order.find({
-    orderStatus: "accepted by owner",
-    "products.shop": { $in: shopIds },
+    // orderStatus: "accepted by owner",
+    "products.shop": { $in: shopId },
   }).populate("customer", "firstName lastName email image location");
   console.log(orders, "here are the shop orders");
 
@@ -411,7 +419,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     return res.status(200).json({
       success: true,
       status: 200,
-      message: "No orders found for this user",
+      message: "No orders found for this shop",
       data: orders,
     });
   }
