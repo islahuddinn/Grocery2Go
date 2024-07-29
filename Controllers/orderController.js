@@ -677,7 +677,6 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
         productImages: grocery.productImages,
         price: grocery.price,
         quantity: product.quantity,
-        // orderSummary,
       });
     }
   }

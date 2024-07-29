@@ -93,11 +93,11 @@ exports.getUser = catchAsync(async (req, res, next) => {
 exports.addBankAccount = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user._id);
   if (!user) {
-    return next(new CustomError("No User found!", 404));
+    return next(new AppError("No User found!", 404));
   }
   const accountUrl = await createBankAccount(user);
   if (!accountUrl) {
-    return next(new CustomError("Could not generated Account URL", 400));
+    return next(new AppError("Could not generated Account URL", 400));
   }
   return res.status(200).json({
     status: "success",
@@ -113,11 +113,11 @@ exports.addBankAccount = catchAsync(async (req, res, next) => {
 exports.verifyStripeOnboarding = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user._id);
   if (!user) {
-    return next(new CustomError("Could not find user", 404));
+    return next(new AppError("Could not find user", 404));
   }
   if (!user.bankAccountInfo.bankAccountId) {
     return next(
-      new CustomError(
+      new AppError(
         "You do not have any bank account added. First add a bank account",
         400
       )
@@ -127,7 +127,7 @@ exports.verifyStripeOnboarding = catchAsync(async (req, res, next) => {
   if (!link && !user.bankAccountInfo.isOnboardingCompleted) {
     const accountUrl = await createBankAccount(user);
     if (!accountUrl) {
-      return next(new CustomError("Could not generate account URL", 400));
+      return next(new AppError("Could not generate account URL", 400));
     }
     return res.status(200).json({
       status: "success",
@@ -153,11 +153,11 @@ exports.verifyStripeOnboarding = catchAsync(async (req, res, next) => {
 exports.getLoginLink = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user._id);
   if (!user) {
-    return next(new CustomError("Could not find user", 404));
+    return next(new AppError("Could not find user", 404));
   }
   const loginLink = await generateLoginLink(user);
   if (!loginLink) {
-    return next(new CustomError("Could not generate login link", 400));
+    return next(new AppError("Could not generate login link", 400));
   }
   res.status(200).json({
     status: "success",
@@ -173,7 +173,7 @@ exports.getAccountBalance = catchAsync(async (req, res, next) => {
   const balance = await retrieveBalance(req.user.bankAccountInfo.bankAccountId);
   console.log(balance);
   if (!balance) {
-    return next(new CustomError("Error retrieving account balance", 400));
+    return next(new AppError("Error retrieving account balance", 400));
   }
   res.status(200).json({
     status: "success",
@@ -186,7 +186,7 @@ exports.getTransactions = catchAsync(async (req, res, next) => {
   const transactions = await retrieveTransactions(req.user.customerId);
   console.log(transactions);
   if (!transactions) {
-    return next(new CustomError("Could not fetch transactions"));
+    return next(new AppError("Could not fetch transactions"));
   }
   res.status(200).json({
     status: "success",
