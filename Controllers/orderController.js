@@ -635,18 +635,6 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
         location: shop.location,
       };
     }
-
-    detailedOrders.push({
-      _id: order._id,
-      orderNumber: order.orderNumber,
-      orderStatus: order.orderStatus,
-      startLocation: order.startLocation,
-      endLocation: order.endLocation,
-      customer: order.customer,
-      shopDetails,
-      productDetails: [],
-      rider: order.driver ? order.driver : null,
-    });
     const orderSummary = {
       itemsTotal: order.itemsTotal,
       serviceFee: order.serviceFee,
@@ -658,6 +646,20 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
       endLocation: order.endLocation,
       deliveryPaymentStatus: order.deliveryPaymentStatus,
     };
+
+    detailedOrders.push({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      customer: order.customer,
+      shopDetails,
+      productDetails: [],
+      orderSummary,
+      rider: order.driver ? order.driver : null,
+    });
+
     // Process product details (can be a separate function if needed)
     for (const product of order.products) {
       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
@@ -675,7 +677,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
         productImages: grocery.productImages,
         price: grocery.price,
         quantity: product.quantity,
-        orderSummary,
+        // orderSummary,
       });
     }
   }
