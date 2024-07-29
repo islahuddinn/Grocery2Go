@@ -24,13 +24,13 @@ const userSchema = new mongoose.Schema(
     closingTime: {
       type: String,
     },
-    bankName: {
-      type: String,
-    },
-    accountNumber: {
-      type: String,
-      // unique: true,
-    },
+    // bankName: {
+    //   type: String,
+    // },
+    // accountNumber: {
+    //   type: String,
+    //   // unique: true,
+    // },
     vehiclePermit: {
       type: String,
     },

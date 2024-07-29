@@ -993,7 +993,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     itemsTotal,
     serviceFee,
     adminFee,
-    deliveryCharges: 0, // Assuming zero delivery charges for this example
+    deliveryCharges: 0,
     totalPayment,
     paymentStatus: "paid",
     orderStatus: "pending",
