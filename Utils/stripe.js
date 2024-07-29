@@ -51,7 +51,7 @@ const createBankAccount = async (user) => {
     if (!user.bankAccountInfo.bankAccountId) {
       console.log("BANK ACCOUNT ID NOT FOUND. CREATING BANK ACCOUNT");
       const account = await stripe.accounts.create({
-        country: countryCode[user.addressInfo.country],
+        country: countryCode[user.country],
         type: "express",
         capabilities: {
           card_payments: { requested: true },

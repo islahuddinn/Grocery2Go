@@ -50,9 +50,11 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: "Point",
       },
+      country: String,
       coordinates: { type: [Number], default: [0, 0] },
       address: String,
     },
+
     image: {
       type: String,
       default:
@@ -111,6 +113,7 @@ const userSchema = new mongoose.Schema(
         default: false,
       },
     },
+    country: String,
     shopEarnings: {
       type: Number,
     },
