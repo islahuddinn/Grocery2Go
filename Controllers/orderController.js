@@ -411,7 +411,8 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Find all orders for the current user's shop
   const orders = await Order.find({
     // orderStatus: "accepted by owner",
-    "products.shop": { $in: shopId },
+    "products.shop": shopId,
+    orderStatus: { $ne: "pending" },
   }).populate("customer", "firstName lastName email image location");
   console.log(orders, "here are the shop orders");
 
@@ -646,7 +647,17 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
       productDetails: [],
       rider: order.driver ? order.driver : null,
     });
-
+    const orderSummary = {
+      itemsTotal: order.itemsTotal,
+      serviceFee: order.serviceFee,
+      adminFee: order.adminFee,
+      totalPayment: order.totalPayment,
+      paymentStatus: order.paymentStatus,
+      deliveryFee: order.deliveryCharges,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      deliveryPaymentStatus: order.deliveryPaymentStatus,
+    };
     // Process product details (can be a separate function if needed)
     for (const product of order.products) {
       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
@@ -664,6 +675,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
         productImages: grocery.productImages,
         price: grocery.price,
         quantity: product.quantity,
+        orderSummary,
       });
     }
   }
