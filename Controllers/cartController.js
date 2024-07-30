@@ -976,6 +976,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
       const shop = await Shop.findOne({ "groceries._id": item.grocery });
       return {
         shop: shop._id,
+        shopOrderStatus: shop.isOrderAccepted,
         grocery: item.grocery,
         quantity: item.quantity,
       };
@@ -988,12 +989,14 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     orderNumber: `ORD-${Date.now()}`,
     customer: user._id,
     products: productWithShopIds,
+    // shopOrderStatus: shop.isOrderAccepted,
     startLocation,
     endLocation: deliveryLocation,
     itemsTotal,
     serviceFee,
     adminFee,
     deliveryCharges: 0,
+    deliveryTime,
     totalPayment,
     paymentStatus: "paid",
     orderStatus: "pending",

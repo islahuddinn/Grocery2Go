@@ -72,8 +72,8 @@ const createBankAccount = async (user) => {
     }
     const accountLink = await stripe.accountLinks.create({
       account: `${user.bankAccountInfo.bankAccountId}`,
-      refresh_url: `http://ec2-3-21-92-154.us-east-2.compute.amazonaws.com/api/v1/users/stripe/add-bank`,
-      return_url: `http://ec2-3-21-92-154.us-east-2.compute.amazonaws.com/api/v1/users/stripe/verify-onboarding`,
+      refresh_url: `http://ec2-3-21-92-154.us-east-2.compute.amazonaws.com/api/v1/user/stripe/add-bank`,
+      return_url: `http://ec2-3-21-92-154.us-east-2.compute.amazonaws.com/api/v1/user/stripe/verify-onboarding`,
       type: "account_onboarding",
     });
     if (!accountLink) {
