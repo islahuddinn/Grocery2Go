@@ -100,8 +100,8 @@ exports.addBankAccount = catchAsync(async (req, res, next) => {
     return next(new AppError("Could not generated Account URL", 400));
   }
   return res.status(200).json({
-    status: "success",
-    statusCode: 200,
+    success: true,
+    status: 200,
     message: "Account created and account link generated",
     data: {
       user,
@@ -130,8 +130,8 @@ exports.verifyStripeOnboarding = catchAsync(async (req, res, next) => {
       return next(new AppError("Could not generate account URL", 400));
     }
     return res.status(200).json({
-      status: "success",
-      statusCode: 200,
+      success: true,
+      status: 200,
       message:
         "Could not verify your details. Please refer to the link and submit your information again!",
       data: {
@@ -141,8 +141,8 @@ exports.verifyStripeOnboarding = catchAsync(async (req, res, next) => {
     });
   }
   res.status(200).json({
-    status: "success",
-    statusCode: 200,
+    success: true,
+    status: 200,
     message: "ACCOUNT VERIFIED. Your dashboard login link is generated",
     data: {
       user,
@@ -160,8 +160,8 @@ exports.getLoginLink = catchAsync(async (req, res, next) => {
     return next(new AppError("Could not generate login link", 400));
   }
   res.status(200).json({
-    status: "success",
-    statusCode: 200,
+    success: true,
+    status: 200,
     message: "Your dashboard link generated successfully",
     data: {
       user,
@@ -176,8 +176,8 @@ exports.getAccountBalance = catchAsync(async (req, res, next) => {
     return next(new AppError("Error retrieving account balance", 400));
   }
   res.status(200).json({
-    status: "success",
-    statusCode: 200,
+    success: true,
+    status: 200,
     message: "Account Balance Fetched successfully",
     balance,
   });
@@ -189,8 +189,8 @@ exports.getTransactions = catchAsync(async (req, res, next) => {
     return next(new AppError("Could not fetch transactions"));
   }
   res.status(200).json({
-    status: "success",
-    statusCode: 200,
+    success: true,
+    status: 200,
     message: "Transactions fetched successfully",
     transactions,
   });

@@ -93,6 +93,10 @@ const shopSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    isOrderAccepted: {
+      type: Boolean,
+      default: false,
+    },
     location: {
       type: {
         type: String,

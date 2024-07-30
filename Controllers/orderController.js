@@ -1652,6 +1652,9 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
 
   // Find the order by ID
   const order = await Order.findById(orderId);
+  const shop = await Shop.findOne({ owner: req.user.id });
+  // const shop = await Shop.findOne({ owner: userId });
+
   if (!order) {
     return next(new AppError("Order not found", 404));
   }
@@ -1664,8 +1667,10 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
   // Handle the action
   if (action === "accept") {
     order.orderStatus = "accepted by owner";
+    shop.isOrderAccepted = true;
     // order.driver = req.user.id;
     await order.save();
+    await shop.save();
 
     // Send a notification to the all riders about the new order
     const allRiders = await User.find({ userType: "Rider" });
@@ -1688,8 +1693,10 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     const customer = await User.findById(order.customer).populate(
       "deviceToken"
     );
-    order.orderStatus = "rejected";
-    await order.save();
+    // order.orderStatus = "rejected";
+    // await order.save();
+    shop.isOrderAccepted = false;
+    await shop.save();
     const FCMToken = customer.deviceToken;
     console.log(customer, "here is the deviceToken of costumer  bhaya");
     console.log(FCMToken, "here is the FCMToken of costume g");
