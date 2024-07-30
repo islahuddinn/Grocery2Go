@@ -894,7 +894,7 @@ exports.checkout = catchAsync(async (req, res, next) => {
 
 exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { paymentIntentId, deliveryLocation, cart } = req.body;
+  const { paymentIntentId, deliveryTime, deliveryLocation, cart } = req.body;
 
   // Uncomment these lines if you are using Stripe for payment processing
   // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
