@@ -381,6 +381,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
     orderStatus: "accepted by owner",
     rejectedBy: { $nin: [req.user._id] }, // do not show to the rejected one rider
+    isdeliveryInProgress: false,
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -585,12 +586,22 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     });
   }
 
+  if (shop.isOrderAccepted) {
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "No new unaccepted orders for this shop",
+      data: [],
+    });
+  }
+
   const shopId = shop._id;
+
   const orders = await Order.find({
     "products.shop": shopId,
     // isdeliveryInProgress: false,
     // "shop.isOrderAccepted": false, // jo abhi shop ne accept nai kiye
-    orderStatus: { ne: "pending" }, ///orders rather then pending status
+    orderStatus: { $ne: "pending" }, ///orders rather then pending status
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -696,7 +707,6 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     data: detailedOrders,
   });
 });
-
 /////----get all new orders of the riders side----/////
 // exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 //   // Find all orders for the current user
@@ -1637,6 +1647,7 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
   } else if (action === "accept") {
     order.orderStatus = "accepted by rider";
     order.driver = req.user.id;
+    order.isdeliveryInProgress = true;
     await order.save();
 
     return res.status(200).json({
@@ -1651,63 +1662,142 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
 });
 
 ////////------Accept or Reject order by Owner -----////
+// exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
+//   const { orderId, action } = req.body;
+
+//   // Find the order by ID
+//   const order = await Order.findById(orderId);
+//   const shop = await Shop.findOne({ owner: req.user.id });
+//   // const shop = await Shop.findOne({ owner: userId });
+
+//   if (!order) {
+//     return next(new AppError("Order not found", 404));
+//   }
+
+//   // //////Check if the order is still pending
+//   if (order.orderStatus !== "pending") {
+//     return next(new AppError("Order is not in pending state ", 400));
+//   }
+
+//   // Handle the action
+//   if (action === "accept") {
+//     order.orderStatus = "accepted by owner";
+//     // order.isdeliveryInProgress = true;
+//     shop.isOrderAccepted = true;
+//     // order.driver = req.user.id;
+//     await order.save();
+//     await shop.save();
+
+//     // Send a notification to the all riders about the new order
+//     const allRiders = await User.find({ userType: "Rider" });
+//     console.log(allRiders, "All riders");
+//     // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
+//     // console.log(FCMTokens, "FCMToken of all riders");
+
+//     // await SendNotificationMultiCast({
+//     //   tokens: FCMTokens,
+//     //   title: "New order on shop",
+//     //   body: `Accept or reject the order ${order}`,
+//     // });
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Order accepted and notifies to all riders",
+//       data: order,
+//     });
+//   } else if (action === "reject") {
+//     const customer = await User.findById(order.customer).populate(
+//       "deviceToken"
+//     );
+//     // order.orderStatus = "rejected";
+//     // await order.save();
+//     shop.isOrderRejected = true;
+//     await shop.save();
+//     const FCMToken = customer.deviceToken;
+//     console.log(customer, "here is the deviceToken of costumer  bhaya");
+//     console.log(FCMToken, "here is the FCMToken of costume g");
+//     // await SendNotification({
+//     //   token: FCMToken,
+//     //   title: "Your order is rejected by the owner ",
+//     //   body: `Owner rejected the order ${order}`,
+//     // });
+
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Order rejected by shop owner",
+//     });
+//   } else {
+//     return next(new AppError("Invalid action, use 'accept' or 'reject'", 400));
+//   }
+// });
+
 exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
   const { orderId, action } = req.body;
 
   // Find the order by ID
   const order = await Order.findById(orderId);
   const shop = await Shop.findOne({ owner: req.user.id });
-  // const shop = await Shop.findOne({ owner: userId });
 
   if (!order) {
     return next(new AppError("Order not found", 404));
   }
 
-  // //////Check if the order is still pending
+  // Check if the order is still pending
   if (order.orderStatus !== "pending") {
-    return next(new AppError("Order is not in pending state ", 400));
+    return next(
+      new AppError("Order is not in pending state or already accepted", 400)
+    );
   }
 
   // Handle the action
   if (action === "accept") {
     order.orderStatus = "accepted by owner";
-    order.isdeliveryInProgress = true;
     shop.isOrderAccepted = true;
-    // order.driver = req.user.id;
     await order.save();
     await shop.save();
 
-    // Send a notification to the all riders about the new order
+    // Send a notification to all riders about the new order
     const allRiders = await User.find({ userType: "Rider" });
-    console.log(allRiders, "All riders");
-    // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
-    // console.log(FCMTokens, "FCMToken of all riders");
 
+    // Uncomment the notification sending logic if required
+    // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
     // await SendNotificationMultiCast({
     //   tokens: FCMTokens,
     //   title: "New order on shop",
     //   body: `Accept or reject the order ${order}`,
     // });
+
     return res.status(200).json({
       success: true,
       status: 200,
-      message: "Order accepted and notifies to all riders",
+      message: "Order accepted and notified to all riders",
       data: order,
     });
   } else if (action === "reject") {
+    shop.isOrderRejected = true;
+    await shop.save();
+
+    // Check if all shops for this order have rejected it
+    const allShops = await Shop.find({
+      _id: { $in: order.products.map((p) => p.shop) },
+    });
+    const allRejected = allShops.every((shop) => shop.isOrderRejected);
+
+    if (allRejected) {
+      order.orderStatus = "rejected";
+      await order.save();
+    }
+
     const customer = await User.findById(order.customer).populate(
       "deviceToken"
     );
-    // order.orderStatus = "rejected";
-    // await order.save();
-    shop.isOrderRejected = true;
-    await shop.save();
     const FCMToken = customer.deviceToken;
-    console.log(customer, "here is the deviceToken of costumer  bhaya");
-    console.log(FCMToken, "here is the FCMToken of costume g");
+
+    // Uncomment the notification sending logic if required
     // await SendNotification({
     //   token: FCMToken,
-    //   title: "Your order is rejected by the owner ",
+    //   title: "Your order is rejected by the owner",
     //   body: `Owner rejected the order ${order}`,
     // });
 
@@ -1722,7 +1812,6 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
 });
 
 //// ---- ready for pickup function ----////
-// exports.readyForPickup = catchAsync(async (req, res) => {});
 
 exports.readyForPickup = async (req, res) => {
   // const orders = await Order.find({
