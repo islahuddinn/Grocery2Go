@@ -576,6 +576,139 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 // });
 
 ///find the error in the function
+// exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
+//   const shop = await Shop.findOne({ owner: req.user.id });
+//   if (!shop) {
+//     return res.status(400).json({
+//       success: false,
+//       status: 400,
+//       message: "No shop found for this user",
+//     });
+//   }
+
+//   if ((shop.isOrderAccepted = true)) {
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "No new unaccepted orders for this shop",
+//       data: [],
+//     });
+//   }
+
+//   const shopId = shop._id;
+
+//   const orders = await Order.find({
+//     "products.shop": shopId,
+//     orderStatus: "pending",
+//     // isdeliveryInProgress: false,
+//     // "shop.isOrderAccepted": false, // jo abhi shop ne accept nai kiye
+//     // orderStatus: { ne: "pending" }, ///orders rather then pending status
+//   }).populate("customer", "firstName lastName email image location");
+
+//   if (!orders || orders.length === 0) {
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "No orders found for this shop",
+//       data: orders,
+//     });
+//   }
+
+//   const detailedOrders = [];
+//   for (const order of orders) {
+//     const shopDetailsMap = new Map();
+//     let orderTotal = 0;
+
+//     for (const { shop, grocery, quantity } of order.products) {
+//       if (shop.toString() !== shopId.toString()) continue;
+
+//       try {
+//         const fetchedShop = await Shop.findById(shop);
+//         if (!fetchedShop) {
+//           console.error(`Shop with ID ${shop} not found.`);
+//           continue;
+//         }
+
+//         const fetchedGrocery = fetchedShop.groceries.id(grocery);
+//         if (!fetchedGrocery) {
+//           console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
+//           continue;
+//         }
+
+//         const productDetail = {
+//           productName: fetchedGrocery.productName,
+//           category: fetchedGrocery.categoryName,
+//           volume: fetchedGrocery.volume,
+//           quantity: quantity,
+//           productImages: fetchedGrocery.productImages,
+//           price: fetchedGrocery.price,
+//         };
+
+//         const productTotal = fetchedGrocery.price * quantity;
+//         orderTotal += productTotal;
+
+//         if (!shopDetailsMap.has(shop.toString())) {
+//           shopDetailsMap.set(shop.toString(), {
+//             shopId: shop,
+//             shopTitle: fetchedShop.shopTitle,
+//             image: fetchedShop.image,
+//             location: fetchedShop.location,
+//             products: [],
+//             shopTotal: 0,
+//           });
+//         }
+
+//         const shopDetail = shopDetailsMap.get(shop.toString());
+//         shopDetail.products.push(productDetail);
+//         shopDetail.shopTotal += productTotal;
+//       } catch (error) {
+//         console.error(
+//           `Error processing shop or grocery item: ${error.message}`
+//         );
+//         continue;
+//       }
+//     }
+
+//     const shopDetails = [...shopDetailsMap.values()].map((shop) => ({
+//       ...shop,
+//       shopOrderSummary: {
+//         shopItems: shop.products.length,
+//         shopItemsTotal: shop.shopTotal.toFixed(2),
+//       },
+//     }));
+
+//     const orderSummary = {
+//       itemsTotal: order.itemsTotal,
+//       serviceFee: order.serviceFee,
+//       adminFee: order.adminFee,
+//       totalPayment: order.totalPayment,
+//       paymentStatus: order.paymentStatus,
+//       deliveryFee: order.deliveryCharges,
+//       startLocation: order.startLocation,
+//       endLocation: order.endLocation,
+//       deliveryPaymentStatus: order.deliveryPaymentStatus,
+//     };
+
+//     detailedOrders.push({
+//       orderNumber: order.orderNumber,
+//       orderStatus: order.orderStatus,
+//       _id: order.id,
+//       customer: order.customer,
+//       shopDetails: shopDetails,
+//       orderTotal: orderTotal.toFixed(2),
+//       rider: order.driver ? order.driver.name : null,
+//       orderSummary,
+//     });
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Orders retrieved successfully",
+//     data: detailedOrders,
+//   });
+// });
+
 exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const shop = await Shop.findOne({ owner: req.user.id });
   if (!shop) {
@@ -586,7 +719,8 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     });
   }
 
-  if ((shop.isOrderAccepted = true)) {
+  // Check if shop has already accepted orders
+  if (shop.isOrderAccepted) {
     return res.status(200).json({
       success: true,
       status: 200,
@@ -597,12 +731,10 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
   const shopId = shop._id;
 
+  // Find orders where orderStatus is "pending" and products' shop matches the shopId
   const orders = await Order.find({
     "products.shop": shopId,
     orderStatus: "pending",
-    // isdeliveryInProgress: false,
-    // "shop.isOrderAccepted": false, // jo abhi shop ne accept nai kiye
-    // orderStatus: { ne: "pending" }, ///orders rather then pending status
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
