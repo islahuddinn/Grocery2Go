@@ -599,9 +599,10 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
   const orders = await Order.find({
     "products.shop": shopId,
+    orderStatus: "pending",
     // isdeliveryInProgress: false,
     // "shop.isOrderAccepted": false, // jo abhi shop ne accept nai kiye
-    orderStatus: { $ne: "pending" }, ///orders rather then pending status
+    // orderStatus: { ne: "pending" }, ///orders rather then pending status
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -707,6 +708,137 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     data: detailedOrders,
   });
 });
+
+/////------shop my orders----/////
+exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
+  const shop = await Shop.findOne({ owner: req.user.id });
+  if (!shop) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "No shop found for this user",
+    });
+  }
+
+  const shopId = shop._id;
+
+  // Find orders where products' shop matches the shopId and isOrderAccepted is true
+  const orders = await Order.find({
+    "products.shop": shopId,
+    orderStatus: { $ne: "pending" }, // Exclude orders that are pending
+  }).populate("customer", "firstName lastName email image location");
+
+  // Filter orders to include only those where the shop isOrderAccepted is true
+  const filteredOrders = orders.filter((order) =>
+    order.products.some(
+      (product) => product.shop.equals(shopId) && shop.isOrderAccepted
+    )
+  );
+
+  if (!filteredOrders || filteredOrders.length === 0) {
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "No orders found for this shop",
+      data: filteredOrders,
+    });
+  }
+
+  const detailedOrders = [];
+  for (const order of filteredOrders) {
+    const shopDetailsMap = new Map();
+    let orderTotal = 0;
+
+    for (const { shop, grocery, quantity } of order.products) {
+      if (!shop.equals(shopId)) continue;
+
+      try {
+        const fetchedShop = await Shop.findById(shop);
+        if (!fetchedShop) {
+          console.error(`Shop with ID ${shop} not found.`);
+          continue;
+        }
+
+        const fetchedGrocery = fetchedShop.groceries.id(grocery);
+        if (!fetchedGrocery) {
+          console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
+          continue;
+        }
+
+        const productDetail = {
+          productName: fetchedGrocery.productName,
+          category: fetchedGrocery.categoryName,
+          volume: fetchedGrocery.volume,
+          quantity: quantity,
+          productImages: fetchedGrocery.productImages,
+          price: fetchedGrocery.price,
+        };
+
+        const productTotal = fetchedGrocery.price * quantity;
+        orderTotal += productTotal;
+
+        if (!shopDetailsMap.has(shop.toString())) {
+          shopDetailsMap.set(shop.toString(), {
+            shopId: shop,
+            shopTitle: fetchedShop.shopTitle,
+            image: fetchedShop.image,
+            location: fetchedShop.location,
+            products: [],
+            shopTotal: 0,
+          });
+        }
+
+        const shopDetail = shopDetailsMap.get(shop.toString());
+        shopDetail.products.push(productDetail);
+        shopDetail.shopTotal += productTotal;
+      } catch (error) {
+        console.error(
+          `Error processing shop or grocery item: ${error.message}`
+        );
+        continue;
+      }
+    }
+
+    const shopDetails = [...shopDetailsMap.values()].map((shop) => ({
+      ...shop,
+      shopOrderSummary: {
+        shopItems: shop.products.length,
+        shopItemsTotal: shop.shopTotal.toFixed(2),
+      },
+    }));
+
+    const orderSummary = {
+      itemsTotal: order.itemsTotal,
+      serviceFee: order.serviceFee,
+      adminFee: order.adminFee,
+      totalPayment: order.totalPayment,
+      paymentStatus: order.paymentStatus,
+      deliveryFee: order.deliveryCharges,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      deliveryPaymentStatus: order.deliveryPaymentStatus,
+    };
+
+    detailedOrders.push({
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      _id: order.id,
+      customer: order.customer,
+      shopDetails: shopDetails,
+      orderTotal: orderTotal.toFixed(2),
+      rider: order.driver ? order.driver.name : null,
+      orderSummary,
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Orders retrieved successfully",
+    data: detailedOrders,
+  });
+});
+
 /////----get all new orders of the riders side----/////
 // exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 //   // Find all orders for the current user

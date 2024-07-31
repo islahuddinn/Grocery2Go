@@ -6,18 +6,19 @@ const router = express.Router();
 router.use(authController.protect);
 // router.post("/create", orderController.createOrder);
 router.get("/get-user-orders", orderController.getAllOrdersByUser);
-router.get("/get-shop-orders", orderController.getAllOrdersByShop);
+// router.get("/get-shop-orders", orderController.getAllOrdersByShop);
 // router.get("/get-all-orders", orderController.get);
-router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders); /// use this api to show orders
 ///on rider side new orders
+router.get("/get-shop-orders", orderController.getAllNewAcceptedByOwnerOrders); ///// all new orders use this api on shop new order side
 router.get(
   "/get-shop-accepted-orders",
-  orderController.getAllNewAcceptedByOwnerOrders
-); ///// all owner accepted orders use this api on shop side
-router.get(
-  "/get-all-rider-accepted-orders",
-  orderController.getAllAcceptedByRiderOrders
-); //// all orders accepted by the all riders,
+  orderController.getAllAcceptedByShopOrders
+); ///// all orders for my shop
+// router.get(
+//   "/get-all-rider-accepted-orders",
+//   orderController.getAllAcceptedByRiderOrders
+// ); //// all orders accepted by the all riders,
+router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders); /// use this api to show orders
 router.get("/get-rider-accepted-orders", orderController.getAllRiderOrders); // rider accepted orders my orders
 router.get("/order-details/:id", orderController.getOrderDetails);
 // router.get("/shop-stats", orderController.getOrderDetails);
