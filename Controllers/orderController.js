@@ -586,7 +586,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     });
   }
 
-  if (shop.isOrderAccepted) {
+  if ((shop.isOrderAccepted = true)) {
     return res.status(200).json({
       success: true,
       status: 200,
