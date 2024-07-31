@@ -8,11 +8,12 @@ router.use(authController.protect);
 router.get("/get-user-orders", orderController.getAllOrdersByUser);
 router.get("/get-shop-orders", orderController.getAllOrdersByShop);
 // router.get("/get-all-orders", orderController.get);
-router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders);
+router.get("/get-rider-orders", orderController.getAllAcceptedByOwnerOrders); /// use this api to show orders
+///on rider side new orders
 router.get(
   "/get-shop-accepted-orders",
   orderController.getAllNewAcceptedByOwnerOrders
-); ///// all owner accepted orders use this api on shop
+); ///// all owner accepted orders use this api on shop side
 router.get(
   "/get-all-rider-accepted-orders",
   orderController.getAllAcceptedByRiderOrders

@@ -97,6 +97,10 @@ const shopSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isOrderRejected: {
+      type: Boolean,
+      default: false,
+    },
     location: {
       type: {
         type: String,

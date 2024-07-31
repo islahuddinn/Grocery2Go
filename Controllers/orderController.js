@@ -296,7 +296,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 //   });
 // });
 
-////////// this is the controller function to get rider orders
+////////// this is the controller function to get rider side new orders
 
 // exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 //   // Find all orders for the current user
@@ -380,7 +380,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
     orderStatus: "accepted by owner",
-    rejectedBy: { $nin: [req.user._id] },
+    rejectedBy: { $nin: [req.user._id] }, // do not show to the rejected one rider
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -485,7 +485,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   });
 });
 
-///////------ get all accepted by owner orders to show on rider new order screen-----/////
+///////------ get all accepted by owner orders to show on shop new order screen-----/////
 
 // exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 //   // Find the shop of the current user
@@ -574,6 +574,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 //   });
 // });
 
+///find the error in the function
 exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const shop = await Shop.findOne({ owner: req.user.id });
   if (!shop) {
@@ -587,7 +588,9 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const shopId = shop._id;
   const orders = await Order.find({
     "products.shop": shopId,
-    orderStatus: { $ne: "pending" },
+    // isdeliveryInProgress: false,
+    // "shop.isOrderAccepted": false, // jo abhi shop ne accept nai kiye
+    orderStatus: { ne: "pending" }, ///orders rather then pending status
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -694,7 +697,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   });
 });
 
-/////----get all orders of the riders side----/////
+/////----get all new orders of the riders side----/////
 // exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 //   // Find all orders for the current user
 //   const orders = await Order.find({
@@ -770,6 +773,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
     orderStatus: "accepted by rider",
+    // isdeliveryInProgress: true,
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -1011,7 +1015,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
     driver: req.user.id,
-    orderStatus: "accepted by rider",
+    // orderStatus: "accepted by rider",
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -1667,6 +1671,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
   // Handle the action
   if (action === "accept") {
     order.orderStatus = "accepted by owner";
+    order.isdeliveryInProgress = true;
     shop.isOrderAccepted = true;
     // order.driver = req.user.id;
     await order.save();
@@ -1695,7 +1700,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     );
     // order.orderStatus = "rejected";
     // await order.save();
-    shop.isOrderAccepted = false;
+    shop.isOrderRejected = true;
     await shop.save();
     const FCMToken = customer.deviceToken;
     console.log(customer, "here is the deviceToken of costumer  bhaya");

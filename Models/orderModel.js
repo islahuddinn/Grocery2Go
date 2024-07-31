@@ -103,6 +103,10 @@ const orderSchema = new mongoose.Schema(
     deliveryTime: {
       type: String,
     },
+    isdeliveryInProgress: {
+      type: Boolean,
+      default: false,
+    },
     itemsTotal: {
       type: String,
     },
