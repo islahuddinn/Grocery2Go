@@ -26,7 +26,7 @@ const orderSchema = new mongoose.Schema(
     },
     rejectedBy: [
       {
-        type: mongoose.Schema.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
@@ -146,6 +146,18 @@ const orderSchema = new mongoose.Schema(
     shopEarnings: {
       type: Number,
     },
+    shopAcceptedOrder: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shop",
+      },
+    ],
+    shopRejectedOrder: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shop",
+      },
+    ],
     // shop: {
     //   type: mongoose.Schema.Types.ObjectId,
     //   ref: "Shop",

@@ -719,22 +719,23 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     });
   }
 
-  // Check if shop has already accepted orders
-  if (shop.isOrderAccepted) {
-    return res.status(200).json({
-      success: true,
-      status: 200,
-      message: "No new unaccepted orders for this shop",
-      data: [],
-    });
-  }
+  // // Check if shop has already accepted orders
+  // if (shop.isOrderAccepted) {
+  //   return res.status(200).json({
+  //     success: true,
+  //     status: 200,
+  //     message: "No new unaccepted orders for this shop",
+  //     data: [],
+  //   });
+  // }
 
   const shopId = shop._id;
 
   // Find orders where orderStatus is "pending" and products' shop matches the shopId
   const orders = await Order.find({
     "products.shop": shopId,
-    orderStatus: "pending",
+    // orderStatus: "pending",
+    shopAcceptedOrder: { $nin: [shopId] },
   }).populate("customer", "firstName lastName email image location");
 
   if (!orders || orders.length === 0) {
@@ -856,7 +857,8 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
 
   // Find orders where products' shop matches the shopId and isOrderAccepted is true
   const orders = await Order.find({
-    "products.shop": shopId,
+    // "products.shop": shopId,
+    shopAcceptedOrder: { $in: [shopId] },
     orderStatus: { $ne: "pending" }, // Exclude orders that are pending
   }).populate("customer", "firstName lastName email image location");
 
@@ -2017,9 +2019,10 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
   // Handle the action
   if (action === "accept") {
     order.orderStatus = "accepted by owner";
-    shop.isOrderAccepted = true;
+    order.shopAcceptedOrder.push(shop._id);
+    // shop.isOrderAccepted = true;
     await order.save();
-    await shop.save();
+    // await shop.save();
 
     // Send a notification to all riders about the new order
     const allRiders = await User.find({ userType: "Rider" });
@@ -2039,8 +2042,10 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
       data: order,
     });
   } else if (action === "reject") {
-    shop.isOrderRejected = true;
-    await shop.save();
+    // shop.isOrderRejected = true;
+    order.shopRejectedOrder.push(shop._id);
+
+    await order.save();
 
     // Check if all shops for this order have rejected it
     const allShops = await Shop.find({
