@@ -2009,12 +2009,12 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     return next(new AppError("Order not found", 404));
   }
 
-  // Check if the order is still pending
-  if (order.orderStatus !== "pending") {
-    return next(
-      new AppError("Order is not in pending state or already accepted", 400)
-    );
-  }
+  // // Check if the order is still pending
+  // if (order.orderStatus !== "pending") {
+  //   return next(
+  //     new AppError("Order is not in pending state or already accepted", 400)
+  //   );
+  // }
 
   // Handle the action
   if (action === "accept") {
