@@ -13,9 +13,9 @@ const { calculateDeliveryCharges } = require("../Utils/helper");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 exports.addProductsToList = catchAsync(async (req, res, next) => {
-  const { listTitle, items, shopId } = req.body;
+  const { listTitle, items } = req.body;
   const newList = await List.create({
-    user: req.user.id,
+    customer: req.user.id,
     listTitle,
     items: items,
     listStatus: "pending",

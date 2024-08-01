@@ -397,8 +397,11 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   for (const order of orders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
+    let totalItems = 0; // Initialize totalItems to count the total number of items in the order
 
     for (const { shop, grocery, quantity } of order.products) {
+      totalItems += quantity; // Increment totalItems by the quantity of each product
+
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -456,6 +459,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
       totalPayment: order.totalPayment,
@@ -488,94 +492,6 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
 ///////------ get all accepted by owner orders to show on shop new order screen-----/////
 
-// exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
-//   // Find the shop of the current user
-//   const shop = await Shop.findOne({ owner: req.user.id });
-//   const shopId = shop._id;
-//   // const shopIds = userShops.map((shop) => shop._id);
-//   console.log(shopId, "here is the user shop id");
-//   if (!shop) {
-//     return res.status(400).json({
-//       success: false,
-//       status: 400,
-//       message: "No shop found for this user",
-//     });
-//   }
-//   // Find all orders for the current user's shop
-//   const orders = await Order.find({
-//     // orderStatus: "accepted by owner",
-//     "products.shop": shopId,
-//     orderStatus: { $ne: "pending" },
-//   }).populate("customer", "firstName lastName email image location");
-//   console.log(orders, "here are the shop orders");
-
-//   if (!orders || orders.length === 0) {
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No orders found for this shop",
-//       data: orders,
-//     });
-//   }
-
-//   const detailedOrders = [];
-//   for (const order of orders) {
-//     // Extract shop details from the first product
-//     const shopId = order.products.length > 0 ? order.products[0].shop : null;
-
-//     let shopDetails = {};
-//     if (shopId) {
-//       const shop = await Shop.findById(shopId);
-//       shopDetails = {
-//         shopId: shop._id,
-//         name: shop.shopTitle,
-//         image: shop.image,
-//         location: shop.location,
-//       };
-//     }
-
-//     detailedOrders.push({
-//       _id: order._id,
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       startLocation: order.startLocation,
-//       endLocation: order.endLocation,
-//       customer: order.customer,
-//       shopDetails,
-//       productDetails: [],
-//       rider: order.driver ? order.driver : null,
-//     });
-
-//     // Process product details (can be a separate function if needed)
-//     for (const product of order.products) {
-//       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
-//         .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
-
-//       if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
-//         continue; // Skip product if grocery not found
-//       }
-
-//       const grocery = fetchedGrocery.groceries[0];
-//       detailedOrders[detailedOrders.length - 1].productDetails.push({
-//         productName: grocery.productName,
-//         category: grocery.categoryName,
-//         volume: grocery.volume,
-//         productImages: grocery.productImages,
-//         price: grocery.price,
-//         quantity: product.quantity,
-//       });
-//     }
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Orders retrieved successfully",
-//     data: detailedOrders,
-//   });
-// });
-
-///find the error in the function
 // exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 //   const shop = await Shop.findOne({ owner: req.user.id });
 //   if (!shop) {
