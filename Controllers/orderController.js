@@ -157,8 +157,11 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
   for (const order of orders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
+    let totalItems = 0;
 
     for (const { shop, grocery, quantity } of order.products) {
+      totalItems += quantity;
+
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -190,6 +193,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
             shopTitle: fetchedShop.shopTitle,
             image: fetchedShop.image,
             location: fetchedShop.location,
+            isOrderAccepted: fetchedShop.isOrderAccepted,
             products: [],
             shopTotal: 0,
           });
@@ -216,6 +220,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
       totalPayment: order.totalPayment,
@@ -397,10 +402,10 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   for (const order of orders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
-    let totalItems = 0; // Initialize totalItems to count the total number of items in the order
+    let totalItems = 0;
 
     for (const { shop, grocery, quantity } of order.products) {
-      totalItems += quantity; // Increment totalItems by the quantity of each product
+      totalItems += quantity;
 
       try {
         const fetchedShop = await Shop.findById(shop);
@@ -434,6 +439,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
             image: fetchedShop.image,
             location: fetchedShop.location,
             products: [],
+            isOrderAccepted: fetchedShop.isOrderAccepted,
             shopTotal: 0,
           });
         }
@@ -667,10 +673,11 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   for (const order of orders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
+    let totalItems = 0;
 
     for (const { shop, grocery, quantity } of order.products) {
       if (shop.toString() !== shopId.toString()) continue;
-
+      totalItems += quantity;
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -702,6 +709,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
             shopTitle: fetchedShop.shopTitle,
             image: fetchedShop.image,
             location: fetchedShop.location,
+            isOrderAccepted: fetchedShop.isOrderAccepted,
             products: [],
             shopTotal: 0,
           });
@@ -728,6 +736,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
       totalPayment: order.totalPayment,
@@ -798,9 +807,11 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
   for (const order of filteredOrders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
+    let totalItems = 0;
 
     for (const { shop, grocery, quantity } of order.products) {
       if (!shop.equals(shopId)) continue;
+      totalItems += quantity;
 
       try {
         const fetchedShop = await Shop.findById(shop);
@@ -833,6 +844,7 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
             shopTitle: fetchedShop.shopTitle,
             image: fetchedShop.image,
             location: fetchedShop.location,
+            isOrderAccepted: fetchedShop.isOrderAccepted,
             products: [],
             shopTotal: 0,
           });
@@ -859,6 +871,7 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
       totalPayment: order.totalPayment,
@@ -981,8 +994,11 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
   for (const order of orders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
+    let totalItems = 0;
 
     for (const { shop, grocery, quantity } of order.products) {
+      totalItems += quantity;
+
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -1014,6 +1030,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
             shopTitle: fetchedShop.shopTitle,
             image: fetchedShop.image,
             location: fetchedShop.location,
+            isOrderAccepted: fetchedShop.isOrderAccepted,
             products: [],
             shopTotal: 0,
           });
@@ -1040,6 +1057,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
       totalPayment: order.totalPayment,
@@ -1223,8 +1241,11 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
   for (const order of orders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
+    let totalItems = 0;
 
     for (const { shop, grocery, quantity } of order.products) {
+      totalItems += quantity;
+
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -1256,6 +1277,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
             shopTitle: fetchedShop.shopTitle,
             image: fetchedShop.image,
             location: fetchedShop.location,
+            isOrderAccepted: fetchedShop.isOrderAccepted,
             products: [],
             shopTotal: 0,
           });
@@ -1282,6 +1304,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
       totalPayment: order.totalPayment,
@@ -1641,8 +1664,11 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
 
   const shopDetailsMap = new Map();
   let orderTotal = 0;
+  let totalItems = 0;
 
   for (const { shop, grocery, quantity } of order.products) {
+    totalItems += quantity;
+
     try {
       const fetchedShop = await Shop.findById(shop);
       if (!fetchedShop) {
@@ -1674,6 +1700,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
           shopTitle: fetchedShop.shopTitle,
           image: fetchedShop.image,
           location: fetchedShop.location,
+          isOrderAccepted: fetchedShop.isOrderAccepted,
           products: [],
           shopTotal: 0,
         });
@@ -1698,6 +1725,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
 
   const orderSummary = {
     itemsTotal: order.itemsTotal,
+    totalItems,
     serviceFee: order.serviceFee,
     adminFee: order.adminFee,
     totalPayment: order.totalPayment,
@@ -1936,9 +1964,9 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
   if (action === "accept") {
     order.orderStatus = "accepted by owner";
     order.shopAcceptedOrder.push(shop._id);
-    // shop.isOrderAccepted = true;
+    shop.isOrderAccepted = true;
     await order.save();
-    // await shop.save();
+    await shop.save();
 
     // Send a notification to all riders about the new order
     const allRiders = await User.find({ userType: "Rider" });
