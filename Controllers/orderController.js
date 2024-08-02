@@ -10,40 +10,7 @@ const {
   SendNotificationMultiCast,
 } = require("../Utils/notificationSender");
 
-// exports.createOrder = catchAsync(async (req, res, next) => {
-//   const cart = await Cart.findOne({ user: req.user.id }).populate(
-//     "products.product"
-//   );
-
-//   if (!cart || cart.products.length === 0) {
-//     return next(new AppError("Your cart is empty", 400));
-//   }
-
-//   const shop = await Shop.findById(cart.products[0].product.shop);
-
-//   const totalPrice = cart.products.reduce(
-//     (total, item) => total + item.product.price * item.quantity,
-//     0
-//   );
-
-//   const order = await Order.create({
-//     user: req.user.id,
-//     shop: shop.id,
-//     products: cart.products,
-//     totalPrice,
-//   });
-
-//   // Clear user's cart
-//   await Cart.findOneAndDelete({ user: req.user.id });
-
-//   // Notify nearby riders
-//   sendNotificationToNearbyRiders(req.user.location.coordinates, order.id);
-
-//   res.status(201).json({
-//     success: true,
-//     data: order,
-//   });
-// });
+//// ----update ordr status----- /////
 
 exports.updateOrderStatus = catchAsync(async (req, res, next) => {
   const { orderId, status } = req.body;
@@ -60,83 +27,7 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
   });
 });
 
-/////get user orders-----////
-
-// exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
-//   // Find all orders for the current user
-//   const orders = await Order.find({ customer: req.user.id }).populate(
-//     "customer",
-//     "firstName lastNmae email image location"
-//   );
-
-//   if (!orders || orders.length === 0) {
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No orders found for this user",
-//       data: orders,
-//     });
-//   }
-
-//   const detailedOrders = [];
-//   for (const order of orders) {
-//     // Extract shop details from the first product
-//     const shopId = order.products.length > 0 ? order.products[0].shop : null;
-
-//     let shopDetails = {};
-//     if (shopId) {
-//       const shop = await Shop.findById(shopId);
-//       shopDetails = {
-//         shopId: shop._id,
-//         name: shop.shopTitle,
-//         image: shop.image,
-//         location: shop.location,
-//       };
-//     }
-
-//     detailedOrders.push({
-//       _id: order._id,
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       // customer: {
-//       //   name: req.user.firstName,
-//       //   email: req.user.email,
-//       //   image: req.user.image,
-//       // },
-//       customer: order.customer,
-//       shopDetails,
-//       productDetails: [],
-//       rider: order.driver ? order.driver.name : null,
-//     });
-
-//     // Process product details (can be a separate function if needed)
-//     for (const product of order.products) {
-//       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
-//         .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
-
-//       if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
-//         continue; // Skip product if grocery not found
-//       }
-
-//       const grocery = fetchedGrocery.groceries[0];
-//       detailedOrders[detailedOrders.length - 1].productDetails.push({
-//         productName: grocery.productName,
-//         category: grocery.categoryName,
-//         volume: grocery.volume,
-//         productImages: grocery.productImages,
-//         price: grocery.price,
-//         quantity: product.quantity,
-//       });
-//     }
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Orders retrieved successfully",
-//     data: detailedOrders,
-//   });
-// });
+/////-------get user orders-----////
 
 exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
   const orders = await Order.find({ customer: req.user.id }).populate(
@@ -226,9 +117,12 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
       totalPayment: order.totalPayment,
       paymentStatus: order.paymentStatus,
       deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
       deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
     };
 
     detailedOrders.push({
@@ -253,134 +147,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 
 /////----get shop all orders-----////
 
-// exports.getAllShopOrders = catchAsync(async (req, res, next) => {
-//   const shopId = req.params.id;
-
-//   // Find the shop by ID to ensure it exists
-//   const shop = await Shop.findById(shopId);
-
-//   if (!shop) {
-//     return next(new AppError("Shop not found", 404));
-//   }
-
-//   // Find all orders associated with the shop
-//   const orders = await Order.find({ shop: shopId })
-//     .populate({
-//       path: "customer",
-//       select: "name email",
-//     })
-//     .populate({
-//       path: "driver",
-//       select: "name email",
-//     })
-//     .populate({
-//       path: "products.shop",
-//       select: "shopTitle location owner",
-//     })
-//     .populate({
-//       path: "vendor",
-//       select: "name email",
-//     });
-
-//   if (!orders || orders.length === 0) {
-//     return next(new AppError("No orders found for this shop", 404));
-//   }
-
-//   // Returning the shop details and orders
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: {
-//       shop: {
-//         shopTitle: shop.shopTitle,
-//         location: shop.location,
-//         owner: shop.owner,
-//       },
-//       orders,
-//     },
-//   });
-// });
-
-////////// this is the controller function to get rider side new orders
-
-// exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
-//   // Find all orders for the current user
-//   const orders = await Order.find({
-//     orderStatus: "accepted by owner",
-//     rejectedBy: { $nin: [req.user._id] },
-//   }).populate("customer", "firstName lastName email image location");
-
-//   if (!orders || orders.length === 0) {
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No orders found for this user",
-//       data: orders,
-//     });
-//   }
-
-//   const detailedOrders = [];
-//   for (const order of orders) {
-//     // Extract shop details from the first product
-//     const shopId = order.products.length > 0 ? order.products[0].shop : null;
-
-//     let shopDetails = {};
-//     if (shopId) {
-//       const shop = await Shop.findById(shopId);
-//       shopDetails = {
-//         shopId: shop._id,
-//         name: shop.shopTitle,
-//         image: shop.image,
-//         location: shop.location,
-//       };
-//     }
-
-//     detailedOrders.push({
-//       _id: order._id,
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       startLocation: order.startLocation,
-//       endLocation: order.endLocation,
-//       // customer: {
-//       //   name: req.user.firstName,
-//       //   email: req.user.email,
-//       //   image: req.user.image,
-//       //   // location:re.user.location
-//       // },
-//       customer: order.customer,
-//       shopDetails,
-//       productDetails: [],
-//       rider: order.driver ? order.driver : null,
-//     });
-
-//     // Process product details (can be a separate function if needed)
-//     for (const product of order.products) {
-//       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
-//         .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
-
-//       if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
-//         continue; // Skip product if grocery not found
-//       }
-
-//       const grocery = fetchedGrocery.groceries[0];
-//       detailedOrders[detailedOrders.length - 1].productDetails.push({
-//         productName: grocery.productName,
-//         category: grocery.categoryName,
-//         volume: grocery.volume,
-//         productImages: grocery.productImages,
-//         price: grocery.price,
-//         quantity: product.quantity,
-//       });
-//     }
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Orders retrieved successfully",
-//     data: detailedOrders,
-//   });
-// });
+////////// -----use this is the controller function to get rider side new orders
 
 exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
@@ -471,9 +238,12 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       totalPayment: order.totalPayment,
       paymentStatus: order.paymentStatus,
       deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
       deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
     };
 
     detailedOrders.push({
@@ -498,139 +268,6 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
 ///////------ get all accepted by owner orders to show on shop new order screen-----/////
 
-// exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
-//   const shop = await Shop.findOne({ owner: req.user.id });
-//   if (!shop) {
-//     return res.status(400).json({
-//       success: false,
-//       status: 400,
-//       message: "No shop found for this user",
-//     });
-//   }
-
-//   if ((shop.isOrderAccepted = true)) {
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No new unaccepted orders for this shop",
-//       data: [],
-//     });
-//   }
-
-//   const shopId = shop._id;
-
-//   const orders = await Order.find({
-//     "products.shop": shopId,
-//     orderStatus: "pending",
-//     // isdeliveryInProgress: false,
-//     // "shop.isOrderAccepted": false, // jo abhi shop ne accept nai kiye
-//     // orderStatus: { ne: "pending" }, ///orders rather then pending status
-//   }).populate("customer", "firstName lastName email image location");
-
-//   if (!orders || orders.length === 0) {
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No orders found for this shop",
-//       data: orders,
-//     });
-//   }
-
-//   const detailedOrders = [];
-//   for (const order of orders) {
-//     const shopDetailsMap = new Map();
-//     let orderTotal = 0;
-
-//     for (const { shop, grocery, quantity } of order.products) {
-//       if (shop.toString() !== shopId.toString()) continue;
-
-//       try {
-//         const fetchedShop = await Shop.findById(shop);
-//         if (!fetchedShop) {
-//           console.error(`Shop with ID ${shop} not found.`);
-//           continue;
-//         }
-
-//         const fetchedGrocery = fetchedShop.groceries.id(grocery);
-//         if (!fetchedGrocery) {
-//           console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
-//           continue;
-//         }
-
-//         const productDetail = {
-//           productName: fetchedGrocery.productName,
-//           category: fetchedGrocery.categoryName,
-//           volume: fetchedGrocery.volume,
-//           quantity: quantity,
-//           productImages: fetchedGrocery.productImages,
-//           price: fetchedGrocery.price,
-//         };
-
-//         const productTotal = fetchedGrocery.price * quantity;
-//         orderTotal += productTotal;
-
-//         if (!shopDetailsMap.has(shop.toString())) {
-//           shopDetailsMap.set(shop.toString(), {
-//             shopId: shop,
-//             shopTitle: fetchedShop.shopTitle,
-//             image: fetchedShop.image,
-//             location: fetchedShop.location,
-//             products: [],
-//             shopTotal: 0,
-//           });
-//         }
-
-//         const shopDetail = shopDetailsMap.get(shop.toString());
-//         shopDetail.products.push(productDetail);
-//         shopDetail.shopTotal += productTotal;
-//       } catch (error) {
-//         console.error(
-//           `Error processing shop or grocery item: ${error.message}`
-//         );
-//         continue;
-//       }
-//     }
-
-//     const shopDetails = [...shopDetailsMap.values()].map((shop) => ({
-//       ...shop,
-//       shopOrderSummary: {
-//         shopItems: shop.products.length,
-//         shopItemsTotal: shop.shopTotal.toFixed(2),
-//       },
-//     }));
-
-//     const orderSummary = {
-//       itemsTotal: order.itemsTotal,
-//       serviceFee: order.serviceFee,
-//       adminFee: order.adminFee,
-//       totalPayment: order.totalPayment,
-//       paymentStatus: order.paymentStatus,
-//       deliveryFee: order.deliveryCharges,
-//       startLocation: order.startLocation,
-//       endLocation: order.endLocation,
-//       deliveryPaymentStatus: order.deliveryPaymentStatus,
-//     };
-
-//     detailedOrders.push({
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       _id: order.id,
-//       customer: order.customer,
-//       shopDetails: shopDetails,
-//       orderTotal: orderTotal.toFixed(2),
-//       rider: order.driver ? order.driver.name : null,
-//       orderSummary,
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Orders retrieved successfully",
-//     data: detailedOrders,
-//   });
-// });
-
 exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const shop = await Shop.findOne({ owner: req.user.id });
   if (!shop) {
@@ -641,19 +278,9 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     });
   }
 
-  // // Check if shop has already accepted orders
-  // if (shop.isOrderAccepted) {
-  //   return res.status(200).json({
-  //     success: true,
-  //     status: 200,
-  //     message: "No new unaccepted orders for this shop",
-  //     data: [],
-  //   });
-  // }
-
   const shopId = shop._id;
 
-  // Find orders where orderStatus is "pending" and products' shop matches the shopId
+  // /// Find orders where orderStatus is "pending" and products' shop matches the shopId
   const orders = await Order.find({
     "products.shop": shopId,
     // orderStatus: "pending",
@@ -678,6 +305,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     for (const { shop, grocery, quantity } of order.products) {
       if (shop.toString() !== shopId.toString()) continue;
       totalItems += quantity;
+      console.log(shop, "this is the id of shop being searched in shop model");
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -742,9 +370,12 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       totalPayment: order.totalPayment,
       paymentStatus: order.paymentStatus,
       deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
       deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
     };
 
     detailedOrders.push({
@@ -812,7 +443,7 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
     for (const { shop, grocery, quantity } of order.products) {
       if (!shop.equals(shopId)) continue;
       totalItems += quantity;
-
+      console.log(shop, "This is the shop being searched in shop model");
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -877,9 +508,12 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
       totalPayment: order.totalPayment,
       paymentStatus: order.paymentStatus,
       deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
       deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
     };
 
     detailedOrders.push({
@@ -903,77 +537,6 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
 });
 
 /////----get all new orders of the riders side----/////
-// exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
-//   // Find all orders for the current user
-//   const orders = await Order.find({
-//     // customer: req.user.id,
-//     orderStatus: "accepted by rider",
-//   }).populate("customer", "firstName lastName email image location");
-
-//   if (!orders || orders.length === 0) {
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No orders found for this user",
-//       data: orders,
-//     });
-//   }
-
-//   const detailedOrders = [];
-//   for (const order of orders) {
-//     // Extract shop details from the first product
-//     const shopId = order.products.length > 0 ? order.products[0].shop : null;
-//     let shopDetails = {};
-//     if (shopId) {
-//       const shop = await Shop.findById(shopId);
-//       shopDetails = {
-//         shopId: shop._id,
-//         name: shop.shopTitle,
-//         image: shop.image,
-//         location: shop.location,
-//       };
-//     }
-
-//     detailedOrders.push({
-//       _id: order._id,
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       startLocation: order.startLocation,
-//       endLocation: order.endLocation,
-//       customer: order.customer,
-//       shopDetails,
-//       productDetails: [],
-//       rider: order.driver ? order.driver : null,
-//     });
-
-//     // Process product details (can be a separate function if needed)
-//     for (const product of order.products) {
-//       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
-//         .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
-
-//       if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
-//         continue; // Skip product if grocery not found
-//       }
-
-//       const grocery = fetchedGrocery.groceries[0];
-//       detailedOrders[detailedOrders.length - 1].productDetails.push({
-//         productName: grocery.productName,
-//         category: grocery.categoryName,
-//         volume: grocery.volume,
-//         productImages: grocery.productImages,
-//         price: grocery.price,
-//         quantity: product.quantity,
-//       });
-//     }
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Orders retrieved successfully",
-//     data: detailedOrders,
-//   });
-// });
 
 exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
@@ -998,7 +561,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 
     for (const { shop, grocery, quantity } of order.products) {
       totalItems += quantity;
-
+      console.log(shop, "this is the shop being searched in shop model");
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -1063,9 +626,12 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
       totalPayment: order.totalPayment,
       paymentStatus: order.paymentStatus,
       deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
       deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
     };
 
     detailedOrders.push({
@@ -1088,139 +654,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
   });
 });
 
-// exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
-//   const riderId = req.params.id;
-
-//   // Find the shop by ID to ensure it exists
-//   const rider = await User.findById(riderId);
-
-//   if (!rider) {
-//     return next(new AppError("Rider not found", 404));
-//   }
-
-//   // Find all orders associated with the shop
-//   const orders = await Order.find({ driver: riderId })
-//     .populate({
-//       path: "customer",
-//       select: "name email",
-//     })
-//     .populate({
-//       path: "driver",
-//       select: "firstName email",
-//     })
-//     .populate({
-//       path: "products.shop",
-//       select: "shopTitle location owner",
-//     })
-//     .populate({
-//       path: "vendor",
-//       select: "firstName email",
-//     });
-
-//   if (!orders || orders.length === 0) {
-//     return next(new AppError("No orders found for this rider", 404));
-//   }
-
-//   // Returning the shop details and orders
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: {
-//       rider: {
-//         riderNmae: rider.firstName,
-//         location: rider.location,
-//         // owner: rider.owner,
-//       },
-//       orders,
-//     },
-//   });
-// });
-
 //////////------Get one rider orders ------/////
-
-// exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
-//   // Find all orders for the current user
-//   const orders = await Order.find({
-//     driver: req.user.id,
-//     orderStatus: "accepted by rider",
-//   }).populate("customer", "firstName lastName email image location");
-
-//   if (!orders || orders.length === 0) {
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No orders found for this user",
-//       data: orders,
-//     });
-//   }
-
-//   const detailedOrders = [];
-//   for (const order of orders) {
-//     // Extract shop details from the first product
-//     const shopId = order.products.length > 0 ? order.products[0].shop : null;
-//     let shopDetails = {};
-//     if (shopId) {
-//       const shop = await Shop.findById(shopId);
-//       shopDetails = {
-//         shopId: shop._id,
-//         name: shop.shopTitle,
-//         image: shop.image,
-//         location: shop.location,
-//       };
-//     }
-//     const orderSummary = {
-//       itemsTotal: order.itemsTotal,
-//       serviceFee: order.serviceFee,
-//       adminFee: order.adminFee,
-//       totalPayment: order.totalPayment,
-//       paymentStatus: order.paymentStatus,
-//       deliveryFee: order.deliveryCharges,
-//       startLocation: order.startLocation,
-//       endLocation: order.endLocation,
-//       deliveryPaymentStatus: order.deliveryPaymentStatus,
-//     };
-
-//     detailedOrders.push({
-//       _id: order._id,
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       startLocation: order.startLocation,
-//       endLocation: order.endLocation,
-//       customer: order.customer,
-//       shopDetails,
-//       productDetails: [],
-//       orderSummary,
-//       rider: order.driver ? order.driver : null,
-//     });
-
-//     // Process product details (can be a separate function if needed)
-//     for (const product of order.products) {
-//       const fetchedGrocery = await Shop.findById(product.shop) // Nested lookup for grocery
-//         .select({ groceries: { $elemMatch: { _id: product.grocery } } }); // Specific grocery details
-
-//       if (!fetchedGrocery || !fetchedGrocery.groceries.length) {
-//         continue; // Skip product if grocery not found
-//       }
-
-//       const grocery = fetchedGrocery.groceries[0];
-//       detailedOrders[detailedOrders.length - 1].productDetails.push({
-//         productName: grocery.productName,
-//         category: grocery.categoryName,
-//         volume: grocery.volume,
-//         productImages: grocery.productImages,
-//         price: grocery.price,
-//         quantity: product.quantity,
-//       });
-//     }
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Orders retrieved successfully",
-//     data: detailedOrders,
-//   });
-// });
 
 exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
@@ -1245,7 +679,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
 
     for (const { shop, grocery, quantity } of order.products) {
       totalItems += quantity;
-
+      console.log(shop, "this is the shop being searched from shop model");
       try {
         const fetchedShop = await Shop.findById(shop);
         if (!fetchedShop) {
@@ -1310,9 +744,12 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
       totalPayment: order.totalPayment,
       paymentStatus: order.paymentStatus,
       deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
       startLocation: order.startLocation,
       endLocation: order.endLocation,
       deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
     };
 
     detailedOrders.push({
@@ -1335,89 +772,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
   });
 });
 
-// exports.getAllOrdersByShop = async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-//     const shopId = await Shop.findById({ owner: userId });
-//     console.log(shopId, "here is the shop id");
-//     // const shopId = req.params.id;
-//     const orders = await Order.find({ "products.shop": shopId })
-//       .populate("products.shop")
-//       .populate("products.category")
-//       .populate("products.grocery")
-//       .populate("customer")
-//       .populate("vendor")
-//       .populate("driver");
-
-//     if (!orders.length) {
-//       return res.status(404).json({
-//         succes: true,
-//         status: 404,
-//         message: "No orders found for this shop.",
-//       });
-//     }
-
-//     res.status(200).json({ succes: true, status: 200, orders });
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ succes: false, status: 500, message: "Server error", error });
-//   }
-// };
-
-// exports.getAllOrdersByShop = async (req, res, next) => {
-//   try {
-//     const userId = req.user.id;
-
-//     // Find the shop associated with the user
-//     const shop = await Shop.findOne({ owner: userId });
-
-//     if (!shop) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: "Shop not found for this user",
-//       });
-//     }
-
-//     const shopId = shop._id;
-
-//     // Find orders for the shop ID using existing logic
-//     const orders = await Order.find({
-//       "products.shop": shopId,
-//       orderStatus: "pending",
-//     })
-//       .populate("products.shop")
-//       .populate("products.category")
-//       .populate("products.grocery")
-//       .populate("customer")
-//       .populate("vendor")
-//       .populate("driver");
-
-//     // if (!orders.length > 0) {
-//     //   return res.status(200).json({
-//     //     success: true,
-//     //     status: 200,
-//     //     message: "No orders found for this shop",
-//     //     orders: [],
-//     //   });
-//     // }
-
-//     res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "Orders retrieved successfully",
-//       orders,
-//     });
-//   } catch (error) {
-//     next({
-//       success: false,
-//       status: 500,
-//       // message: "No orders found for this shop",
-//       error,
-//     }); // Pass error to error handler
-//   }
-// };
+////////-----get all new orders with pending status------//////
 
 exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
   try {
@@ -1472,184 +827,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
   }
 });
 
-/////------Get all orders accepted by ht shop owner----///
-
-/////-----order-details-----////
-
-// exports.getOrderDetails = catchAsync(async (req, res, next) => {
-//   const orderId = req.params.id;
-
-//   const order = await Order.findById(orderId)
-//     .populate("customer", "firstName lastName email image location")
-//     .populate("driver", "name email location image");
-
-//   if (!order) {
-//     return next(new AppError("Order not found", 404));
-//   }
-
-//   const productDetails = [];
-//   const shopDetailsMap = new Map(); // Use Map to prevent duplicates
-
-//   for (const { shop, grocery, quantity } of order.products) {
-//     try {
-//       const fetchedShop = await Shop.findById(shop);
-//       if (!fetchedShop) {
-//         console.error(`Shop with ID ${shop} not found.`);
-//         continue; // Skip to the next product
-//       }
-
-//       const fetchedGrocery = fetchedShop.groceries.id(grocery);
-//       if (!fetchedGrocery) {
-//         console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
-//         continue; // Skip to the next product
-//       }
-
-//       const productDetail = {
-//         productName: fetchedGrocery.productName,
-//         category: fetchedGrocery.categoryName,
-//         volume: fetchedGrocery.volume,
-//         quantity: quantity,
-//         productImages: fetchedGrocery.productImages,
-//         price: fetchedGrocery.price,
-//       };
-
-//       productDetails.push(productDetail);
-
-//       if (!shopDetailsMap.has(shop.toString())) {
-//         shopDetailsMap.set(shop, {
-//           shopId: shop,
-//           shopTitle: fetchedShop.shopTitle,
-//           image: fetchedShop.image,
-//           location: fetchedShop.location,
-//         });
-//       }
-//     } catch (error) {
-//       console.error(`Error processing shop or grocery item: ${error.message}`);
-//       continue; // Continue processing other items even if there's an error
-//     }
-//   }
-
-//   const shopDetails = [...shopDetailsMap.values()]; // Convert Map to array
-
-//   const orderSummary = {
-//     itemsTotal: order.itemsTotal,
-//     serviceFee: order.serviceFee,
-//     adminFee: order.adminFee,
-//     totalPayment: order.totalPayment,
-//     paymentStatus: order.paymentStatus,
-//     deliveryFee: order.deliveryCharges,
-//     startLocation: order.startLocation,
-//     endLocation: order.endLocation,
-//     deliveryPaymentStatus: order.deliveryPaymentStatus,
-//   };
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Order details retrieved successfully",
-//     order: {
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       _id: order.id,
-//       customer: order.customer,
-//       shopDetails,
-//       productDetails,
-//       rider: order.driver ? order.driver : null,
-//       orderSummary,
-//     },
-//   });
-// });
-
-// exports.getOrderDetails = catchAsync(async (req, res, next) => {
-//   const orderId = req.params.id;
-
-//   const order = await Order.findById(orderId)
-//     .populate("customer", "firstName lastName email image location")
-//     .populate("driver", "name email location image");
-
-//   if (!order) {
-//     return next(new AppError("Order not found", 404));
-//   }
-
-//   const shopDetailsMap = new Map(); // Use Map to store shop details and products
-//   let orderTotal = 0;
-
-//   for (const { shop, grocery, quantity } of order.products) {
-//     try {
-//       const fetchedShop = await Shop.findById(shop);
-//       if (!fetchedShop) {
-//         console.error(`Shop with ID ${shop} not found.`);
-//         continue; // Skip to the next product
-//       }
-
-//       const fetchedGrocery = fetchedShop.groceries.id(grocery);
-//       if (!fetchedGrocery) {
-//         console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
-//         continue; // Skip to the next product
-//       }
-
-//       const productDetail = {
-//         productName: fetchedGrocery.productName,
-//         category: fetchedGrocery.categoryName,
-//         volume: fetchedGrocery.volume,
-//         quantity: quantity,
-//         productImages: fetchedGrocery.productImages,
-//         price: fetchedGrocery.price,
-//       };
-
-//       const productTotal = fetchedGrocery.price * quantity;
-//       orderTotal += productTotal;
-
-//       if (!shopDetailsMap.has(shop.toString())) {
-//         shopDetailsMap.set(shop.toString(), {
-//           shopId: shop,
-//           shopTitle: fetchedShop.shopTitle,
-//           image: fetchedShop.image,
-//           location: fetchedShop.location,
-//           products: [],
-//           shopTotal: 0,
-//         });
-//       }
-
-//       const shopDetail = shopDetailsMap.get(shop.toString());
-//       shopDetail.products.push(productDetail);
-//       shopDetail.shopTotal += productTotal;
-//     } catch (error) {
-//       console.error(`Error processing shop or grocery item: ${error.message}`);
-//       continue; // Continue processing other items even if there's an error
-//     }
-//   }
-
-//   const shopDetails = [...shopDetailsMap.values()]; // Convert Map to array
-
-//   const orderSummary = {
-//     itemsTotal: order.itemsTotal,
-//     serviceFee: order.serviceFee,
-//     adminFee: order.adminFee,
-//     totalPayment: order.totalPayment,
-//     paymentStatus: order.paymentStatus,
-//     deliveryFee: order.deliveryCharges,
-//     startLocation: order.startLocation,
-//     endLocation: order.endLocation,
-//     deliveryPaymentStatus: order.deliveryPaymentStatus,
-//   };
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Order details retrieved successfully",
-//     order: {
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       _id: order.id,
-//       customer: order.customer,
-//       shopDetails,
-//       orderTotal,
-//       rider: order.driver ? order.driver : null,
-//       orderSummary,
-//     },
-//   });
-// });
+/////-----get order details-----////
 
 exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const orderId = req.params.id;
@@ -1668,7 +846,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
 
   for (const { shop, grocery, quantity } of order.products) {
     totalItems += quantity;
-
+    console.log(shop, "shop id being searched in shop model");
     try {
       const fetchedShop = await Shop.findById(shop);
       if (!fetchedShop) {
@@ -1731,9 +909,12 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     totalPayment: order.totalPayment,
     paymentStatus: order.paymentStatus,
     deliveryFee: order.deliveryCharges,
+    deliveryTime: order.deliveryTime,
     startLocation: order.startLocation,
     endLocation: order.endLocation,
     deliveryPaymentStatus: order.deliveryPaymentStatus,
+    shopAcceptedOrder: order.shopAcceptedOrder,
+    shopRejectedOrder: order.shopRejectedOrder,
   };
 
   res.status(200).json({
@@ -1964,9 +1145,9 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
   if (action === "accept") {
     order.orderStatus = "accepted by owner";
     order.shopAcceptedOrder.push(shop._id);
-    shop.isOrderAccepted = true;
+    // shop.isOrderAccepted = true;
     await order.save();
-    await shop.save();
+    // await shop.save();
 
     // Send a notification to all riders about the new order
     const allRiders = await User.find({ userType: "Rider" });
