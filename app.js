@@ -22,7 +22,7 @@ const app = express();
 const publicPath = path.join(__dirname, "./public");
 app.use(express.static(publicPath));
 
-//set security http headers
+////set security http headers
 app.use(helmet());
 // Development logging
 app.use(express.json()); //Body parser for JSON data
@@ -33,24 +33,17 @@ if (process.env.NODE_ENV === "development") {
 
 app.use(xss());
 
-// app.use((req, res, next) => {
-//   console.log("Hey, from middleware");
-//   next();
-// });
-
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString;
   console.log(req.headers);
   next();
 });
 
-// ROUTES
+///// ROUTES
 app.get("/", (req, res) => {
   res.status(200).render("base");
 });
 app.use("/api/v1", setupRoutesV1());
-// app.use("/privacy", privacyRoutes);
-// app.use("/termsandcondition", termsandconditionRoutes);
 
 app.all("*", (req, res, next) => {
   next(new AppError(`can't find ${req.originalUrl} on this server`, 404));
