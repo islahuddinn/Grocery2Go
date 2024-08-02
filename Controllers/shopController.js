@@ -377,6 +377,88 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
   });
 });
 
+// exports.getNearbyShops = catchAsync(async (req, res, next) => {
+//   console.log("REQ_BODY IS:", req.query);
+//   const { latitude, longitude, maxDistance, keyword } = req.query;
+
+//   console.log(latitude, longitude, maxDistance, "here is the data");
+
+//   if (!latitude || !longitude || !maxDistance) {
+//     return next(
+//       new AppError(
+//         "Please provide valid latitude, longitude, and maxDistance",
+//         400
+//       )
+//     );
+//   }
+
+//   // Convert query parameters to appropriate types
+//   const lat = parseFloat(latitude);
+//   const lon = parseFloat(longitude);
+//   const maxDist = parseInt(maxDistance, 10);
+
+//   // Initial query to find nearby shops
+//   let nearbyShops = await Shop.find({
+//     location: {
+//       $near: {
+//         $geometry: {
+//           type: "Point",
+//           coordinates: [lon, lat],
+//         },
+//         $maxDistance: maxDist,
+//       },
+//     },
+//   });
+
+//   // If no nearby shops found, get at least two default shops
+//   if (!nearbyShops || nearbyShops.length === 0) {
+//     const defaultShops = await Shop.find().limit(2);
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "No nearby shops found. Here are some default shops.",
+//       data: defaultShops,
+//     });
+//   }
+
+//   // If keyword is provided, filter the nearby shops using text search
+//   if (keyword) {
+//     try {
+//       nearbyShops = await Shop.find({
+//         _id: { $in: nearbyShops.map((shop) => shop._id) },
+//         $text: { $search: keyword },
+//       });
+
+//       // If no shops found after keyword filter
+//       if (!nearbyShops || nearbyShops.length === 0) {
+//         return res.status(200).json({
+//           success: true,
+//           status: 200,
+//           message: "No shops found with the given keyword.",
+//           data: [],
+//         });
+//       }
+
+//       return res.status(200).json({
+//         success: true,
+//         status: 200,
+//         message: "Nearby shops with the given keyword retrieved successfully.",
+//         data: nearbyShops,
+//       });
+//     } catch (error) {
+//       console.error("Error applying text search:", error);
+//       return next(new AppError("Error applying text search", 500));
+//     }
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Nearby shops retrieved successfully",
+//     data: nearbyShops,
+//   });
+// });
+
 ////---get rendom groceries-----////
 
 function shuffleArray(array) {
