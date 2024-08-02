@@ -4,17 +4,14 @@ const loginChecks = (user) => {
     return "email-unverified";
   } else if (
     (user.userType === "Owner" && !user.isProfileCompleted) ||
-    !isOnboardingCompleted
+    !user.bankAccountInfo.isOnboardingCompleted
   ) {
     return "Owner-profile-setup-pending";
-  } else if (
-    (user.userType === "Customer" && !user.isProfileCompleted) ||
-    !isOnboardingCompleted
-  ) {
+  } else if (user.userType === "Customer" && !user.isProfileCompleted) {
     return "Customer-profile-setup-pending";
   } else if (
     (user.userType === "Rider" && !user.isProfileCompleted) ||
-    !isOnboardingCompleted
+    !user.bankAccountInfo.isOnboardingCompleted
   ) {
     return "Rider-profile-setup-pending";
   } else {
