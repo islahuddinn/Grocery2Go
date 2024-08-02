@@ -320,9 +320,9 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
   if (!nearbyShops || nearbyShops.length === 0) {
     const defaultShops = await Shop.find().limit(2);
     if (!defaultShops || defaultShops.length === 0) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
+      return res.status(200).json({
+        success: true,
+        status: 200,
         message: "No shops found",
         data: [],
       });
@@ -350,8 +350,8 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
       // If no shops found after keyword filter
       if (!filteredShops || filteredShops.length === 0) {
         return res.status(404).json({
-          success: false,
-          status: 404,
+          success: true,
+          status: 200,
           message: "No shops found with the given keyword.",
           data: [],
         });
@@ -655,7 +655,7 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
   ]);
 
   if (!favoriteProducts || favoriteProducts.length === 0) {
-    return next(new AppError("No favorite products found for this user", 404));
+    return next(new AppError("No favorite products found for this user", 200));
   }
 
   res.status(200).json({
@@ -736,7 +736,7 @@ exports.deleteProductFromShop = async (req, res, next) => {
       console.error(
         `Shop or product not found for user: ${userId} and product: ${productId}`
       );
-      return next(new AppError("Shop or product not found", 404));
+      return next(new AppError("Shop or product not found", 200));
     }
 
     console.log(
@@ -769,7 +769,7 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
 
     if (!shop) {
       console.error(`Shop not found for user: ${userId}`);
-      return next(new AppError("Shop not found", 404));
+      return next(new AppError("Shop not found", 200));
     }
 
     console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
@@ -781,7 +781,7 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
       console.error(
         `Product not found in shop: ${shop.shopTitle} - Product ID: ${productId}`
       );
-      return next(new AppError("Product not found", 404));
+      return next(new AppError("Product not found", 200));
     }
 
     // Update the product details
@@ -794,7 +794,7 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
       );
       if (!category) {
         console.error(`Category not found: ${categoryName}`);
-        return next(new AppError("Category not found", 404));
+        return next(new AppError("Category not found", 200));
       }
       product.categoryName = [{ categoryName: category.categoryName }];
     }
@@ -886,7 +886,7 @@ exports.getAllCategories = catchAsync(async (req, res, next) => {
   const shops = await Shop.find();
 
   if (!shops || shops.length === 0) {
-    return next(new AppError("No shops found", 404));
+    return next(new AppError("No shops found", 200));
   }
 
   // Extract and aggregate unique categories with images
