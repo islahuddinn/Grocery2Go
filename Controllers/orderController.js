@@ -410,32 +410,51 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
   }
 
   const shopId = shop._id;
-
-  // Find orders where products' shop matches the shopId and isOrderAccepted is true
-  const orders = await Order.find({
-    // "products.shop": shopId,
-    shopAcceptedOrder: { $in: [shopId] },
-    orderStatus: { $ne: "pending" }, // Exclude orders that are pending
-  }).populate("customer", "firstName lastName email image location");
-
-  // Filter orders to include only those where the shop isOrderAccepted is true
-  const filteredOrders = orders.filter((order) =>
-    order.products.some(
-      (product) => product.shop.equals(shopId) && shop.isOrderAccepted
-    )
-  );
-
-  if (!filteredOrders || filteredOrders.length === 0) {
-    return res.status(200).json({
-      success: true,
-      status: 200,
-      message: "No orders found for this shop",
-      data: filteredOrders,
-    });
+  console.log(shopId, "here is the shop");
+  // Ensure the shopId is a valid ObjectId
+  if (!mongoose.Types.ObjectId.isValid(shopId)) {
+    return next(new AppError("Invalid shop ID", 400));
   }
 
+  // Find orders where products' shop matches the shopId and isOrderAccepted is true
+  // const orders = await Order.find({
+  //   // "products.shop": shopId,
+  //   shopAcceptedOrder: shopId,
+  //   orderStatus: { $ne: "pending" }, // Exclude orders that are pending
+  // }).populate("customer", "firstName lastName email image location");
+  // Convert shopId to ObjectId for matching
+  const shopObjectId = new mongoose.Types.ObjectId(shopId);
+  const orders = await Order.find({
+    shopAcceptedOrder: shopObjectId,
+    orderStatus: { $ne: "pending" },
+  }).populate("customer", "firstName lastName email image location");
+  console.log(orders, "here is the shop order details");
+  // Filter orders to include only those where the shop isOrderAccepted is true
+  // const filteredOrders = orders.filter((order) =>
+  //   order.products.some(
+  //     (product) => product.shop.equals(shopObjectId) && shop.isOrderAccepted
+  //   )
+  // );
+  if (!orders || orders.length === 0) {
+    return next(new AppError("No orders found for this shop", 404));
+  }
+
+  // Filter orders based on shopObjectId
+  // const filteredOrders = orders.filter((order) =>
+  //   order.products.some((product) => product.shop.equals(shopObjectId))
+  // );
+
+  // if (!filteredOrders || filteredOrders.length === 0) {
+  //   return res.status(200).json({
+  //     success: true,
+  //     status: 200,
+  //     message: "No orders found for this shop",
+  //     data: filteredOrders,
+  //   });
+  // }
+
   const detailedOrders = [];
-  for (const order of filteredOrders) {
+  for (const order of orders) {
     const shopDetailsMap = new Map();
     let orderTotal = 0;
     let totalItems = 0;
@@ -1171,6 +1190,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     order.shopRejectedOrder.push(shop._id);
 
     await order.save();
+    // await shop.save();
 
     // Check if all shops for this order have rejected it
     const allShops = await Shop.find({
