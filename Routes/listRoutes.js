@@ -20,7 +20,7 @@ router.post("/pay-delivery-charges", listController.payDeliveryCharges);
 router.post(
   "/accept-reject-list-order",
   //   authController.restrictTo("Rider"),
-  listController.acceptOrRejectOrder
+  listController.acceptOrRejectListByRider
 );
 router.patch("/buying-grocery", listController.updateListItemAvailability);
 router

@@ -440,7 +440,7 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   }
 
   // Retrieve the list by listId
-  const list = await List.findById(listId).populate("user");
+  const list = await List.findById(listId).populate("customer");
   if (!list) {
     return next(new AppError("List not found", 404));
   }
@@ -473,7 +473,7 @@ exports.requestRider = catchAsync(async (req, res, next) => {
         id: list._id,
         items: list.items,
         user: list.user,
-        // listStatus, // Status of the list
+        listStatus: list.listStatus, // Status of the list
       },
     },
   });
@@ -481,118 +481,177 @@ exports.requestRider = catchAsync(async (req, res, next) => {
 
 /////-----Aaccept or Reject list order by rider -----////
 
-exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
+// exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
+//   const { listId, action } = req.body;
+
+//   // Retrieve the list by listId
+//   const list = await List.findById(listId).populate("customer");
+//   if (!list) {
+//     return next(new AppError("List not found", 404));
+//   }
+
+//   /// Extract product names from the list
+//   const productNames = list.items.map((item) => item.productName);
+
+//   // Fetch all products with their prices from the shop model
+//   const shopProducts = await Shop.aggregate([
+//     { $unwind: "$groceries" },
+//     { $match: { "groceries.productName": { $in: productNames } } },
+//     {
+//       $project: {
+//         "groceries.productName": 1,
+//         "groceries.price": 1,
+//       },
+//     },
+//   ]);
+
+//   ///// Create a map for product prices
+//   const priceMap = {};
+//   shopProducts.forEach((shopProduct) => {
+//     const productName = shopProduct.groceries.productName;
+//     const productPrice = shopProduct.groceries.price;
+//     priceMap[productName] = productPrice;
+//   });
+
+//   ///// Generate a unique order number (e.g., using a timestamp)
+//   const orderNumber = `ORD-${Date.now()}`;
+
+//   ////// Calculate items total and construct products array
+//   const products = [];
+//   let itemsTotal = 0;
+
+//   for (const item of list.items) {
+//     const price = priceMap[item.productName];
+//     if (!price) {
+//       return res.status(404).json({
+//         success: false,
+//         status: 404,
+//         message: `Price not found for item: ${item.productName} or item not available`,
+//       });
+//     }
+//     const totalPrice = item.quantity * price;
+//     itemsTotal += totalPrice;
+//     products.push({
+//       productName: item.productName,
+//       quantity: item.quantity,
+//       price: price,
+//     });
+//   }
+
+//   ///// Assuming startLocation is the first shop's location for simplicity
+//   const shop = await Shop.findOne({
+//     "groceries.productName": productNames[0],
+//   });
+//   if (!shop || !shop.location) {
+//     return next(
+//       new AppError("Shop not found or invalid coordinates/location", 404)
+//     );
+//   }
+//   const startLocation = shop.location;
+
+//   const serviceFee = 0.5;
+//   const adminFee = 0.1;
+//   const totalPayment = itemsTotal + serviceFee + adminFee;
+
+//   /// // Calculate delivery charges
+//   // const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
+
+//   // Create the order
+//   const newOrder = await Order.create({
+//     orderNumber,
+//     customer: list.user._id,
+//     listItems: products,
+//     startLocation: startLocation,
+//     endLocation: endLocation,
+//     itemsTotal: itemsTotal,
+//     serviceFee,
+//     adminFee,
+//     totalPayment: totalPayment,
+//     // deliveryCharges: deliveryCharges,
+//   });
+
+//   // Handle the action
+//   if (action === "accept") {
+//     newOrder.orderStatus = "rider accepted";
+//     newOrder.driver = req.user.id;
+//     await newOrder.save();
+
+//     // Send a notification to the customer about the order status change
+//     // Assuming you have a function to send notifications
+//     // sendNotificationToCustomer(order.customer, 'Your order is ready for pickup');
+
+//     return res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Order accepted and status updated to ready for pickup",
+//       newOrder,
+//     });
+//   } else if (action === "reject") {
+//     // Optionally, you can log the rejection or notify the customer about the rejection
+//     // sendNotificationToCustomer(newOrder.customer, 'Your order has been rejected');
+
+//     return next(new AppError("Order rejected ", 200));
+//   } else {
+//     return next(new AppError("Invalid action use accept/reject ", 400));
+//   }
+// });
+
+exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
   const { listId, action } = req.body;
 
-  // Retrieve the list by listId
-  const list = await List.findById(listId).populate("user");
+  const list = await List.findById(listId).populate("customer"); // Fetch the list and populate the customer details
+
   if (!list) {
     return next(new AppError("List not found", 404));
   }
 
-  /// Extract product names from the list
-  const productNames = list.items.map((item) => item.productName);
+  if (action === "reject") {
+    list.isRejected = true;
+    await list.save();
 
-  // Fetch all products with their prices from the shop model
-  const shopProducts = await Shop.aggregate([
-    { $unwind: "$groceries" },
-    { $match: { "groceries.productName": { $in: productNames } } },
-    {
-      $project: {
-        "groceries.productName": 1,
-        "groceries.price": 1,
-      },
-    },
-  ]);
-
-  ///// Create a map for product prices
-  const priceMap = {};
-  shopProducts.forEach((shopProduct) => {
-    const productName = shopProduct.groceries.productName;
-    const productPrice = shopProduct.groceries.price;
-    priceMap[productName] = productPrice;
-  });
-
-  ///// Generate a unique order number (e.g., using a timestamp)
-  const orderNumber = `ORD-${Date.now()}`;
-
-  ////// Calculate items total and construct products array
-  const products = [];
-  let itemsTotal = 0;
-
-  for (const item of list.items) {
-    const price = priceMap[item.productName];
-    if (!price) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: `Price not found for item: ${item.productName} or item not available`,
-      });
-    }
-    const totalPrice = item.quantity * price;
-    itemsTotal += totalPrice;
-    products.push({
-      productName: item.productName,
-      quantity: item.quantity,
-      price: price,
-    });
-  }
-
-  ///// Assuming startLocation is the first shop's location for simplicity
-  const shop = await Shop.findOne({
-    "groceries.productName": productNames[0],
-  });
-  if (!shop || !shop.location) {
-    return next(
-      new AppError("Shop not found or invalid coordinates/location", 404)
-    );
-  }
-  const startLocation = shop.location;
-
-  const serviceFee = 0.5;
-  const adminFee = 0.1;
-  const totalPayment = itemsTotal + serviceFee + adminFee;
-
-  /// // Calculate delivery charges
-  // const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
-
-  // Create the order
-  const newOrder = await Order.create({
-    orderNumber,
-    customer: list.user._id,
-    listItems: products,
-    startLocation: startLocation,
-    endLocation: endLocation,
-    itemsTotal: itemsTotal,
-    serviceFee,
-    adminFee,
-    totalPayment: totalPayment,
-    // deliveryCharges: deliveryCharges,
-  });
-
-  // Handle the action
-  if (action === "accept") {
-    newOrder.orderStatus = "rider accepted";
-    newOrder.driver = req.user.id;
-    await newOrder.save();
-
-    // Send a notification to the customer about the order status change
-    // Assuming you have a function to send notifications
-    // sendNotificationToCustomer(order.customer, 'Your order is ready for pickup');
+    // Notify all riders
+    const allRiders = await User.find({ userType: "Rider" });
+    // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
+    // await SendNotificationMultiCast({
+    //   tokens: FCMTokens,
+    //   title: "New order delivery request",
+    //   body: `Accept or reject the order ${list}`,
+    // });
 
     return res.status(200).json({
       success: true,
       status: 200,
-      message: "Order accepted and status updated to ready for pickup",
-      newOrder,
+      message: "List rejected by a rider and notified all riders",
+      data: list,
     });
-  } else if (action === "reject") {
-    // Optionally, you can log the rejection or notify the customer about the rejection
-    // sendNotificationToCustomer(newOrder.customer, 'Your order has been rejected');
+  } else if (action === "accept") {
+    list.listStatus = "accepted";
+    list.driver = req.user.id;
+    list.isAccepted = true;
+    await list.save();
 
-    return next(new AppError("Order rejected ", 200));
+    const user = req.user;
+    const orderNumber = `ORD-${Date.now()}`;
+    const customer = list.customer;
+
+    // Create the order
+    const newOrder = await Order.create({
+      orderNumber,
+      customer: customer._id,
+      listItems: list.items,
+      startLocation: user.location,
+      endLocation: customer.location,
+      driver: user.id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Order accepted by rider",
+      listOrder: newOrder,
+    });
   } else {
-    return next(new AppError("Invalid action use accept/reject ", 400));
+    return next(new AppError("Invalid action, use 'accept' or 'reject'", 400));
   }
 });
 
@@ -947,8 +1006,8 @@ exports.markOrderAsCompleted = catchAsync(async (req, res, next) => {
 /////----get all user lists
 exports.getUserLists = catchAsync(async (req, res, next) => {
   const userId = req.user._id;
-
-  const lists = await List.find({ user: userId })
+  console.log(userId, "here is the user id");
+  const lists = await List.find({ customer: userId })
     .populate("shop", "shopTitle")
     .populate("rider", "name");
 

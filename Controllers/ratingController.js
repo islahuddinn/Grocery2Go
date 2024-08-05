@@ -103,7 +103,7 @@ exports.getAverageRatingForUser = catchAsync(async (req, res, next) => {
 });
 ///////-------Delete Rating ----- //////
 exports.deleteRating = catchAsync(async (req, res, next) => {
-  const { ratingId } = req.params;
+  const ratingId = req.params.id;
 
   if (!ratingId) {
     return next(new AppError("Invalid input data", 400));
@@ -112,7 +112,7 @@ exports.deleteRating = catchAsync(async (req, res, next) => {
   const deletedRating = await Rating.findByIdAndDelete(ratingId);
 
   if (!deletedRating) {
-    return next(new AppError("Rating not found", 404));
+    return next(new AppError("Rating not found", 200));
   }
 
   res.status(204).json({

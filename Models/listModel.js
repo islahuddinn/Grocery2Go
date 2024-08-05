@@ -37,7 +37,16 @@ const listSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    isRejected: {
+      type: Boolean,
+      default: false,
+    },
+    isAccepted: {
+      type: Boolean,
+      default: false,
+    },
     listStatus: {
+      type: String,
       enum: ["pending", "accepted", "completed", "cancelled"],
     },
   },
