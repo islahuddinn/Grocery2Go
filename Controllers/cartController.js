@@ -998,8 +998,8 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     deliveryCharges: 0,
     deliveryTime,
     totalPayment,
-    shopAcceptedOrder,
-    shopRejectedOrder,
+    // shopAcceptedOrder,
+    // shopRejectedOrder,
     paymentStatus: "paid",
     orderStatus: "pending",
   });
