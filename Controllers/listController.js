@@ -657,6 +657,85 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
 
 ////// ----- Rider Buying Grocery ----- /////
 
+// exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
+//   const { orderId, updatedItems } = req.body;
+
+//   if (!orderId || !updatedItems || !Array.isArray(updatedItems)) {
+//     return next(new AppError("Invalid input data", 400));
+//   }
+
+//   const order = await Order.findById(orderId);
+//   if (!order) {
+//     return next(new AppError("Order not found", 404));
+//   }
+//   const riderDetails = await User.findById(order.driver).populate(
+//     "firstName image location"
+//   );
+//   if (!riderDetails) {
+//     return next(new AppError("Driver not found in the order", 404));
+//   }
+//   // console.log("mr rider details are here:", riderDetails);
+//   // Fetch serviceFee and adminFee from settings
+//   const otherCharges = await Order.findOne();
+//   if (!otherCharges) {
+//     return next(new AppError("Other charges not found", 500));
+//   }
+
+//   const { serviceFee, tax, tip } = otherCharges;
+//   let itemsTotal = 0;
+//   let totalPayment = 0;
+//   const deliveryCharges = order.deliveryCharges || 2.0;
+
+//   for (const item of order.listItems) {
+//     const updatedItem = updatedItems.find(
+//       (ui) => ui.productName === item.productName
+//     );
+//     if (updatedItem) {
+//       item.isAvailable = updatedItem.isAvailable;
+
+//       if (updatedItem.isAvailable) {
+//         const shopProduct = await Shop.findOne(
+//           { "categories.groceries.productName": item.productName },
+//           { "categories.groceries.$": 1 }
+//         );
+
+//         if (!shopProduct) {
+//           return res.status(404).json({
+//             success: false,
+//             status: 404,
+//             message: `Price not found for item: ${item.productName}`,
+//           });
+//         }
+
+//         const grocery = shopProduct.categories[0].groceries[0];
+//         const totalPrice = item.quantity * grocery.price;
+//         itemsTotal += totalPrice;
+//       }
+//     }
+//   }
+
+//   totalPayment = itemsTotal + serviceFee + tax;
+
+//   order.itemsTotal = itemsTotal.toFixed(2);
+//   order.serviceFee = serviceFee;
+//   order.tax = tax;
+//   order.tip = tip;
+//   order.totalPayment = totalPayment.toFixed(2);
+//   order.orderStatus = "buying grocery";
+//   order.deliveryCharges = deliveryCharges;
+
+//   await order.save();
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "List item availability and billing details updated successfully",
+//     order,
+//     // paymentIntent,
+//     riderDetails,
+//   });
+// });
+
 exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
   const { orderId, updatedItems } = req.body;
 
@@ -668,53 +747,44 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
   if (!order) {
     return next(new AppError("Order not found", 404));
   }
-  const riderDetails = await User.findById(order.driver).populate(
+
+  const riderDetails = await User.findById(order.driver).select(
     "firstName image location"
   );
   if (!riderDetails) {
     return next(new AppError("Driver not found in the order", 404));
   }
-  // console.log("mr rider details are here:", riderDetails);
-  // Fetch serviceFee and adminFee from settings
-  const otherCharges = await Order.findOne();
-  if (!otherCharges) {
-    return next(new AppError("Other charges not found", 500));
-  }
 
-  const { serviceFee, tax, tip } = otherCharges;
+  const { serviceFee, tax, tip } = order; // Assuming these fields are already present in the order document
   let itemsTotal = 0;
   let totalPayment = 0;
   const deliveryCharges = order.deliveryCharges || 2.0;
 
-  for (const item of order.listItems) {
-    const updatedItem = updatedItems.find(
-      (ui) => ui.productName === item.productName
+  const availableItems = updatedItems.filter((item) => item.isAvailable);
+
+  for (const updatedItem of updatedItems) {
+    const orderItem = order.listItems.find(
+      (item) => item.productName === updatedItem.productName
     );
-    if (updatedItem) {
-      item.isAvailable = updatedItem.isAvailable;
 
-      if (updatedItem.isAvailable) {
-        const shopProduct = await Shop.findOne(
-          { "categories.groceries.productName": item.productName },
-          { "categories.groceries.$": 1 }
-        );
+    if (!orderItem) {
+      return next(
+        new AppError(
+          `Product ${updatedItem.productName} is not in the order`,
+          400
+        )
+      );
+    }
 
-        if (!shopProduct) {
-          return res.status(404).json({
-            success: false,
-            status: 404,
-            message: `Price not found for item: ${item.productName}`,
-          });
-        }
+    orderItem.isAvailable = updatedItem.isAvailable;
+    orderItem.price = updatedItem.price;
 
-        const grocery = shopProduct.categories[0].groceries[0];
-        const totalPrice = item.quantity * grocery.price;
-        itemsTotal += totalPrice;
-      }
+    if (updatedItem.isAvailable) {
+      itemsTotal += orderItem.quantity * updatedItem.price;
     }
   }
 
-  totalPayment = itemsTotal + serviceFee + tax;
+  totalPayment = itemsTotal + serviceFee + tax + deliveryCharges;
 
   order.itemsTotal = itemsTotal.toFixed(2);
   order.serviceFee = serviceFee;
@@ -722,26 +792,144 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
   order.tip = tip;
   order.totalPayment = totalPayment.toFixed(2);
   order.orderStatus = "buying grocery";
-  order.deliveryCharges = deliveryCharges;
 
   await order.save();
+
+  const orderSummary = availableItems.map((item) => {
+    const orderItem = order.listItems.find(
+      (orderItem) => orderItem.productName === item.productName
+    );
+    return {
+      productName: item.productName,
+      quantity: orderItem.quantity,
+      price: item.price,
+      total: (orderItem.quantity * item.price).toFixed(2),
+    };
+  });
 
   res.status(200).json({
     success: true,
     status: 200,
     message: "List item availability and billing details updated successfully",
-    order,
-    // paymentIntent,
+    order: {
+      orderId: order._id,
+      orderStatus: order.orderStatus,
+      itemsTotal: order.itemsTotal,
+      serviceFee: order.serviceFee,
+      tax: order.tax,
+      tip: order.tip,
+      totalPayment: order.totalPayment,
+      deliveryCharges: order.deliveryCharges,
+    },
+    orderSummary,
     riderDetails,
   });
 });
 
 //////-----Send bill to the customer with order details----////
 
-exports.sendListBill = catchAsync(async (req, res, next) => {
-  const { orderId } = req.body;
+// exports.sendListBill = catchAsync(async (req, res, next) => {
+//   const { orderId } = req.body;
 
-  if (!orderId) {
+//   if (!orderId) {
+//     return next(new AppError("Invalid input data", 400));
+//   }
+
+//   const order = await Order.findById(orderId).populate("customer");
+//   if (!order) {
+//     return next(new AppError("Order not found", 404));
+//   }
+
+//   const riderDetails = await User.findById(order.driver).select(
+//     "firstName image location"
+//   );
+//   if (!riderDetails) {
+//     return next(new AppError("Driver not found in the order", 404));
+//   }
+
+//   const settings = await Order.findOne();
+//   if (!settings) {
+//     return next(
+//       new AppError("Service fee, Admin fee or tax fee not found", 500)
+//     );
+//   }
+
+//   const { serviceFee, tax } = settings;
+//   let itemsTotal = 0;
+
+//   for (const item of order.listItems) {
+//     if (item.isAvailable) {
+//       const shopProduct = await Shop.findOne(
+//         { "categories.groceries.productName": item.productName },
+//         { "categories.$": 1 }
+//       );
+
+//       if (!shopProduct) {
+//         return res.status(404).json({
+//           success: false,
+//           status: 404,
+//           message: `Price not found for item: ${item.productName}`,
+//         });
+//       }
+
+//       const grocery = shopProduct.categories[0].groceries.find(
+//         (g) => g.productName === item.productName
+//       );
+//       const totalPrice = item.quantity * grocery.price;
+//       itemsTotal += totalPrice;
+//     }
+//   }
+
+//   const totalPayment = itemsTotal + serviceFee + tax;
+
+//   order.itemsTotal = itemsTotal.toFixed(2);
+//   order.serviceFee = serviceFee;
+//   order.tax = tax;
+//   order.totalPayment = totalPayment.toFixed(2);
+//   order.orderStatus = "buying grocery";
+
+//   await order.save();
+
+//   const FCMToken = order.customer.deviceToken;
+//   const paymentIntent = await stripe.paymentIntents.create({
+//     amount: Math.round(totalPayment * 100),
+//     currency: "usd",
+//     customer: order.customer.stripeCustomerId,
+//     description: `Payment for order ${order.orderNumber}`,
+//   });
+
+//   //// Notify the customer
+//   // await SendNotification({
+//   //   token: FCMToken,
+//   //   title: "Bill Details",
+//   //   body: `Your order ${
+//   //     order.orderNumber
+//   //   } payment is pending. Total payment: ${totalPayment.toFixed(2)}`,
+//   // });
+
+//   // await Notification.create({
+//   //   sender: order.driver,
+//   //   receiver: order.customer._id,
+//   //   data: `Your order ${
+//   //     order.orderNumber
+//   //   } bill is ready. Total payment: ${totalPayment.toFixed(2)}`,
+//   // });
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "List items and billing details send successfully",
+//     order,
+//     paymentIntentId: paymentIntent._id,
+//     tip: paymentIntent.amount_details,
+//     riderDetails,
+//   });
+// });
+
+exports.sendListBill = catchAsync(async (req, res, next) => {
+  const { orderId, updatedItems } = req.body;
+
+  if (!orderId || !updatedItems || !Array.isArray(updatedItems)) {
     return next(new AppError("Invalid input data", 400));
   }
 
@@ -757,40 +945,32 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
     return next(new AppError("Driver not found in the order", 404));
   }
 
-  const settings = await Order.findOne();
-  if (!settings) {
-    return next(
-      new AppError("Service fee, Admin fee or tax fee not found", 500)
-    );
-  }
-
-  const { serviceFee, tax } = settings;
+  const { serviceFee, tax } = order;
   let itemsTotal = 0;
+  const deliveryCharges = order.deliveryCharges || 2.0;
 
-  for (const item of order.listItems) {
-    if (item.isAvailable) {
-      const shopProduct = await Shop.findOne(
-        { "categories.groceries.productName": item.productName },
-        { "categories.$": 1 }
+  for (const updatedItem of updatedItems) {
+    const orderItem = order.listItems.find(
+      (item) => item.productName === updatedItem.productName
+    );
+
+    if (!orderItem) {
+      return next(
+        new AppError(
+          `Product ${updatedItem.productName} is not in the order`,
+          400
+        )
       );
+    }
 
-      if (!shopProduct) {
-        return res.status(404).json({
-          success: false,
-          status: 404,
-          message: `Price not found for item: ${item.productName}`,
-        });
-      }
+    orderItem.isAvailable = updatedItem.isAvailable;
 
-      const grocery = shopProduct.categories[0].groceries.find(
-        (g) => g.productName === item.productName
-      );
-      const totalPrice = item.quantity * grocery.price;
-      itemsTotal += totalPrice;
+    if (updatedItem.isAvailable) {
+      itemsTotal += orderItem.quantity * updatedItem.price;
     }
   }
 
-  const totalPayment = itemsTotal + serviceFee + tax;
+  const totalPayment = itemsTotal + serviceFee + tax + deliveryCharges;
 
   order.itemsTotal = itemsTotal.toFixed(2);
   order.serviceFee = serviceFee;
@@ -800,7 +980,6 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
 
   await order.save();
 
-  const FCMToken = order.customer.deviceToken;
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(totalPayment * 100),
     currency: "usd",
@@ -808,33 +987,34 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
     description: `Payment for order ${order.orderNumber}`,
   });
 
-  //// Notify the customer
-  // await SendNotification({
-  //   token: FCMToken,
-  //   title: "Bill Details",
-  //   body: `Your order ${
-  //     order.orderNumber
-  //   } payment is pending. Total payment: ${totalPayment.toFixed(2)}`,
-  // });
-
-  // await Notification.create({
-  //   sender: order.driver,
-  //   receiver: order.customer._id,
-  //   data: `Your order ${
-  //     order.orderNumber
-  //   } bill is ready. Total payment: ${totalPayment.toFixed(2)}`,
-  // });
+  const orderSummary = order.listItems
+    .filter((item) => item.isAvailable)
+    .map((item) => ({
+      productName: item.productName,
+      quantity: item.quantity,
+      price: item.price,
+      total: (item.quantity * item.price).toFixed(2),
+    }));
 
   res.status(200).json({
     success: true,
     status: 200,
-    message: "List items and billing details send successfully",
-    order,
-    paymentIntentId: paymentIntent._id,
-    tip: paymentIntent.amount_details,
+    message: "List items and billing details sent successfully",
+    order: {
+      orderId: order._id,
+      orderStatus: order.orderStatus,
+      itemsTotal: order.itemsTotal,
+      serviceFee: order.serviceFee,
+      tax: order.tax,
+      totalPayment: order.totalPayment,
+      deliveryCharges: order.deliveryCharges,
+    },
+    orderSummary,
+    paymentIntentId: paymentIntent.id,
     riderDetails,
   });
 });
+
 ////----add tip to the user ------ ////
 
 exports.addTipToRider = catchAsync(async (req, res, next) => {

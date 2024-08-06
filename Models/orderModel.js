@@ -41,6 +41,9 @@ const orderSchema = new mongoose.Schema(
           // required: true,
           min: 1,
         },
+        price: {
+          type: Number,
+        },
         isAvailable: {
           type: Boolean,
           default: false,
