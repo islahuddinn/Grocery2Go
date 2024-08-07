@@ -927,9 +927,9 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
 // });
 
 exports.sendListBill = catchAsync(async (req, res, next) => {
-  const { orderId, updatedItems } = req.body;
+  const { orderId } = req.body;
 
-  if (!orderId || !updatedItems || !Array.isArray(updatedItems)) {
+  if (!orderId) {
     return next(new AppError("Invalid input data", 400));
   }
 
@@ -945,29 +945,14 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
     return next(new AppError("Driver not found in the order", 404));
   }
 
-  const { serviceFee, tax } = order;
+  const { serviceFee, tax, tip, deliveryCharges } = order;
   let itemsTotal = 0;
-  const deliveryCharges = order.deliveryCharges || 2.0;
 
-  for (const updatedItem of updatedItems) {
-    const orderItem = order.listItems.find(
-      (item) => item.productName === updatedItem.productName
-    );
+  const availableItems = order.listItems.filter((item) => item.isAvailable);
 
-    if (!orderItem) {
-      return next(
-        new AppError(
-          `Product ${updatedItem.productName} is not in the order`,
-          400
-        )
-      );
-    }
-
-    orderItem.isAvailable = updatedItem.isAvailable;
-
-    if (updatedItem.isAvailable) {
-      itemsTotal += orderItem.quantity * updatedItem.price;
-    }
+  for (const item of availableItems) {
+    const totalPrice = item.quantity * item.price;
+    itemsTotal += totalPrice;
   }
 
   const totalPayment = itemsTotal + serviceFee + tax + deliveryCharges;
@@ -985,32 +970,64 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
     currency: "usd",
     customer: order.customer.stripeCustomerId,
     description: `Payment for order ${order.orderNumber}`,
+    metadata: { tipAmount: tip.toString() },
   });
 
-  const orderSummary = order.listItems
-    .filter((item) => item.isAvailable)
-    .map((item) => ({
-      productName: item.productName,
-      quantity: item.quantity,
-      price: item.price,
-      total: (item.quantity * item.price).toFixed(2),
-    }));
+  const orderSummary = {
+    itemsTotal: order.itemsTotal,
+    serviceFee: order.serviceFee,
+    adminFee: order.adminFee,
+    tax: order.tax,
+    tip: order.tip,
+    totalPayment: order.totalPayment,
+  };
 
   res.status(200).json({
     success: true,
     status: 200,
     message: "List items and billing details sent successfully",
     order: {
-      orderId: order._id,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      _id: order._id,
+      orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
-      itemsTotal: order.itemsTotal,
+      rejectedBy: order.rejectedBy,
+      listItems: availableItems.map((item) => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        isAvailable: item.isAvailable,
+        _id: item._id,
+        price: item.price,
+      })),
+      customer: order.customer._id,
+      driver: order.driver._id,
+      deliveryPaymentStatus: order.deliveryPaymentStatus,
+      isdeliveryInProgress: order.isdeliveryInProgress,
       serviceFee: order.serviceFee,
+      adminFee: order.adminFee,
       tax: order.tax,
-      totalPayment: order.totalPayment,
+      savings: order.savings,
+      paymentStatus: order.paymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
+      products: order.products,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      __v: order.__v,
       deliveryCharges: order.deliveryCharges,
+      itemsTotal: order.itemsTotal,
+      totalPayment: order.totalPayment,
+      riderEarnings: order.riderEarnings,
+      tip: order.tip,
     },
     orderSummary,
-    paymentIntentId: paymentIntent.id,
+    paymentIntent: {
+      id: paymentIntent.id,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      metadata: paymentIntent.metadata,
+    },
     riderDetails,
   });
 });
