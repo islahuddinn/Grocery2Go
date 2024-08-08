@@ -49,6 +49,18 @@ const listSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "accepted", "completed", "cancelled"],
     },
+    riderRejectedList: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    requestedRiders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );

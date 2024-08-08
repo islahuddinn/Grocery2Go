@@ -438,13 +438,23 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   if (!rider) {
     return next(new AppError("Rider not found", 404));
   }
-
   // Retrieve the list by listId
   const list = await List.findById(listId).populate("customer");
   if (!list) {
     return next(new AppError("List not found", 404));
   }
+  // Check if the rider has already been requested
+  if (list.requestedRiders.includes(riderId)) {
+    return res.status(400).json({
+      success: false,
+      status: 400,
+      message: "Rider already requested.",
+    });
+  }
 
+  // Add the rider to the requested riders
+  list.requestedRiders.push(riderId);
+  await list.save();
   // Notify the rider (mock notification for now)
   // const FCMToken = rider.deviceToken;
   // const notification = await Notification.create({
@@ -460,19 +470,6 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   // const listStatus = (await list.listStatus) === "pending";
   // await list.save();
   // Return rider with list details and status
-  //  const user = req.user;
-  const orderNumber = `ORD-${Date.now()}`;
-  const customer = list.customer;
-
-  // Create the order
-  const newOrder = await Order.create({
-    orderNumber,
-    customer: customer._id,
-    listItems: list.items,
-    //  startLocation: user.location,
-    endLocation: customer.location,
-    //  driver: user.id,
-  });
   res.status(200).json({
     success: true,
     status: 200,
@@ -486,9 +483,8 @@ exports.requestRider = catchAsync(async (req, res, next) => {
         id: list._id,
         items: list.items,
         user: list.user,
-        listStatus: list.listStatus, // Status of the list
+        listStatus: list.listStatus,
       },
-      order: newOrder,
     },
   });
 });
@@ -611,17 +607,19 @@ exports.requestRider = catchAsync(async (req, res, next) => {
 // });
 
 exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
-  const { orderId, action } = req.body;
+  const { listId, action } = req.body;
 
-  const order = await Order.findById(orderId).populate("customer"); // Fetch the list and populate the customer details
+  const list = await List.findById(listId).populate("customer"); // Fetch the list and populate the customer details
 
-  if (!order) {
-    return next(new AppError("List order not found", 404));
+  if (!list) {
+    return next(new AppError("List not found", 404));
   }
 
   if (action === "reject") {
-    list.isRejected = true;
+    list.riderRejectedList.push(req.user._id);
     await list.save();
+
+    //Notify customer about rider rejected list
 
     // Notify all riders
     const allRiders = await User.find({ userType: "Rider" });
@@ -635,7 +633,7 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
     return res.status(200).json({
       success: true,
       status: 200,
-      message: "List rejected by a rider and notified all riders",
+      message: "List rejected by a rider and notified to customer",
       data: list,
     });
   } else if (action === "accept") {
@@ -644,25 +642,27 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
     list.isAccepted = true;
     await list.save();
 
-    // const user = req.user;
-    // const orderNumber = `ORD-${Date.now()}`;
-    // const customer = list.customer;
+    const user = req.user;
+    const orderNumber = `ORD-${Date.now()}`;
+    const customer = list.customer;
 
-    // // Create the order
-    // const newOrder = await Order.create({
-    //   orderNumber,
-    //   customer: customer._id,
-    //   listItems: list.items,
-    //   startLocation: user.location,
-    //   endLocation: customer.location,
-    //   driver: user.id,
-    // });
+    // Create the order
+    const newOrder = await Order.create({
+      orderNumber,
+      customer: customer._id,
+      listItems: list.items,
+      startLocation: user.location,
+      endLocation: customer.location,
+      driver: user.id,
+      orderStatus: "accepted by rider",
+    });
 
     return res.status(200).json({
       success: true,
       status: 200,
       message: "Order accepted by rider",
       listOrder: newOrder,
+      customer: customer,
     });
   } else {
     return next(new AppError("Invalid action, use 'accept' or 'reject'", 400));

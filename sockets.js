@@ -187,7 +187,7 @@ io.sockets.on("connect", async (socket) => {
       });
     })
   );
-  //get messages
+  //--------------get messages-------------/////
   socket.on(
     "get-messages",
     authenticated(async ({ user, inbox }) => {
