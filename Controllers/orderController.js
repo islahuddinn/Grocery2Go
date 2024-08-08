@@ -161,14 +161,14 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     riderRejectedList: { $nin: [req.user._id] },
   }).populate("customer");
   console.log(list, "Here is the list reqested to rider");
-  if (!orders || orders.length === 0) {
-    return res.status(200).json({
-      success: true,
-      status: 200,
-      message: "No orders found for this user",
-      data: orders,
-    });
-  }
+  // if (!orders || orders.length === 0) {
+  //   return res.status(200).json({
+  //     success: true,
+  //     status: 200,
+  //     message: "No orders found for this user",
+  //     data: orders,
+  //   });
+  // }
 
   const detailedOrders = [];
   for (const order of orders) {
