@@ -61,6 +61,15 @@ const listSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    customerLocation: {
+      type: {
+        type: String,
+        default: "Point",
+      },
+      country: String,
+      coordinates: { type: [Number], default: [0, 0] },
+      address: String,
+    },
   },
   { timestamps: true }
 );

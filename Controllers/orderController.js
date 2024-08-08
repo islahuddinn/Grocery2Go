@@ -291,7 +291,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const list = await List.find({
     requestedRiders: req.user.id,
     riderRejectedList: { $nin: [req.user._id] },
-  }).populate("customer");
+  }).populate("customer", "firstName lastName image location");
 
   console.log(list, "Here is the list requested to rider");
 
@@ -352,14 +352,16 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       }
     }
 
-    // const listOrderDetails = order.listItems
+    // const listOrderDetails = list.listItems
     //   .filter((item) => item.isAvailable)
     //   .map((item) => ({
     //     productName: item.productName,
     //     quantity: item.quantity,
     //     price: item.price,
+    //     customer: list.customer,
     //     total: (item.quantity * item.price).toFixed(2),
     //   }));
+    // console.log(listOrderDetails, "Here is the list order details");
 
     const shopDetails = [...shopDetailsMap.values()].map((shop) => ({
       ...shop,
@@ -394,7 +396,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       orderTotal: orderTotal.toFixed(2),
       rider: order.driver ? order.driver.name : null,
       orderSummary,
-      listOrderDetails: list,
+      // listOrderDetails: listOrderDetails,
     });
   }
 
@@ -402,7 +404,8 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     success: true,
     status: 200,
     message: "Orders retrieved successfully",
-    data: detailedOrders,
+    data: { detailedOrders, listOrderDetails: list },
+    // listOrderDetails: list,
   });
 });
 
