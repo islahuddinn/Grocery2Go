@@ -150,25 +150,150 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
 
 ////////// -----use this is the controller function to get rider side new orders
 
+// exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
+//   const orders = await Order.find({
+//     orderStatus: "accepted by owner",
+//     rejectedBy: { $nin: [req.user._id] }, // do not show to the rejected one rider
+//     isdeliveryInProgress: false,
+//   }).populate("customer", "firstName lastName email image location");
+//   const list = await List.find({
+//     requestedRiders: req.user.id,
+//     riderRejectedList: { $nin: [req.user._id] },
+//   }).populate("customer");
+//   console.log(list, "Here is the list reqested to rider");
+//   // if (!orders || orders.length === 0) {
+//   //   return res.status(200).json({
+//   //     success: true,
+//   //     status: 200,
+//   //     message: "No orders found for this user",
+//   //     data: orders,
+//   //   });
+//   // }
+
+//   const detailedOrders = [];
+//   for (const order of orders) {
+//     const shopDetailsMap = new Map();
+//     let orderTotal = 0;
+//     let totalItems = 0;
+
+//     for (const { shop, grocery, quantity } of order.products) {
+//       totalItems += quantity;
+
+//       try {
+//         const fetchedShop = await Shop.findById(shop);
+//         if (!fetchedShop) {
+//           console.error(`Shop with ID ${shop} not found.`);
+//           continue;
+//         }
+
+//         const fetchedGrocery = fetchedShop.groceries.id(grocery);
+//         if (!fetchedGrocery) {
+//           console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
+//           continue;
+//         }
+
+//         const productDetail = {
+//           productName: fetchedGrocery.productName,
+//           category: fetchedGrocery.categoryName,
+//           volume: fetchedGrocery.volume,
+//           quantity: quantity,
+//           productImages: fetchedGrocery.productImages,
+//           price: fetchedGrocery.price,
+//         };
+
+//         const productTotal = fetchedGrocery.price * quantity;
+//         orderTotal += productTotal;
+
+//         if (!shopDetailsMap.has(shop.toString())) {
+//           shopDetailsMap.set(shop.toString(), {
+//             shopId: shop,
+//             shopTitle: fetchedShop.shopTitle,
+//             image: fetchedShop.image,
+//             location: fetchedShop.location,
+//             products: [],
+//             isOrderAccepted: fetchedShop.isOrderAccepted,
+//             shopTotal: 0,
+//           });
+//         }
+
+//         const shopDetail = shopDetailsMap.get(shop.toString());
+//         shopDetail.products.push(productDetail);
+//         shopDetail.shopTotal += productTotal;
+//       } catch (error) {
+//         console.error(
+//           `Error processing shop or grocery item: ${error.message}`
+//         );
+//         continue;
+//       }
+//     }
+//     const listOrderDetails = order.listItems
+//       .filter((item) => item.isAvailable)
+//       .map((item) => ({
+//         productName: item.productName,
+//         quantity: item.quantity,
+//         price: item.price,
+//         customer: item.customer,
+//         total: (item.quantity * item.price).toFixed(2),
+//       }));
+
+//     const shopDetails = [...shopDetailsMap.values()].map((shop) => ({
+//       ...shop,
+//       shopOrderSummary: {
+//         shopItems: shop.products.length,
+//         shopItemsTotal: shop.shopTotal.toFixed(2),
+//       },
+//     }));
+
+//     const orderSummary = {
+//       itemsTotal: order.itemsTotal,
+//       totalItems,
+//       serviceFee: order.serviceFee,
+//       adminFee: order.adminFee,
+//       totalPayment: order.totalPayment,
+//       paymentStatus: order.paymentStatus,
+//       deliveryFee: order.deliveryCharges,
+//       deliveryTime: order.deliveryTime,
+//       startLocation: order.startLocation,
+//       endLocation: order.endLocation,
+//       deliveryPaymentStatus: order.deliveryPaymentStatus,
+//       shopAcceptedOrder: order.shopAcceptedOrder,
+//       shopRejectedOrder: order.shopRejectedOrder,
+//       // listOrderDetails,
+//     };
+
+//     detailedOrders.push({
+//       orderNumber: order.orderNumber,
+//       orderStatus: order.orderStatus,
+//       _id: order.id,
+//       customer: order.customer,
+//       shopDetails: shopDetails,
+//       orderTotal: orderTotal.toFixed(2),
+//       rider: order.driver ? order.driver.name : null,
+//       orderSummary,
+//       listOrderDetails,
+//     });
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Orders retrieved successfully",
+//     data: detailedOrders,
+//   });
+// });
 exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   const orders = await Order.find({
     orderStatus: "accepted by owner",
     rejectedBy: { $nin: [req.user._id] }, // do not show to the rejected one rider
     isdeliveryInProgress: false,
   }).populate("customer", "firstName lastName email image location");
+
   const list = await List.find({
     requestedRiders: req.user.id,
     riderRejectedList: { $nin: [req.user._id] },
   }).populate("customer");
-  console.log(list, "Here is the list reqested to rider");
-  // if (!orders || orders.length === 0) {
-  //   return res.status(200).json({
-  //     success: true,
-  //     status: 200,
-  //     message: "No orders found for this user",
-  //     data: orders,
-  //   });
-  // }
+
+  console.log(list, "Here is the list requested to rider");
 
   const detailedOrders = [];
   for (const order of orders) {
@@ -226,15 +351,15 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
         continue;
       }
     }
-    const listOrderDetails = order.listItems
-      .filter((item) => item.isAvailable)
-      .map((item) => ({
-        productName: item.productName,
-        quantity: item.quantity,
-        price: item.price,
-        customer: item.customer,
-        total: (item.quantity * item.price).toFixed(2),
-      }));
+
+    // const listOrderDetails = order.listItems
+    //   .filter((item) => item.isAvailable)
+    //   .map((item) => ({
+    //     productName: item.productName,
+    //     quantity: item.quantity,
+    //     price: item.price,
+    //     total: (item.quantity * item.price).toFixed(2),
+    //   }));
 
     const shopDetails = [...shopDetailsMap.values()].map((shop) => ({
       ...shop,
@@ -258,7 +383,6 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       deliveryPaymentStatus: order.deliveryPaymentStatus,
       shopAcceptedOrder: order.shopAcceptedOrder,
       shopRejectedOrder: order.shopRejectedOrder,
-      // listOrderDetails,
     };
 
     detailedOrders.push({
@@ -270,7 +394,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       orderTotal: orderTotal.toFixed(2),
       rider: order.driver ? order.driver.name : null,
       orderSummary,
-      listOrderDetails,
+      listOrderDetails: list,
     });
   }
 
