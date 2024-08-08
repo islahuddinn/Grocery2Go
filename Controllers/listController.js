@@ -460,6 +460,19 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   // const listStatus = (await list.listStatus) === "pending";
   // await list.save();
   // Return rider with list details and status
+  //  const user = req.user;
+  const orderNumber = `ORD-${Date.now()}`;
+  const customer = list.customer;
+
+  // Create the order
+  const newOrder = await Order.create({
+    orderNumber,
+    customer: customer._id,
+    listItems: list.items,
+    //  startLocation: user.location,
+    endLocation: customer.location,
+    //  driver: user.id,
+  });
   res.status(200).json({
     success: true,
     status: 200,
@@ -475,6 +488,7 @@ exports.requestRider = catchAsync(async (req, res, next) => {
         user: list.user,
         listStatus: list.listStatus, // Status of the list
       },
+      order: newOrder,
     },
   });
 });
@@ -597,12 +611,12 @@ exports.requestRider = catchAsync(async (req, res, next) => {
 // });
 
 exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
-  const { listId, action } = req.body;
+  const { orderId, action } = req.body;
 
-  const list = await List.findById(listId).populate("customer"); // Fetch the list and populate the customer details
+  const order = await Order.findById(orderId).populate("customer"); // Fetch the list and populate the customer details
 
-  if (!list) {
-    return next(new AppError("List not found", 404));
+  if (!order) {
+    return next(new AppError("List order not found", 404));
   }
 
   if (action === "reject") {
@@ -630,19 +644,19 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
     list.isAccepted = true;
     await list.save();
 
-    const user = req.user;
-    const orderNumber = `ORD-${Date.now()}`;
-    const customer = list.customer;
+    // const user = req.user;
+    // const orderNumber = `ORD-${Date.now()}`;
+    // const customer = list.customer;
 
-    // Create the order
-    const newOrder = await Order.create({
-      orderNumber,
-      customer: customer._id,
-      listItems: list.items,
-      startLocation: user.location,
-      endLocation: customer.location,
-      driver: user.id,
-    });
+    // // Create the order
+    // const newOrder = await Order.create({
+    //   orderNumber,
+    //   customer: customer._id,
+    //   listItems: list.items,
+    //   startLocation: user.location,
+    //   endLocation: customer.location,
+    //   driver: user.id,
+    // });
 
     return res.status(200).json({
       success: true,
