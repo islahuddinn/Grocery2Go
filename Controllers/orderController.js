@@ -232,6 +232,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
         productName: item.productName,
         quantity: item.quantity,
         price: item.price,
+        customer: item.customer,
         total: (item.quantity * item.price).toFixed(2),
       }));
 
@@ -257,7 +258,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       deliveryPaymentStatus: order.deliveryPaymentStatus,
       shopAcceptedOrder: order.shopAcceptedOrder,
       shopRejectedOrder: order.shopRejectedOrder,
-      listOrderDetails,
+      // listOrderDetails,
     };
 
     detailedOrders.push({
@@ -269,6 +270,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       orderTotal: orderTotal.toFixed(2),
       rider: order.driver ? order.driver.name : null,
       orderSummary,
+      listOrderDetails,
     });
   }
 
