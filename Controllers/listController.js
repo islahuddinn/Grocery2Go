@@ -14,10 +14,14 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 exports.addProductsToList = catchAsync(async (req, res, next) => {
   const { listTitle, items } = req.body;
+  const listOrderNumber = `ORD-${Date.now()}`;
+
   const newList = await List.create({
     customer: req.user.id,
     listTitle,
+    listOrderNumber: listOrderNumber,
     items: items,
+    endLocation: endLocation ? endLocation : null,
     listStatus: "pending",
   });
 
@@ -453,8 +457,9 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   }
 
   // Add the rider to the requested riders
+
   list.requestedRiders.push(riderId);
-  list.customerLocation.push(endLocation);
+  list.endLocation.push(endLocation);
   await list.save();
   // Notify the rider (mock notification for now)
   // const FCMToken = rider.deviceToken;

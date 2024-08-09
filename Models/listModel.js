@@ -16,6 +16,9 @@ const listSchema = new mongoose.Schema(
       type: String,
       // required: true,
     },
+    listOrderNumber: {
+      type: String,
+    },
     items: [
       {
         productName: {
@@ -61,7 +64,7 @@ const listSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
-    customerLocation: {
+    endLocation: {
       type: {
         type: String,
         default: "Point",
