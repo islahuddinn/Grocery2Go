@@ -21,7 +21,7 @@ exports.addProductsToList = catchAsync(async (req, res, next) => {
     listTitle,
     listOrderNumber: listOrderNumber,
     items: items,
-    endLocation: endLocation ? endLocation : null,
+    endLocation: null,
     listStatus: "pending",
   });
 
@@ -457,9 +457,10 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   }
 
   // Add the rider to the requested riders
-
-  list.requestedRiders.push(riderId);
-  list.endLocation.push(endLocation);
+  list.endLocation = endLocation;
+  list.requestedRiders = riderId;
+  // list.requestedRiders.push(riderId);
+  // list.endLocation.push(endLocation);
   await list.save();
   // Notify the rider (mock notification for now)
   // const FCMToken = rider.deviceToken;
