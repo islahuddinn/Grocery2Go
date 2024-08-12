@@ -551,7 +551,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     detailedOrders.push({
       orderNumber: list.listOrderNumber,
       orderStatus: list.listStatus,
-      totalItems,
+      // totalItems,
       _id: list._id,
       customer: list.customer,
       orderTotal: list.total,
