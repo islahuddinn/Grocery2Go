@@ -19,6 +19,11 @@ const listSchema = new mongoose.Schema(
     listOrderNumber: {
       type: String,
     },
+    orderType: {
+      type: String,
+      enum: ["listOrder"],
+      default: "listOrder",
+    },
     items: [
       {
         productName: {

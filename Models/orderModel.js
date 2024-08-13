@@ -24,6 +24,11 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "pending",
     },
+    orderType: {
+      type: String,
+      enum: ["simpleOrder"],
+      default: "simpleOrder",
+    },
     rejectedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,

@@ -436,7 +436,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     requestedRiders: req.user.id,
     riderRejectedList: { $nin: [req.user._id] },
   }).populate("customer");
-
+  console.log(lists, "here are the lists of the rider");
   const detailedOrders = [];
 
   // Process orders
@@ -522,6 +522,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
 
     detailedOrders.push({
       orderNumber: order.orderNumber,
+      orderType: order.orderType,
       orderStatus: order.orderStatus,
       _id: order.id,
       customer: order.customer,
@@ -539,6 +540,7 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
       products: list.items,
       orderNumber: list.listOrderNumber,
       orderStatus: list.listStatus,
+      orderType: list.orderType,
       // orderTotal: list.total,
       startLocation: list.startLocation,
       endLocation: list.endLocation,
@@ -546,10 +548,11 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     };
     // const quantity = list.map()
     // totalItems += list.quantity;
-    console.log(list, "before pusshing to the datra");
+    console.log(list, "before pusshing to the datra.....");
 
     detailedOrders.push({
       orderNumber: list.listOrderNumber,
+      orderType: list.orderType,
       orderStatus: list.listStatus,
       // totalItems,
       _id: list._id,
