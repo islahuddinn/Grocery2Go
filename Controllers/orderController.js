@@ -1563,7 +1563,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       success: true,
       status: 200,
       message: "List details retrieved successfully",
-      data: listOrderDetails,
+      order: listOrderDetails,
     });
   }
 
