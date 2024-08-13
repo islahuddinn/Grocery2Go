@@ -1420,11 +1420,8 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
 //   const order = await Order.findById(orderId)
 //     .populate("customer", "firstName lastName email image location")
 //     .populate("driver", "name email location image");
-//   const list = await List.findById(orderId).populate(
-//     "customer",
-//     "firstName lastName email image location"
-//   );
-//   if (!order || !list) {
+
+//   if (!order) {
 //     return next(new AppError("Order not found", 404));
 //   }
 
@@ -1505,36 +1502,6 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
 //     shopRejectedOrder: order.shopRejectedOrder,
 //   };
 
-//   // Process lists
-//   for (const list of lists) {
-//     const orderSummary = {
-//       itemsTotal: list.total,
-//       products: list.items,
-//       orderNumber: list.listOrderNumber,
-//       orderStatus: list.listStatus,
-//       orderType: list.orderType,
-//       // orderTotal: list.total,
-//       startLocation: list.startLocation,
-//       endLocation: list.endLocation,
-//       deliveryPaymentStatus: list.deliveryPaymentStatus,
-//     };
-//     // const quantity = list.map()
-//     // totalItems += list.quantity;
-//     console.log(list, "before pusshing to the datra.....");
-
-//     detailedOrders.push({
-//       orderNumber: list.listOrderNumber,
-//       orderType: list.orderType,
-//       orderStatus: list.listStatus,
-//       // totalItems,
-//       _id: list._id,
-//       customer: list.customer,
-//       orderTotal: list.total,
-//       rider: list.driver ? list.driver.name : null,
-//       orderSummary,
-//     });
-//   }
-
 //   res.status(200).json({
 //     success: true,
 //     status: 200,
@@ -1585,7 +1552,6 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       endLocation: list.endLocation,
       requestedRiders: list.requestedRiders,
       riderRejectedList: list.riderRejectedList,
-      // orderTotal:list,
       items: list.items.map((item) => ({
         productName: item.productName,
         quantity: item.quantity,
@@ -1601,13 +1567,14 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     });
   }
 
-  // If it's an order, format the response accordingly
+  //   // If it's an order, format the response accordingly
   const shopDetailsMap = new Map();
   let orderTotal = 0;
   let totalItems = 0;
 
   for (const { shop, grocery, quantity } of order.products) {
     totalItems += quantity;
+    console.log(shop, "shop id being searched in shop model");
     try {
       const fetchedShop = await Shop.findById(shop);
       if (!fetchedShop) {
@@ -1623,14 +1590,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
 
       const productDetail = {
         productName: fetchedGrocery.productName,
-        category: [
-          {
-            categoryName: fetchedGrocery.categoryName,
-            categoryImage:
-              "https://icon-library.com/images/default-profile-icon/default-profile-icon-6.jpg",
-            _id: fetchedGrocery.category._id,
-          },
-        ],
+        category: fetchedGrocery.categoryName,
         volume: fetchedGrocery.volume,
         quantity: quantity,
         productImages: fetchedGrocery.productImages,
@@ -1689,12 +1649,12 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     success: true,
     status: 200,
     message: "Order details retrieved successfully",
-    data: {
+    order: {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       _id: order.id,
       customer: order.customer,
-      shopDetails: shopDetails,
+      shopDetailWithProduct: shopDetails,
       orderTotal: orderTotal.toFixed(2),
       rider: order.driver ? order.driver : null,
       orderSummary,
