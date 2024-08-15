@@ -758,7 +758,7 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
 // });
 
 exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
-  const { orderId, updatedItems } = req.body;
+  const { orderId, updatedItems, itemsTotal } = req.body;
 
   if (!orderId || !updatedItems || !Array.isArray(updatedItems)) {
     return next(new AppError("Invalid input data", 400));
@@ -770,16 +770,19 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
   }
 
   const riderDetails = await User.findById(order.driver).select(
-    "firstName image location"
+    "firstName lastName image location"
   );
   if (!riderDetails) {
     return next(new AppError("Driver not found in the order", 404));
   }
 
-  const { serviceFee, tax, tip } = order; // Assuming these fields are already present in the order document
-  let itemsTotal = 0;
+  const { serviceFee, tax, tip } = order;
   let totalPayment = 0;
-  const deliveryCharges = order.deliveryCharges || 2.0;
+  const deliveryCharges = calculateDeliveryCharges(
+    order.startLocation,
+    order.endLocation
+  );
+  console.log(deliveryCharges, "Here is the delivery charges ");
 
   const availableItems = updatedItems.filter((item) => item.isAvailable);
 
@@ -798,11 +801,11 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
     }
 
     orderItem.isAvailable = updatedItem.isAvailable;
-    orderItem.price = updatedItem.price;
+    // orderItem.price = updatedItem.price;
 
-    if (updatedItem.isAvailable) {
-      itemsTotal += orderItem.quantity * updatedItem.price;
-    }
+    // if (updatedItem.isAvailable) {
+    //   itemsTotal += orderItem.quantity * updatedItem.price;
+    // }
   }
 
   totalPayment = itemsTotal + serviceFee + tax + deliveryCharges;
@@ -823,8 +826,8 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
     return {
       productName: item.productName,
       quantity: orderItem.quantity,
-      price: item.price,
-      total: (orderItem.quantity * item.price).toFixed(2),
+      // price: item.price,
+      // total: (orderItem.quantity * item.price).toFixed(2),
     };
   });
 
@@ -840,7 +843,7 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
       tax: order.tax,
       tip: order.tip,
       totalPayment: order.totalPayment,
-      deliveryCharges: order.deliveryCharges,
+      deliveryCharges: deliveryCharges,
     },
     orderSummary,
     riderDetails,
@@ -960,38 +963,39 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
   }
 
   const riderDetails = await User.findById(order.driver).select(
-    "firstName image location"
+    "firstName lastName image location"
   );
   if (!riderDetails) {
     return next(new AppError("Driver not found in the order", 404));
   }
 
-  const { serviceFee, tax, tip, deliveryCharges } = order;
-  let itemsTotal = 0;
+  const { serviceFee, tax, itemsTotal } = order;
+  // let itemsTotal = 0;
 
   const availableItems = order.listItems.filter((item) => item.isAvailable);
 
-  for (const item of availableItems) {
-    const totalPrice = item.quantity * item.price;
-    itemsTotal += totalPrice;
-  }
+  // for (const item of availableItems) {
+  //   const totalPrice = item.quantity * item.price;
+  //   itemsTotal += totalPrice;
+  // }
 
-  const totalPayment = itemsTotal + serviceFee + tax + deliveryCharges;
+  const totalPayment = itemsTotal + serviceFee + tax;
 
-  order.itemsTotal = itemsTotal.toFixed(2);
+  order.itemsTotal = itemsTotal;
   order.serviceFee = serviceFee;
   order.tax = tax;
-  order.totalPayment = totalPayment.toFixed(2);
+  order.totalPayment = totalPayment;
   order.orderStatus = "buying grocery";
 
   await order.save();
+  console.log(totalPayment, "Here is the totalpayment");
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(totalPayment * 100),
     currency: "usd",
     customer: order.customer.stripeCustomerId,
     description: `Payment for order ${order.orderNumber}`,
-    metadata: { tipAmount: tip.toString() },
+    // metadata: { tipAmount: tip.toString() },
   });
 
   const orderSummary = {
@@ -1019,7 +1023,7 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
         quantity: item.quantity,
         isAvailable: item.isAvailable,
         _id: item._id,
-        price: item.price,
+        // price: item.price,
       })),
       customer: order.customer._id,
       driver: order.driver._id,
@@ -1040,7 +1044,7 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
       itemsTotal: order.itemsTotal,
       totalPayment: order.totalPayment,
       riderEarnings: order.riderEarnings,
-      tip: order.tip,
+      // tip: order.tip,
     },
     orderSummary,
     paymentIntent: {
@@ -1127,11 +1131,15 @@ exports.payDeliveryCharges = async (req, res, next) => {
   }
 
   // Ensure delivery charges are present
-  if (!order.deliveryCharges) {
-    return next(new AppError("Delivery charges not found in order", 400));
-  }
+  // if (!order.deliveryCharges) {
+  //   return next(new AppError("Delivery charges not found in order", 400));
+  // }
+  const deliveryCharges = calculateDeliveryCharges(
+    order.startLocation,
+    order.endLocation
+  );
 
-  const deliveryCharges = parseFloat(order.deliveryCharges);
+  // const deliveryCharges = parseFloat(order.deliveryCharges);
   const deliveryChargesAmount = Math.round(deliveryCharges * 100);
 
   // Create a new payment intent for the delivery charges
