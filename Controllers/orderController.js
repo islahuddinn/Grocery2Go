@@ -537,8 +537,9 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
   // Process lists
   for (const list of lists) {
     const orderSummary = {
-      itemsTotal: list.total,
+      // itemsTotal: list.total,
       products: list.items,
+      totalItems: list.items ? list.items.length : 0,
       orderNumber: list.listOrderNumber,
       orderStatus: list.listStatus,
       orderType: list.orderType,
@@ -571,143 +572,6 @@ exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     data: detailedOrders,
   });
 });
-
-// exports.getAllAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
-//   const orders = await Order.find({
-//     orderStatus: "accepted by owner",
-//     rejectedBy: { $nin: [req.user._id] }, // do not show to the rejected one rider
-//     isdeliveryInProgress: false,
-//   }).populate("customer", "firstName lastName email image location");
-
-//   const lists = await List.find({
-//     requestedRiders: req.user.id,
-//     riderRejectedList: { $nin: [req.user._id] },
-//   }).populate("customer", "firstName lastName image location");
-
-//   console.log(lists, "Here are the lists requested to rider");
-
-//   const detailedOrders = [];
-
-//   for (const order of orders) {
-//     const shopDetailsMap = new Map();
-//     let orderTotal = 0;
-//     let totalItems = 0;
-
-//     for (const { shop, grocery, quantity } of order.products) {
-//       totalItems += quantity;
-
-//       try {
-//         const fetchedShop = await Shop.findById(shop);
-//         if (!fetchedShop) {
-//           console.error(`Shop with ID ${shop} not found.`);
-//           continue;
-//         }
-
-//         const fetchedGrocery = fetchedShop.groceries.id(grocery);
-//         if (!fetchedGrocery) {
-//           console.error(`Grocery with ID ${grocery} not found in shop ${shop}`);
-//           continue;
-//         }
-
-//         const productDetail = {
-//           productName: fetchedGrocery.productName,
-//           category: [
-//             {
-//               categoryName: fetchedGrocery.categoryName,
-//               categoryImage:
-//                 "https://icon-library.com/images/default-profile-icon/default-profile-icon-6.jpg",
-//               _id: fetchedGrocery.category._id,
-//             },
-//           ],
-//           volume: fetchedGrocery.volume,
-//           quantity: quantity,
-//           productImages: fetchedGrocery.productImages,
-//           price: fetchedGrocery.price,
-//         };
-
-//         const productTotal = fetchedGrocery.price * quantity;
-//         orderTotal += productTotal;
-
-//         if (!shopDetailsMap.has(shop.toString())) {
-//           shopDetailsMap.set(shop.toString(), {
-//             shopId: shop,
-//             shopTitle: fetchedShop.shopTitle,
-//             image: fetchedShop.image,
-//             location: fetchedShop.location,
-//             products: [],
-//             isOrderAccepted: fetchedShop.isOrderAccepted,
-//             shopTotal: 0,
-//           });
-//         }
-
-//         const shopDetail = shopDetailsMap.get(shop.toString());
-//         shopDetail.products.push(productDetail);
-//         shopDetail.shopTotal += productTotal;
-//       } catch (error) {
-//         console.error(
-//           `Error processing shop or grocery item: ${error.message}`
-//         );
-//         continue;
-//       }
-//     }
-
-//     const shopDetails = [...shopDetailsMap.values()].map((shop) => ({
-//       ...shop,
-//       shopOrderSummary: {
-//         shopItems: shop.products.length,
-//         shopItemsTotal: shop.shopTotal.toFixed(2),
-//       },
-//     }));
-
-//     const orderSummary = {
-//       itemsTotal: order.itemsTotal,
-//       totalItems,
-//       serviceFee: order.serviceFee,
-//       adminFee: order.adminFee,
-//       totalPayment: order.totalPayment,
-//       paymentStatus: order.paymentStatus,
-//       deliveryFee: order.deliveryCharges,
-//       deliveryTime: order.deliveryTime,
-//       startLocation: order.startLocation,
-//       endLocation: order.endLocation,
-//       deliveryPaymentStatus: order.deliveryPaymentStatus,
-//       shopAcceptedOrder: order.shopAcceptedOrder,
-//       shopRejectedOrder: order.shopRejectedOrder,
-//     };
-
-//     const listOrderDetails = lists
-//       .filter((list) => list._id.toString() === order._id.toString())
-//       .flatMap((list) => list.listItems)
-//       .filter((item) => item.isAvailable)
-//       .map((item) => ({
-//         productName: item.productName,
-//         quantity: item.quantity,
-//         price: item.price,
-//         total: (item.quantity * item.price).toFixed(2),
-//       }));
-
-//     detailedOrders.push({
-//       orderNumber: order.orderNumber,
-//       orderStatus: order.orderStatus,
-//       _id: order.id,
-//       customer: order.customer,
-//       shopDetails: shopDetails,
-//       orderTotal: orderTotal.toFixed(2),
-//       rider: order.driver ? order.driver.name : null,
-//       orderSummary,
-//       listOrderDetails,
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Orders retrieved successfully",
-//     data: {
-//       detailedOrders,
-//     },
-//   });
-// });
 
 ///////------ get all accepted by owner orders to show on shop new order screen-----/////
 
@@ -1084,6 +948,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalListItems: order.listItems ? order.listItems.length : 0,
       totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
@@ -1326,6 +1191,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
 
     const orderSummary = {
       itemsTotal: order.itemsTotal,
+      totalListItems: order.listItems ? order.listItems.length : 0,
       totalItems,
       serviceFee: order.serviceFee,
       adminFee: order.adminFee,
@@ -1525,6 +1391,7 @@ exports.getAllOrdersByShop = catchAsync(async (req, res, next) => {
 // });
 
 exports.getOrderDetails = catchAsync(async (req, res, next) => {
+  console.log("endpoint hited");
   const orderId = req.params.id;
 
   // Try to fetch the order by ID
@@ -1548,6 +1415,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     const listOrderDetails = {
       orderNumber: list.listOrderNumber,
       orderStatus: list.listStatus,
+      totalListItems: list.items ? list.items.length : 0,
       orderType: list.orderType,
       _id: list._id,
       customer: list.customer,
@@ -1638,6 +1506,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const orderSummary = {
     itemsTotal: order.itemsTotal,
     totalItems,
+    totalListItems: order.listItems ? order.listItems.length : 0,
     serviceFee: order.serviceFee,
     adminFee: order.adminFee,
     totalPayment: order.totalPayment,
@@ -1659,6 +1528,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
       orderType: order.orderType,
+      totalListItems: order.listItems ? order.listItems.length : 0,
       _id: order.id,
       customer: order.customer,
       shopDetailWithProduct: shopDetails,

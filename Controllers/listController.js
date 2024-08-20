@@ -447,6 +447,9 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   if (!list) {
     return next(new AppError("List not found", 404));
   }
+  if (!list.requestedRiders) {
+    list.requestedRiders = [];
+  }
   // Check if the rider has already been requested
   if (list.requestedRiders.includes(riderId)) {
     return res.status(400).json({
@@ -622,6 +625,9 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
   if (!list) {
     return next(new AppError("List not found", 404));
   }
+  if ((list.listStatus = "accepted")) {
+    return next(new AppError("list order allready accepted", 200));
+  }
 
   if (action === "reject") {
     list.riderRejectedList.push(req.user._id);
@@ -645,8 +651,20 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
       data: list,
     });
   } else if (action === "accept") {
+    // list.listStatus = "accepted";
+    // list.requestedRiders = null;
+    // list.driver = req.user.id;
+    // list.isAccepted = true;
+    // await list.save();
     list.listStatus = "accepted";
-    list.requestedRiders = null;
+    // list.requestedRiders = list.requestedRiders.filter(
+    //   (rider) => rider.toString() !== req.user.id.toString()
+    // );
+    if (list.requestedRiders) {
+      list.requestedRiders = list.requestedRiders.filter(
+        (rider) => rider.toString() !== req.user.id.toString()
+      );
+    }
     list.driver = req.user.id;
     list.isAccepted = true;
     await list.save();
