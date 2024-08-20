@@ -1507,6 +1507,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     itemsTotal: order.itemsTotal,
     totalItems,
     totalListItems: order.listItems ? order.listItems.length : 0,
+    listItems: order.listItems ? listItems : 0,
     serviceFee: order.serviceFee,
     adminFee: order.adminFee,
     totalPayment: order.totalPayment,
