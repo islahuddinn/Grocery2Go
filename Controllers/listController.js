@@ -463,7 +463,7 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   list.endLocation = endLocation;
   list.requestedRiders = riderId;
   // list.requestedRiders.push(riderId);
-  // list.endLocation.push(endLocation);
+  list.endLocation = endLocation;
   await list.save();
   // Notify the rider (mock notification for now)
   // const FCMToken = rider.deviceToken;
@@ -678,7 +678,7 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
       customer: customer._id,
       listItems: list.items,
       startLocation: user.location,
-      endLocation: list.customerLocation,
+      endLocation: list.endLocation,
       driver: user.id,
       orderStatus: "accepted by rider",
       orderType: "listOrder",
