@@ -1011,7 +1011,7 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
     success: true,
     status: 200,
     message: "List items and billing details sent successfully",
-    order: {
+    data: {
       startLocation: order.startLocation,
       endLocation: order.endLocation,
       _id: order._id,
@@ -1100,20 +1100,22 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
     success: true,
     status: 200,
     message: "Tip added and payment intent updated successfully",
-    order,
-    orderSummary: {
-      itemsTotal: order.itemsTotal,
-      serviceFee: order.serviceFee,
-      adminFee: order.adminFee,
-      tax: order.tax,
-      tip: order.tip,
-      totalPayment: order.totalPayment,
-    },
-    paymentIntent: {
-      id: paymentIntent.id,
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      metadata: paymentIntent.metadata,
+    data: {
+      order,
+      orderSummary: {
+        itemsTotal: order.itemsTotal,
+        serviceFee: order.serviceFee,
+        adminFee: order.adminFee,
+        tax: order.tax,
+        tip: order.tip,
+        totalPayment: order.totalPayment,
+      },
+      paymentIntent: {
+        id: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        metadata: paymentIntent.metadata,
+      },
     },
   });
 });
@@ -1138,9 +1140,11 @@ exports.payDeliveryCharges = async (req, res, next) => {
     order.startLocation,
     order.endLocation
   );
+  console.log(deliveryCharges, "here are the delivery charges");
 
   // const deliveryCharges = parseFloat(order.deliveryCharges);
   const deliveryChargesAmount = Math.round(deliveryCharges * 100);
+  console.log(deliveryChargesAmount, "here are the delivery charges");
 
   // Create a new payment intent for the delivery charges
   let paymentIntent;
@@ -1159,10 +1163,12 @@ exports.payDeliveryCharges = async (req, res, next) => {
       error: error.message,
     });
   }
-
+  const tip = order.tip ? tip : 0;
+  const riderEarn = deliveryCharges + tip;
+  console.log(riderEarn, tip, "here is the rider earned amount");
   // Update the delivery payment status
   order.deliveryPaymentStatus = "unpaid";
-  order.riderEarnings = deliveryCharges + order.tip;
+  order.riderEarnings = riderEarn;
 
   await order.save();
 
@@ -1170,12 +1176,14 @@ exports.payDeliveryCharges = async (req, res, next) => {
     success: true,
     status: 200,
     message: "Payment intent for delivery charges created successfully",
-    order,
-    paymentIntent: {
-      id: paymentIntent.id,
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      metadata: paymentIntent.metadata,
+    data: {
+      order,
+      paymentIntent: {
+        id: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        metadata: paymentIntent.metadata,
+      },
     },
   });
 };
@@ -1225,7 +1233,7 @@ exports.markOrderAsCompleted = catchAsync(async (req, res, next) => {
     success: true,
     status: 200,
     message: "Order marked as completed successfully",
-    order,
+    data: order,
   });
 });
 
