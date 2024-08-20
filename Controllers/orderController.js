@@ -129,6 +129,7 @@ exports.getAllOrdersByUser = catchAsync(async (req, res, next) => {
     detailedOrders.push({
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      orderType: order.orderType,
       _id: order.id,
       customer: order.customer,
       shopDetails: shopDetails,
@@ -823,6 +824,7 @@ exports.getAllNewAcceptedByOwnerOrders = catchAsync(async (req, res, next) => {
     detailedOrders.push({
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      orderType: order.orderType,
       _id: order.id,
       customer: order.customer,
       shopDetails: shopDetails,
@@ -980,6 +982,7 @@ exports.getAllAcceptedByShopOrders = catchAsync(async (req, res, next) => {
     detailedOrders.push({
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      orderType: order.orderType,
       _id: order.id,
       customer: order.customer,
       shopDetails: shopDetails,
@@ -1098,6 +1101,7 @@ exports.getAllAcceptedByRiderOrders = catchAsync(async (req, res, next) => {
     detailedOrders.push({
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      orderType: order.orderType,
       _id: order.id,
       customer: order.customer,
       shopDetails: shopDetails,
@@ -1340,6 +1344,7 @@ exports.getAllRiderOrders = catchAsync(async (req, res, next) => {
     detailedOrders.push({
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      orderType: order.orderType,
       _id: order.id,
       customer: order.customer,
       shopDetails: shopDetails,
@@ -1543,6 +1548,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     const listOrderDetails = {
       orderNumber: list.listOrderNumber,
       orderStatus: list.listStatus,
+      orderType: list.orderType,
       _id: list._id,
       customer: list.customer,
       listTitle: list.listTitle,
@@ -1652,6 +1658,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     order: {
       orderNumber: order.orderNumber,
       orderStatus: order.orderStatus,
+      orderType: order.orderType,
       _id: order.id,
       customer: order.customer,
       shopDetailWithProduct: shopDetails,
