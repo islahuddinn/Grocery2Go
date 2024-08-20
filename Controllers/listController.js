@@ -646,7 +646,7 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
     });
   } else if (action === "accept") {
     list.listStatus = "accepted";
-    list.driver = req.user.id;
+    (list.requestedRiders = null), (list.driver = req.user.id);
     list.isAccepted = true;
     await list.save();
 
