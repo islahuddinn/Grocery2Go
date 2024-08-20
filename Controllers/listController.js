@@ -663,6 +663,8 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
       endLocation: list.customerLocation,
       driver: user.id,
       orderStatus: "accepted by rider",
+      orderType: "listOrder",
+      isdeliveryInProgress: false,
     });
 
     return res.status(200).json({

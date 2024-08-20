@@ -26,7 +26,7 @@ const orderSchema = new mongoose.Schema(
     },
     orderType: {
       type: String,
-      enum: ["simpleOrder"],
+      enum: ["simpleOrder", "listOrder"],
       default: "simpleOrder",
     },
     rejectedBy: [
