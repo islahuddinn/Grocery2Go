@@ -1445,7 +1445,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   const shopDetailsMap = new Map();
   let orderTotal = 0;
   let totalItems = 0;
-
+  // let listItems = [];
   for (const { shop, grocery, quantity } of order.products) {
     totalItems += quantity;
     console.log(shop, "shop id being searched in shop model");
@@ -1507,7 +1507,9 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     itemsTotal: order.itemsTotal,
     totalItems,
     totalListItems: order.listItems ? order.listItems.length : 0,
-    listItems: order.listItems ? listItems : 0,
+    // listItems: order.listItems ? listItems : 0,
+    // listItems: listItems,
+    listItems: order.listItems ? order.listItems : [],
     serviceFee: order.serviceFee,
     adminFee: order.adminFee,
     totalPayment: order.totalPayment,
