@@ -625,9 +625,9 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
   if (!list) {
     return next(new AppError("List not found", 404));
   }
-  if ((list.listStatus = "accepted")) {
-    return next(new AppError("list order allready accepted", 200));
-  }
+  // if ((list.listStatus = "accepted")) {
+  //   return next(new AppError("list order allready accepted", 200));
+  // }
 
   if (action === "reject") {
     list.riderRejectedList.push(req.user._id);
