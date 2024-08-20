@@ -42,7 +42,7 @@ const orderSchema = new mongoose.Schema(
           // required: true,
         },
         quantity: {
-          type: Number,
+          type: String,
           // required: true,
           min: 1,
         },

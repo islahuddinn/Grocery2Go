@@ -615,6 +615,7 @@ exports.requestRider = catchAsync(async (req, res, next) => {
 
 exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
   const { listId, action } = req.body;
+  console.log(listId, "listId here");
 
   const list = await List.findById(listId).populate("customer"); // Fetch the list and populate the customer details
 
@@ -626,10 +627,10 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
     list.riderRejectedList.push(req.user._id);
     await list.save();
 
-    //Notify customer about rider rejected list
+    //////Notify customer about rider rejected list
 
-    // Notify all riders
-    const allRiders = await User.find({ userType: "Rider" });
+    ///// Notify all riders
+    // const allRiders = await User.find({ userType: "Rider" });
     // const FCMTokens = allRiders.map((rider) => rider.deviceToken);
     // await SendNotificationMultiCast({
     //   tokens: FCMTokens,
