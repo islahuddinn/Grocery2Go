@@ -360,14 +360,19 @@ client.connect().then(async (_) => {
 
     /// authenticate user
     const authenticated = (cb) => async (data) => {
+      console.log("AUTHENTICATED EVENT HIT");
+      console.log("DATA IN AUTHENTICATION IS:::::", data);
+
       const user = await User.findOne({ _id: data.userId });
       //   console.log("****************" + data.userId);
       //   console.log(user);
 
       if (!user) {
+        console.log("USER NOT FOUND.DISCONNECTINGGGGGGGGGG");
         socket.emit({ message: "Unauthenticated", success: false, data: {} });
         return socket.disconnect();
       }
+
       await cb({ user: JSON.parse(JSON.stringify(user)), ...data });
     };
     //// user enter
