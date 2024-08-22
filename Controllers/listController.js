@@ -835,7 +835,7 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
   order.serviceFee = serviceFee;
   order.tax = tax;
   order.tip = tip;
-  order.totalPayment = totalPayment.toFixed(2);
+  order.totalPayment = totalPayment;
   order.orderStatus = "buying grocery";
 
   await order.save();
