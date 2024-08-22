@@ -522,7 +522,7 @@ client.connect().then(async (_) => {
           ChatRooms[i].newMessages = dbMessages.length;
         }
 
-        // console.log("Rooms ==>", ChatRooms);
+        console.log("Rooms ==>", ChatRooms);
 
         if (ChatRooms.length < 1) {
           ChatRooms = null;
@@ -625,7 +625,7 @@ client.connect().then(async (_) => {
         });
         ////////////////////////
 
-        const chatId = ChatRoom._id.toString();
+        const chatId = ChatRoom._id;
         console.log("Room id:", chatId);
         socket.leave(chatId);
         io.to(user._id).emit("leaving", {
@@ -636,200 +636,200 @@ client.connect().then(async (_) => {
     );
     socket.on(
       "send-message",
-      authenticated(
-        async ({ user, to, message, messageType, audioLength, postId }) => {
-          try {
-            ///////////time
-            // Get current date in UTC
-            // Get current local time
-            const currentLocalTime = moment();
+      authenticated(async ({ user, to, message, messageType, audioLength }) => {
+        try {
+          ///////////time
+          // Get current date in UTC
+          // Get current local time
+          const currentLocalTime = moment();
 
-            ///////////// Receiver
-            const receiveruser = await User.findById(to);
-            //////////////
+          ///////////// Receiver
+          const receiveruser = await User.findById(to);
+          //////////////
 
-            // Convert local time to UTC
-            // const currentUtcTime = currentLocalTime.utc().utcOffset(1);
+          console.log("here is the send message event");
 
-            // Convert UTC time to Unix timestamp
-            const currentUnixTime = currentLocalTime.unix();
+          // Convert local time to UTC
+          // const currentUtcTime = currentLocalTime.utc().utcOffset(1);
 
-            console.log("Current Local Time:", currentLocalTime);
-            // console.log("Current UTC Time:", currentUtcTime);
-            console.log("Current Unix Timestamp:", currentUnixTime);
-            ///////// time
+          // Convert UTC time to Unix timestamp
+          const currentUnixTime = currentLocalTime.unix();
 
-            console.log("innnnn send msg start Startttttttttt");
-            const receiver = await User.findOne({ _id: to });
+          console.log("Current Local Time:", currentLocalTime);
+          // console.log("Current UTC Time:", currentUtcTime);
+          console.log("Current Unix Timestamp:", currentUnixTime);
+          ///////// time
 
-            ///////////////// Room update
-            let chat;
-            if (messageType === "post") {
-              message = `shared location`;
-            }
-            chat = await Chat.findOne({
-              $and: [{ users: user._id }, { users: to }],
-            });
-            const userr1 = to;
-            const user2 = user._id;
-            if (!chat) {
-              const users = [userr1, user2];
-              // console.log(users);
-              chat = await Chat.create({
-                users: users,
-                lastMsgSender: user2,
-                LastMessage: message,
-                messageTime: currentUnixTime,
-                type: messageType,
-              });
-              const chatId1 = chat._id.toString();
-              socket.join(chatId1);
-            } else {
-              await Chat.findByIdAndUpdate(chat.id, {
-                lastMsgSender: user2,
-                LastMessage: message,
-                messageTime: currentUnixTime,
-                type: messageType,
-              });
-            }
-            ///////////////// Room Login
-            const chatId = chat._id.toString();
-            console.log("Room id in send:", chatId);
-            // socket.join(chatId);
-            const joinedPeople = io.sockets.adapter.rooms.get(chatId);
-            console.log("Room People:", joinedPeople);
-            // console.log("Room People v2:", getRoomJoinedSocketIds(chatId));
-            const joinedPeopleCount = joinedPeople ? joinedPeople.size : 0;
+          console.log("innnnn send msg start Startttttttttt");
+          const receiver = await User.findOne({ _id: to });
 
-            //////////////////////
-
-            ///////// create msg logic
-            const dbMessage = await Message.create({
-              chatId: chat._id,
-              sender: user._id,
-              receiver: to,
-              message,
-              post: postId,
+          ///////////////// Room update
+          let chat;
+          // if (messageType === "post") {
+          //   message = `shared location`;
+          // }
+          chat = await Chat.findOne({
+            $and: [{ users: user._id }, { users: to }],
+          });
+          const userr1 = to;
+          const user2 = user._id;
+          if (!chat) {
+            const users = [userr1, user2];
+            // console.log(users);
+            chat = await Chat.create({
+              users: users,
+              lastMsgSender: user2,
+              LastMessage: message,
               messageTime: currentUnixTime,
-              audioLength: audioLength,
-              seen: joinedPeopleCount > 1 ? true : false,
               type: messageType,
             });
-
+            const chatId1 = chat._id.toString();
+            socket.join(chatId1);
+          } else {
             await Chat.findByIdAndUpdate(chat.id, {
-              lastMessageId: dbMessage._id,
+              lastMsgSender: user2,
+              LastMessage: message,
+              messageTime: currentUnixTime,
+              type: messageType,
             });
-
-            const currentmessage = await Message.findById(dbMessage?._id)
-              .populate("sender")
-              .populate("receiver")
-              .populate("post");
-
-            const messages = await Message.find({
-              $and: [
-                {
-                  $or: [{ sender: user._id }, { receiver: user._id }],
-                },
-                {
-                  $or: [{ sender: to }, { receiver: to }],
-                },
-              ],
-            })
-              .populate("sender")
-              .populate("receiver")
-              .populate("post")
-              .sort({ createdAt: -1 });
-
-            //////////// Notify
-
-            ///////////////////
-            // await sendNotification({
-            //   type: "sendMessage",
-            //   sender: user,
-            //   receiver,
-            //   title: "sent message",
-            //   deviceToken: receiver.deviceToken,
-            //   body: `${user.name} sent you a message`,
-            // });
-
-            io.to(chatId).emit("messages", {
-              success: true,
-              message: "Messages Retrieved Successfully",
-              receiver: receiveruser,
-              messages: [currentmessage],
-            });
-
-            if (joinedPeopleCount < 2) {
-              const tokens = [];
-              const notificationData = [];
-              const user1 = await User.findById(to);
-
-              const userTokens = JSON.parse(
-                JSON.stringify(await RefreshToken.find({ user: user1?.id }))
-              ).map(({ deviceToken }) => deviceToken);
-
-              if (user1.isNotification && userTokens.length > 0) {
-                tokens.push(...userTokens);
-                // notificationData.push({ ...user1 });
-                if (tokens.length > 0) {
-                  // console.log(tokens, user._id, user.name);
-                  await sendNotificationMultiCast({
-                    tokens: tokens,
-                    sender: user._id,
-                    type: "sendMessage",
-                    title: "New Message",
-                    body: `${user.firstName} sent you a message`,
-                    data: {
-                      value: JSON.stringify(user),
-                    },
-                  });
-                }
-              }
-
-              ////////////// Receiver Logic
-
-              let ChatRooms;
-              ChatRooms = await Chat.find({ users: { $in: [to] } }).sort(
-                "-updatedAt"
-              );
-              // .limit(1);
-
-              ChatRooms = JSON.parse(JSON.stringify(ChatRooms));
-
-              for (let i = 0; i < ChatRooms.length; i++) {
-                const dbMessages = await Message.find({
-                  $and: [
-                    { chatId: ChatRooms[i]._id },
-                    { seen: false },
-                    { receiver: { $eq: to } },
-                  ],
-                });
-
-                ChatRooms[i].newMessages = dbMessages.length;
-              }
-              console.log("Rooms ==>", ChatRooms);
-
-              if (ChatRooms.length < 1) {
-                ChatRooms = null;
-              }
-              // socket.join(user._id);
-              io.to(to).emit("inboxes", {
-                success: true,
-                message: "Inbox Retrieved Succcessfully",
-                // data: { inboxes: [...inboxes], },
-                inboxes: [...ChatRooms],
-              });
-            }
-            // io.emit("new-message", {
-            //   success: true,
-            //   message: "Messages Found Successfully",
-            //   data: { message: dbMessage },
-            // });
-          } catch (error) {
-            console.log(error);
           }
+          ///////////////// Room Login
+          const chatId = chat._id.toString();
+          console.log("Room id in send:", chatId);
+          // socket.join(chatId);
+          const joinedPeople = io.sockets.adapter.rooms.get(chatId);
+          console.log("Room People:", joinedPeople);
+          // console.log("Room People v2:", getRoomJoinedSocketIds(chatId));
+          const joinedPeopleCount = joinedPeople ? joinedPeople.size : 0;
+
+          //////////////////////
+
+          ///////// create msg logic
+          const dbMessage = await Message.create({
+            chatId: chat._id,
+            sender: user._id,
+            receiver: to,
+            message,
+            // post: postId,
+            messageTime: currentUnixTime,
+            audioLength: audioLength,
+            seen: joinedPeopleCount > 1 ? true : false,
+            type: messageType,
+          });
+
+          await Chat.findByIdAndUpdate(chat.id, {
+            lastMessageId: dbMessage._id,
+          });
+
+          const currentmessage = await Message.findById(dbMessage?._id)
+            .populate("sender")
+            .populate("receiver")
+            .populate("post");
+
+          const messages = await Message.find({
+            $and: [
+              {
+                $or: [{ sender: user._id }, { receiver: user._id }],
+              },
+              {
+                $or: [{ sender: to }, { receiver: to }],
+              },
+            ],
+          })
+            .populate("sender")
+            .populate("receiver")
+            .populate("post")
+            .sort({ createdAt: -1 });
+
+          //////////// Notify
+
+          ///////////////////
+          // await sendNotification({
+          //   type: "sendMessage",
+          //   sender: user,
+          //   receiver,
+          //   title: "sent message",
+          //   deviceToken: receiver.deviceToken,
+          //   body: `${user.name} sent you a message`,
+          // });
+
+          io.to(chatId).emit("messages", {
+            success: true,
+            message: "Messages Retrieved Successfully",
+            receiver: receiveruser,
+            messages: [currentmessage],
+          });
+
+          if (joinedPeopleCount < 2) {
+            const tokens = [];
+            const notificationData = [];
+            const user1 = await User.findById(to);
+
+            const userTokens = JSON.parse(
+              JSON.stringify(await RefreshToken.find({ user: user1?.id }))
+            ).map(({ deviceToken }) => deviceToken);
+
+            if (user1.isNotification && userTokens.length > 0) {
+              tokens.push(...userTokens);
+              // notificationData.push({ ...user1 });
+              if (tokens.length > 0) {
+                // console.log(tokens, user._id, user.name);
+                await sendNotificationMultiCast({
+                  tokens: tokens,
+                  sender: user._id,
+                  type: "sendMessage",
+                  title: "New Message",
+                  body: `${user.firstName} sent you a message`,
+                  data: {
+                    value: JSON.stringify(user),
+                  },
+                });
+              }
+            }
+
+            ////////////// Receiver Logic
+
+            let ChatRooms;
+            ChatRooms = await Chat.find({ users: { $in: [to] } }).sort(
+              "-updatedAt"
+            );
+            // .limit(1);
+
+            ChatRooms = JSON.parse(JSON.stringify(ChatRooms));
+
+            for (let i = 0; i < ChatRooms.length; i++) {
+              const dbMessages = await Message.find({
+                $and: [
+                  { chatId: ChatRooms[i]._id },
+                  { seen: false },
+                  { receiver: { $eq: to } },
+                ],
+              });
+
+              ChatRooms[i].newMessages = dbMessages.length;
+            }
+            console.log("Rooms ==>", ChatRooms);
+
+            if (ChatRooms.length < 1) {
+              ChatRooms = null;
+            }
+            // socket.join(user._id);
+            io.to(to).emit("inboxes", {
+              success: true,
+              message: "Inbox Retrieved Succcessfully",
+              // data: { inboxes: [...inboxes], },
+              inboxes: [...ChatRooms],
+            });
+          }
+          // io.emit("new-message", {
+          //   success: true,
+          //   message: "Messages Found Successfully",
+          //   data: { message: dbMessage },
+          // });
+        } catch (error) {
+          console.log(error);
         }
-      )
+      })
     );
     //////////////// Delete Message
     socket.on(
