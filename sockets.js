@@ -647,7 +647,7 @@ client.connect().then(async (_) => {
         console.log(to, "mr reciever");
         console.log(message, "your loved one messages");
         console.log(messageType, "your loved one messages typeeee");
-        return;
+
         try {
           ///////////time
           // Get current date in UTC
