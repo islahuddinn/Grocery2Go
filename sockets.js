@@ -46,6 +46,8 @@ io.sockets.on("connect", async (socket) => {
     await cb({ user: JSON.parse(JSON.stringify(user)), ...data });
   };
 
+  console.log("connection established socket");
+
   await client.flushDb();
   socket.on(
     "get-inboxes",
@@ -53,8 +55,9 @@ io.sockets.on("connect", async (socket) => {
       const dbMessages = await Message.find({
         $or: [{ sender: user._id }, { receiver: user._id }],
       });
+      console.log("inboxes get socket");
 
-      // console.log(2);
+      console.log(2);
       const myGroups = await GroupMembers.find({
         user: user._id,
         status: "active",
@@ -85,17 +88,17 @@ io.sockets.on("connect", async (socket) => {
       for (const message of groupMessages) {
         myGroupsIds.add(`${message.group}`);
       }
-      // console.log(dbMessages);
+      console.log(dbMessages);
       const inboxes = new Set();
       for (const message of dbMessages) {
         inboxes.add(message.sender.toString());
         inboxes.add(message.receiver.toString());
       }
-      // console.log(3);
+      console.log(3);
 
       inboxes.delete(user._id.toString());
-      // console.log("inboxes", inboxes);
-      // console.log("inboxes", inboxes);
+      console.log("inboxes", inboxes);
+      console.log("inboxes", inboxes);
       let inboxGroups = [];
       for (const id of myGroupsIds) {
         let group = await Group.findById(id);
@@ -125,27 +128,27 @@ io.sockets.on("connect", async (socket) => {
           notifications: 0,
           unreadMessages: 0,
         });
-        // console.log("inboxuser_", inboxUser_);
-        // console.log(4, inboxUser_);
+        console.log("inboxuser_", inboxUser_);
+        console.log(4, inboxUser_);
 
         let inboxUser = JSON.parse(JSON.stringify(inboxUser_));
-        // console.log("inboxUser", inboxUser);
-        // console.log("inboxUser===========" + inboxUser);
+        console.log("inboxUser", inboxUser);
+        console.log("inboxUser===========" + inboxUser);
         let lastMessage = null;
 
         let lastMessageTime = null;
         let lastMessageType = null;
 
-        // console.log("inboxUser", inboxUser);
+        console.log("inboxUser", inboxUser);
         const totalMessages = await Message.find({
           $or: [
             { sender: inboxUser._id, receiver: user._id },
             { sender: user._id, receiver: inboxUser._id },
           ],
         }).sort({ _id: -1 });
-        // console.log(5);
+        console.log(5);
 
-        // console.log("==========", totalMessages);
+        console.log("==========", totalMessages);
         lastMessage = totalMessages[0].message;
         lastMessageTime = totalMessages[0].messageTime;
         lastMessageType = totalMessages[0].type;
@@ -156,7 +159,7 @@ io.sockets.on("connect", async (socket) => {
             unreadMessagesCount++;
           }
         }
-        // console.log("aaaaaaaa");
+        console.log("aaaaaaaa");
         console.log("counttt", unreadMessagesCount);
 
         inboxUser.lastMessage = lastMessage;
@@ -164,7 +167,7 @@ io.sockets.on("connect", async (socket) => {
         inboxUser["lastMessageType"] = lastMessageType;
 
         inboxUser.unreadMessagesCount = unreadMessagesCount;
-        // console.log("bbbbbbb");
+        console.log("bbbbbbb");
 
         inboxUsers.push(inboxUser);
       }
@@ -175,7 +178,7 @@ io.sockets.on("connect", async (socket) => {
       inboxGroups.sort((a, b) =>
         a.lastMessageTime > b.lastMessageTime ? -1 : 1
       );
-      // console.log(inboxUsers);
+      console.log(inboxUsers);
       console.log("inbox users", inboxUsers);
       console.log("inbox groups", inboxGroups);
 
