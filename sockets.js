@@ -641,9 +641,9 @@ client.connect().then(async (_) => {
     );
     socket.on(
       "send-message",
-      authenticated(async ({ user, to, message, messageType }) => {
+      authenticated(async ({ userId, to, message, messageType }) => {
         console.log("we are here now send-message");
-        console.log(user, "mr user");
+        console.log(userId, "mr user");
         console.log(to, "mr reciever");
         console.log(message, "your loved one messages");
         console.log(messageType, "your loved one messages typeeee");
