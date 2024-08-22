@@ -376,85 +376,85 @@ client.connect().then(async (_) => {
       authenticated(async ({ user }) => {
         console.log(`User enter Connected to ${socket.id}`);
         //////////// user info SUBSCRIBE
-        const f = async () => {
-          try {
-            ///////// notifications
-            const notifictations = await Notification.find({
-              $or: [
-                {
-                  $and: [
-                    { notifyType: { $ne: "sendMessage" } },
-                    { receiver: user._id },
-                    { actionTaken: false },
-                  ],
-                },
-                {
-                  $and: [
-                    { notifyType: { $ne: "sendMessage" } },
-                    { multireceiver: { $in: [user._id] } },
-                    { isSeen: { $not: { $elemMatch: { $eq: user._id } } } },
-                  ],
-                },
-              ],
-            });
-            // console.log(notifictations.length, notifictations.length, user);
+        // const f = async () => {
+        //   try {
+        //     ///////// notifications
+        //     const notifictations = await Notification.find({
+        //       $or: [
+        //         {
+        //           $and: [
+        //             { notifyType: { $ne: "sendMessage" } },
+        //             { receiver: user._id },
+        //             { actionTaken: false },
+        //           ],
+        //         },
+        //         {
+        //           $and: [
+        //             { notifyType: { $ne: "sendMessage" } },
+        //             { multireceiver: { $in: [user._id] } },
+        //             { isSeen: { $not: { $elemMatch: { $eq: user._id } } } },
+        //           ],
+        //         },
+        //       ],
+        //     });
+        //     // console.log(notifictations.length, notifictations.length, user);
 
-            const sizenotif = notifictations.length;
-            let action;
-            sizenotif > 0 ? (action = false) : (action = true);
-            ///////////////////////////////////
-            ///////// Chat Count
-            let messagescount = 0;
-            let ChatRooms;
-            ChatRooms = await Chat.find({ users: { $in: [user._id] } }).sort(
-              "-updatedAt"
-            );
+        //     const sizenotif = notifictations.length;
+        //     let action;
+        //     sizenotif > 0 ? (action = false) : (action = true);
+        //     ///////////////////////////////////
+        //     ///////// Chat Count
+        //     let messagescount = 0;
+        //     let ChatRooms;
+        //     ChatRooms = await Chat.find({ users: { $in: [user._id] } }).sort(
+        //       "-updatedAt"
+        //     );
 
-            ChatRooms = JSON.parse(JSON.stringify(ChatRooms));
+        //     ChatRooms = JSON.parse(JSON.stringify(ChatRooms));
 
-            for (let i = 0; i < ChatRooms.length; i++) {
-              let dbMessages;
-              if (ChatRooms[i].chatType === "single") {
-                dbMessages = await Message.find({
-                  $and: [
-                    { messageType: "single" },
-                    { chatId: ChatRooms[i]._id },
-                    { seen: false },
-                    { receiver: { $eq: user._id } },
-                  ],
-                });
-              } else {
-                dbMessages = await Message.find({
-                  $and: [
-                    { messageType: "group" },
-                    { chatId: ChatRooms[i]._id },
-                    { seenBy: { $not: { $elemMatch: { $eq: user._id } } } },
-                  ],
-                });
-              }
+        //     for (let i = 0; i < ChatRooms.length; i++) {
+        //       let dbMessages;
+        //       if (ChatRooms[i].chatType === "single") {
+        //         dbMessages = await Message.find({
+        //           $and: [
+        //             { messageType: "single" },
+        //             { chatId: ChatRooms[i]._id },
+        //             { seen: false },
+        //             { receiver: { $eq: user._id } },
+        //           ],
+        //         });
+        //       } else {
+        //         dbMessages = await Message.find({
+        //           $and: [
+        //             { messageType: "group" },
+        //             { chatId: ChatRooms[i]._id },
+        //             { seenBy: { $not: { $elemMatch: { $eq: user._id } } } },
+        //           ],
+        //         });
+        //       }
 
-              ChatRooms[i].newMessages = dbMessages.length;
-              messagescount = messagescount + dbMessages.length;
-            }
-            ////////////////////////////////////////
-            // socket.emit('info', {...sendingData})
-            socket.join(user._id);
-            io.to(user._id).emit("notification", {
-              success: true,
-              message: "Notification Retrieved Successfully",
-              data: {
-                action: action,
-                messages: messagescount,
-                notifictationSize: sizenotif,
-              },
-            });
-          } catch (e) {
-            console.log(e);
-          }
-        };
-        await f();
-        userData[`${user._id}`] = f;
-        userSocketID[`${socket.id}`] = user._id;
+        //       ChatRooms[i].newMessages = dbMessages.length;
+        //       messagescount = messagescount + dbMessages.length;
+        //     }
+        //     ////////////////////////////////////////
+        //     // socket.emit('info', {...sendingData})
+        //     socket.join(user._id);
+        //     io.to(user._id).emit("notification", {
+        //       success: true,
+        //       message: "Notification Retrieved Successfully",
+        //       data: {
+        //         action: action,
+        //         messages: messagescount,
+        //         notifictationSize: sizenotif,
+        //       },
+        //     });
+        //   } catch (e) {
+        //     console.log(e);
+        //   }
+        // };
+        // await f();
+        // userData[`${user._id}`] = f;
+        // userSocketID[`${socket.id}`] = user._id;
 
         //////////// user info SUBSCRIBE-end
         // console.log(user, user._id);
