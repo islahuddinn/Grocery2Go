@@ -1119,7 +1119,7 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
     }
     const order = await Order.findById(orderId);
     console.log(order, "here is the order ");
-    order.deliveryPaymentStatus = "paid";
+    order.paymentStatus = "paid";
     await order.save();
 
     // Payment is successful, you can now process the order or other business logic
