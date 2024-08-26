@@ -1082,7 +1082,7 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
 ////----verify-payment intent----///
 
 exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
-  const { paymentIntentId, orderId} = req.body;
+  const { paymentIntentId, orderId } = req.body;
 
   // Validate input
   if (!paymentIntentId) {
@@ -1100,7 +1100,7 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
     const order = await Order.findById(orderId);
     console.log(order, "here is the order ");
     order.deliveryPaymentStatus = "paid";
-    awiat order.save();
+    await order.save();
 
     // Payment is successful, you can now process the order or other business logic
     res.status(200).json({
@@ -1116,7 +1116,6 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
     );
   }
 });
-
 
 ////----add tip to the user ------ ////
 
