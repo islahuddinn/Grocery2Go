@@ -1091,7 +1091,7 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
         customer: paymentIntent.customer,
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
-        clientSecret: paymentIntent.clientSecret,
+        clientSecret: paymentIntent.client_secret,
         metadata: paymentIntent.metadata,
       },
       riderDetails,
