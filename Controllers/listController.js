@@ -9,6 +9,10 @@ const Notification = require("../Models/notificationModel");
 const Shop = require("../Models/shopsModel");
 const Rating = require("../Models/ratingModel");
 const { calculateDeliveryCharges } = require("../Utils/helper");
+const {
+  createStripeCustomer,
+  createPaymentIntent,
+} = require("../Utils/stripe");
 // const { default: Stripe } = require("stripe");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
@@ -989,6 +993,8 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
   if (!riderDetails) {
     return next(new AppError("Driver not found in the order", 404));
   }
+  const user = req.user;
+  console.log(user, "Here is the userDetails");
 
   const { serviceFee, tax, itemsTotal } = order;
   // let itemsTotal = 0;
@@ -1010,15 +1016,28 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
 
   await order.save();
   console.log(totalPayment, "Here is the totalpayment");
+  if (!user.stripeCustomerId) {
+    const customer = await createStripeCustomer(user);
+    console.log(customer, "Here is the customer stripe id");
+    user.stripeCustomerId = customer;
+    await user.save();
+  }
+  // const paymentIntent = await stripe.paymentIntents.create({
+  //   amount: Math.round(totalPayment * 100),
+  //   currency: "usd",
+  //   customer: order.customer.stripeCustomerId,
+  //   description: `Payment for order ${order.orderNumber}`,
+  //   metadata: { tipAmount: tip.toString() },
+  // });
+  const total = order.itemsTotal;
+  const customerId = user.stripeCustomerId;
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(totalPayment * 100),
-    currency: "usd",
-    customer: order.customer.stripeCustomerId,
-    description: `Payment for order ${order.orderNumber}`,
-    // metadata: { tipAmount: tip.toString() },
-  });
-
+  const paymentIntent = await createPaymentIntent(
+    user,
+    total,
+    customerId,
+    orderId
+  );
   const orderSummary = {
     itemsTotal: order.itemsTotal,
     serviceFee: order.serviceFee,
@@ -1069,6 +1088,7 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
       orderSummary,
       paymentIntent: {
         id: paymentIntent.id,
+        customer: paymentIntent.customer,
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
         clientSecret: paymentIntent.clientSecret,

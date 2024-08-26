@@ -113,6 +113,9 @@ const userSchema = new mongoose.Schema(
         default: false,
       },
     },
+    stripeCustomerId: {
+      type: String,
+    },
     country: String,
     shopEarnings: {
       type: Number,
