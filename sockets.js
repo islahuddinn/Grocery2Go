@@ -658,7 +658,7 @@ client.connect().then(async (_) => {
           const receiveruser = await User.findById(to);
           //////////////
 
-          console.log("here is the send message event");
+          console.log(receiveruser, "here is the receiver user");
 
           // Convert local time to UTC
           // const currentUtcTime = currentLocalTime.utc().utcOffset(1);

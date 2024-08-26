@@ -1477,6 +1477,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       if (!shopDetailsMap.has(shop.toString())) {
         shopDetailsMap.set(shop.toString(), {
           shopId: shop,
+          ownerId: fetchedShop.owner,
           shopTitle: fetchedShop.shopTitle,
           image: fetchedShop.image,
           location: fetchedShop.location,
