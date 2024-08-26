@@ -1066,17 +1066,57 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
       totalPayment: order.totalPayment,
       riderEarnings: order.riderEarnings,
       // tip: order.tip,
+      orderSummary,
+      paymentIntent: {
+        id: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        clientSecret: paymentIntent.clientSecret,
+        metadata: paymentIntent.metadata,
+      },
+      riderDetails,
     },
-    orderSummary,
-    paymentIntent: {
-      id: paymentIntent.id,
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      metadata: paymentIntent.metadata,
-    },
-    riderDetails,
   });
 });
+
+////----verify-payment intent----///
+
+exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
+  const { paymentIntentId, orderId} = req.body;
+
+  // Validate input
+  if (!paymentIntentId) {
+    return next(new AppError("Payment Intent ID is required", 400));
+  }
+
+  try {
+    // Retrieve the PaymentIntent from Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // Check the payment status
+    if (paymentIntent.status !== "succeeded") {
+      return next(new AppError("Payment was not successful", 400));
+    }
+    const order = await Order.findById(orderId);
+    console.log(order, "here is the order ");
+    order.deliveryPaymentStatus = "paid";
+    awiat order.save();
+
+    // Payment is successful, you can now process the order or other business logic
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Payment verified successfully",
+      data: paymentIntent,
+    });
+  } catch (error) {
+    // Handle errors from Stripe or other issues
+    return next(
+      new AppError(`Payment verification failed: ${error.message}`, 500)
+    );
+  }
+});
+
 
 ////----add tip to the user ------ ////
 
