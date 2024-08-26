@@ -1397,7 +1397,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   // Try to fetch the order by ID
   let order = await Order.findById(orderId)
     .populate("customer", "firstName lastName email image location")
-    .populate("driver", "name email location image");
+    .populate("driver", "firstName LastName email location image");
 
   let list = null;
   if (!order) {
