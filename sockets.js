@@ -936,6 +936,41 @@ client.connect().then(async (_) => {
       })
     );
 
+    //////---Navigate rider--
+
+    // Receive the rider's current location
+    socket.on("riderLocation", (data) => {
+      const { riderId, currentLocation } = data;
+      console.log(`Rider ${riderId} location updated:`, currentLocation);
+
+      // Broadcast rider's location to clients or update internal systems
+      io.emit("riderLocationUpdate", data);
+    });
+
+    // Receive destination location and send navigation instructions
+    socket.on("navigateRider", (data) => {
+      const { riderId, destination } = data;
+      console.log(`Navigating rider ${riderId} to destination:`, destination);
+
+      // Here you could integrate with a navigation API like Google Maps to get directions
+      const navigationInstructions =
+        calculateNavigationInstructions(destination);
+
+      // Send navigation instructions back to the rider
+      socket.emit("navigationInstructions", {
+        riderId,
+        navigationInstructions,
+      });
+    });
+    // Example of a function to calculate navigation instructions
+    function calculateNavigationInstructions(destination) {
+      // Placeholder for actual navigation logic
+      return {
+        directions: "Turn left, go straight for 2 miles, then turn right.",
+        estimatedArrivalTime: "15 minutes",
+      };
+    }
+
     socket.on("disconnect", async () => {
       console.log("User disconnected: ", socket.id);
       if (userSocketID[socket.id]) {

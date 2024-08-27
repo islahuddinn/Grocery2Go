@@ -47,10 +47,6 @@ ChatSchema.pre([/^find/, "save"], function (next) {
     select: "firstName lastName image",
   });
   this.populate({
-    path: "groupOwner",
-    select: "firstName lastName image",
-  });
-  this.populate({
     path: "seenBy",
     select: "firstName lastName image",
   });

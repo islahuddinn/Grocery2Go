@@ -29,6 +29,11 @@ const orderSchema = new mongoose.Schema(
       enum: ["simpleOrder", "listOrder"],
       default: "simpleOrder",
     },
+    riderStatus: {
+      type: String,
+      enum: ["On the way", "Arrived"],
+      default: "On the way",
+    },
     rejectedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,

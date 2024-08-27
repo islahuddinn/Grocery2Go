@@ -16,6 +16,11 @@ router.post("/request-rider", listController.requestRider);
 router.get("/get-one-order-details/:id", listController.getOneOrder);
 router.post("/send-list-bill", listController.sendListBill);
 router.post("/verify-payment", listController.verifyPaymentIntent);
+router.post("/mark-rider-reached", listController.riderArrived);
+router.post(
+  "/verify-delivery-payment",
+  listController.verifyDeliveryPaymentIntent
+);
 router.post("/add-tip-to-rider", listController.addTipToRider);
 router.post("/pay-delivery-charges", listController.payDeliveryCharges);
 router.post(

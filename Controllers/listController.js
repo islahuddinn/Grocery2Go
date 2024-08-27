@@ -1136,6 +1136,41 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
     );
   }
 });
+exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
+  const { paymentIntentId, orderId } = req.body;
+
+  // Validate input
+  if (!paymentIntentId) {
+    return next(new AppError("Payment Intent ID is required", 400));
+  }
+
+  try {
+    // Retrieve the PaymentIntent from Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // Check the payment status
+    if (paymentIntent.status !== "succeeded") {
+      return next(new AppError("Payment was not successful", 400));
+    }
+    const order = await Order.findById(orderId);
+    console.log(order, "here is the order ");
+    order.deliveryPaymentStatus = "paid";
+    await order.save();
+
+    // Payment is successful, you can now process the order or other business logic
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Payment verified successfully",
+      data: paymentIntent,
+    });
+  } catch (error) {
+    // Handle errors from Stripe or other issues
+    return next(
+      new AppError(`Payment verification failed: ${error.message}`, 500)
+    );
+  }
+});
 
 ////----add tip to the user ------ ////
 
@@ -1157,13 +1192,13 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
     parseFloat(order.totalPayment) + parseFloat(tipAmount)
   ).toFixed(2);
 
-  // Update the payment intent with the new amount
-  const newTotalAmount = Math.round(order.totalPayment * 100); // Stripe expects the amount in cents
+  ///// Update the payment intent with the new amount
+  const newTotalAmount = Math.round(order.totalPayment * 100);
   let paymentIntent;
   try {
     paymentIntent = await stripe.paymentIntents.update(paymentIntentId, {
       amount: newTotalAmount,
-      metadata: { tipAmount: tipAmount.toString() }, // Store the tip amount as metadata
+      metadata: { tipAmount: tipAmount.toString() },
     });
   } catch (error) {
     return res.status(500).json({
@@ -1199,6 +1234,26 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+/////-----rider reached -----////
+exports.riderArrived = catchAsync(async (req, res, next) => {
+  const { orderId, riderStatus } = req.body;
+  if (!orderId || !riderStatus) {
+    return next(new AppError("orderId or riderStatus not provided", 400));
+  }
+  const order = await Order.findById(orderId);
+  if (!order) {
+    return next(new AppError("order not found", 404));
+  }
+  order.riderStatus = riderStatus;
+  await order.save();
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Rider successfully arrived at distination",
+    data: { order },
+  });
+});
 exports.payDeliveryCharges = async (req, res, next) => {
   const { orderId } = req.body;
   console.log("here is the order:   ", orderId);
@@ -1225,16 +1280,21 @@ exports.payDeliveryCharges = async (req, res, next) => {
   // const deliveryCharges = parseFloat(order.deliveryCharges);
   const deliveryChargesAmount = Math.round(deliveryCharges * 100);
   console.log(deliveryChargesAmount, "here are the delivery charges");
-
-  // Create a new payment intent for the delivery charges
+  const user = req.user;
   let paymentIntent;
   try {
-    paymentIntent = await stripe.paymentIntents.create({
-      amount: deliveryChargesAmount,
-      currency: "usd",
-      metadata: { orderId: order._id.toString(), type: "deliveryCharges" },
-      // accountId:{rider.bankAccountId}
-    });
+    if (!user.stripeCustomerId) {
+      const customer = await createStripeCustomer(user);
+      console.log(customer, "Here is the customer stripe id");
+      user.stripeCustomerId = customer;
+      await user.save();
+    }
+
+    const customerId = user.stripeCustomerId;
+    const tip = order.tip ? tip : 0;
+    const total = deliveryCharges + tip;
+    console.log(total, tip, "here is the rider earned amount");
+    paymentIntent = await createPaymentIntent(user, total, customerId, orderId);
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -1243,12 +1303,10 @@ exports.payDeliveryCharges = async (req, res, next) => {
       error: error.message,
     });
   }
-  const tip = order.tip ? tip : 0;
-  const riderEarn = deliveryCharges + tip;
-  console.log(riderEarn, tip, "here is the rider earned amount");
+
   // Update the delivery payment status
   order.deliveryPaymentStatus = "unpaid";
-  order.riderEarnings = riderEarn;
+  order.riderEarnings = total;
 
   await order.save();
 
@@ -1258,10 +1316,12 @@ exports.payDeliveryCharges = async (req, res, next) => {
     message: "Payment intent for delivery charges created successfully",
     data: {
       order,
-      paymentIntent: {
+      paymentIntentData: {
         id: paymentIntent.id,
+        customer: paymentIntent.customer,
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
+        clientSecret: paymentIntent.client_secret,
         metadata: paymentIntent.metadata,
       },
     },
