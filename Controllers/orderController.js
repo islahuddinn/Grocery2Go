@@ -1530,7 +1530,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
     message: "Order details retrieved successfully",
     order: {
       orderNumber: order.orderNumber,
-      orderStatus: order.orderStatus,
+      riderStatus: order.riderStatus,
       orderType: order.orderType,
       totalListItems: order.listItems ? order.listItems.length : 0,
       _id: order.id,
@@ -1538,6 +1538,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
       shopDetailWithProduct: shopDetails,
       orderTotal: orderTotal.toFixed(2),
       rider: order.driver ? order.driver : null,
+      orderStatus: order.orderStatus,
       orderSummary,
     },
   });
