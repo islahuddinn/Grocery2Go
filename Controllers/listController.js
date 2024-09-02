@@ -1238,6 +1238,8 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
 /////-----rider reached -----////
 exports.riderArrived = catchAsync(async (req, res, next) => {
   const { orderId, riderStatus } = req.body;
+  console.log(orderId, riderStatus, "here is the orderId and Riderstatus");
+
   if (!orderId || !riderStatus) {
     return next(new AppError("orderId or riderStatus not provided", 400));
   }
@@ -1245,6 +1247,7 @@ exports.riderArrived = catchAsync(async (req, res, next) => {
   if (!order) {
     return next(new AppError("order not found", 404));
   }
+  console.log(order, "here is the order");
   order.riderStatus = riderStatus;
   await order.save();
   res.status(200).json({
