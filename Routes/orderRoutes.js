@@ -33,6 +33,7 @@ router.post(
   orderController.acceptOrRejectOrderByRider
 );
 router.post("/ready-for-pickup/:id", orderController.readyForPickup);
+router.post("/mark-shop-order-pickedup", orderController.markOrderAsPickedUp);
 
 // router.get("/get-all-favorite-products", shopController.getAllFavoriteProducts);
 // router.post("/mark-favorite-unfavorite", shopController.toggleProductFavorite);

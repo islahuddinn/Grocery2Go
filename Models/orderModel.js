@@ -67,6 +67,10 @@ const orderSchema = new mongoose.Schema(
           ref: "Shop",
           // required: true,
         },
+        isOrderPickedUp: {
+          type: Boolean,
+          default: false,
+        },
         category: {
           type: mongoose.Schema.Types.ObjectId,
           // required: true,
