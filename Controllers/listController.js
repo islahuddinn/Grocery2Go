@@ -1237,6 +1237,7 @@ exports.addTipToRider = catchAsync(async (req, res, next) => {
 
 /////-----rider reached -----////
 exports.riderArrived = catchAsync(async (req, res, next) => {
+  cnsole.log("end point hited.........");
   const { orderId, riderStatus } = req.body;
   console.log(orderId, riderStatus, "here is the orderId and Riderstatus");
 
