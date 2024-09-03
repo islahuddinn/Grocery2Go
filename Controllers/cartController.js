@@ -11,6 +11,10 @@ const {
   SendNotificationMultiCast,
 } = require("../Utils/notificationSender");
 const {
+  createStripeCustomer,
+  createPaymentIntent,
+} = require("../Utils/stripe");
+const {
   findShopAndProduct,
   checkStockAvailability,
   findCategory,
@@ -894,18 +898,7 @@ exports.checkout = catchAsync(async (req, res, next) => {
 
 exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const { user } = req;
-  const { paymentIntentId, deliveryTime, deliveryLocation, cart } = req.body;
-
-  // Uncomment these lines if you are using Stripe for payment processing
-  // const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-  // if (paymentIntent.status !== "succeeded") {
-  //   return res.status(400).json({
-  //     success: false,
-  //     status: 400,
-  //     message: "Payment not successful",
-  //     data: paymentIntent,
-  //   });
-  // }
+  const { deliveryTime, deliveryLocation, cart } = req.body;
 
   const productDetails = [];
   let totalItems = 0;
@@ -914,7 +907,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   const shopDetails = [];
   const shopIds = new Set();
 
-  // Collect all shop details in parallel
+  /// Collect all shop details in parallel
   const shopPromises = cart.products.map(async (item) => {
     const groceryId = new mongoose.Types.ObjectId(item.grocery);
     console.log(`Searching for shop with grocery ID: ${groceryId}`);
@@ -968,7 +961,8 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
 
   const serviceFee = 10; // example service fee
   const adminFee = 5; // example admin fee
-  const totalPayment = itemsTotal + serviceFee + adminFee;
+  const totalPayment = itemsTotal;
+  console.log(totalPayment, "Here is the order total amount");
 
   // Map products to include the shopId
   const productWithShopIds = await Promise.all(
@@ -1004,6 +998,24 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     orderStatus: "pending",
   });
 
+  if (!user.stripeCustomerId) {
+    const customer = await createStripeCustomer(user);
+    console.log(customer, "Here is the customer stripe id");
+    user.stripeCustomerId = customer;
+    await user.save();
+  }
+  const total = totalPayment;
+  const customerId = user.stripeCustomerId;
+  const orderId = newOrder.id;
+
+  const paymentIntent = await createPaymentIntent(
+    user,
+    total,
+    customerId,
+    orderId
+  );
+  console.log(paymentIntent, "Here is the payment intent");
+
   res.status(201).json({
     success: true,
     status: 201,
@@ -1022,6 +1034,14 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
       paymentStatus: newOrder.paymentStatus,
       products: productDetails,
       shopDetails,
+      paymentIntent: {
+        id: paymentIntent._id,
+        customer: paymentIntent.customer,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        clientSecret: paymentIntent.client_secret,
+        metadata: paymentIntent.metadata,
+      },
     },
   });
 });
