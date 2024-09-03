@@ -1446,7 +1446,13 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
   let orderTotal = 0;
   let totalItems = 0;
   // let listItems = [];
-  for (const { shop, grocery, quantity, isOrderPickedUp } of order.products) {
+  for (const {
+    shop,
+    grocery,
+    quantity,
+    isOrderPickedUp,
+    isOrderReadyForPickup,
+  } of order.products) {
     totalItems += quantity;
     console.log(shop, "shop id being searched in shop model");
     try {
@@ -1483,6 +1489,7 @@ exports.getOrderDetails = catchAsync(async (req, res, next) => {
           location: fetchedShop.location,
           isOrderAccepted: fetchedShop.isOrderAccepted,
           isOrderPickedUp: isOrderPickedUp,
+          isOrderReadyForPickup: isOrderReadyForPickup,
           products: [],
           shopTotal: 0,
         });
@@ -1952,6 +1959,46 @@ exports.markOrderAsPickedUp = catchAsync(async (req, res, next) => {
     success: true,
     status: 200,
     message: "Order marked as picked up successfully for the shop.",
+    data: { order },
+  });
+});
+
+////-----Mark order as ready for pickup from shop
+
+exports.markOrderAsReadyForPickedUp = catchAsync(async (req, res, next) => {
+  const { orderId, shopId } = req.body;
+
+  // Find the order by ID
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    // If the order is not found, return an error
+    return next(new AppError("Order not found", 404));
+  }
+
+  // Check if the shop exists in the order's products
+  const shopExistsInOrder = order.products.some(
+    (product) => product.shop._id.toString() === shopId
+  );
+
+  if (!shopExistsInOrder) {
+    // If the shop is not part of the order, return an error
+    return next(new AppError("Shop is not associated with this order", 404));
+  }
+
+  // Update isOrderPickedUp to true in the Shop model
+  order.products.map((product) => {
+    if (product.shop.toString() === shopId) {
+      product.isOrderReadyForPickup = true;
+    }
+  });
+  await order.save();
+
+  // Return a success response with the updated order details
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Order marked as ready for pick up successfully for the shop.",
     data: { order },
   });
 });

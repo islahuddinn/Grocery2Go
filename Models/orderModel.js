@@ -71,6 +71,10 @@ const orderSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        isOrderReadyForPickup: {
+          type: Boolean,
+          default: false,
+        },
         category: {
           type: mongoose.Schema.Types.ObjectId,
           // required: true,
