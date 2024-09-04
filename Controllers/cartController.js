@@ -1035,7 +1035,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
       products: productDetails,
       shopDetails,
       paymentIntent: {
-        id: paymentIntent._id,
+        id: paymentIntent.id,
         customer: paymentIntent.customer,
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
