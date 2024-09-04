@@ -1306,7 +1306,7 @@ exports.payDeliveryCharges = async (req, res, next) => {
   }
 
   // Update the delivery payment status
-  order.deliveryPaymentStatus = "unpaid";
+  order.deliveryPaymentStatus = "paid";
   order.riderEarnings = total;
 
   await order.save();
