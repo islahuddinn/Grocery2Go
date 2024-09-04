@@ -1293,13 +1293,15 @@ exports.payDeliveryCharges = async (req, res, next) => {
 
     const customerId = user.stripeCustomerId;
     const tip = order.tip ? tip : 0;
-    const total = deliveryCharges + tip;
+    const total = deliveryChargesAmount + tip;
     console.log(total, tip, "here is the rider earned amount");
+
+    paymentIntent = await createPaymentIntent(user, total, customerId, orderId);
     order.deliveryPaymentStatus = "paid";
     order.riderEarnings = total;
 
     await order.save();
-    paymentIntent = await createPaymentIntent(user, total, customerId, orderId);
+    console.log(paymentIntent, "here is the created payment intent");
   } catch (error) {
     return res.status(500).json({
       success: false,
