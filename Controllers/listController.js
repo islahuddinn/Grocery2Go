@@ -1263,7 +1263,7 @@ exports.payDeliveryCharges = async (req, res, next) => {
     return next(new AppError("Invalid input data", 400));
   }
 
-  const order = await Order.findById(orderId);
+  let order = await Order.findById(orderId);
   if (!order) {
     return next(new AppError("Order not found ", 404));
   }
@@ -1301,7 +1301,6 @@ exports.payDeliveryCharges = async (req, res, next) => {
     order.riderEarnings = total;
 
     await order.save();
-    console.log(paymentIntent, "here is the created payment intent");
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -1310,21 +1309,32 @@ exports.payDeliveryCharges = async (req, res, next) => {
       error: error.message,
     });
   }
+  const paymentIntentInformation = {
+    id: paymentIntent.id,
+    customer: paymentIntent.customer,
+    amount: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    clientSecret: paymentIntent.client_secret,
+    metadata: paymentIntent.metadata,
+  };
+
+  let orderCopy = JSON.parse(JSON.stringify(order));
+  orderCopy.paymentIntentData = paymentIntentInformation;
 
   res.status(200).json({
     success: true,
     status: 200,
     message: "Payment intent for delivery charges created successfully",
     data: {
-      order,
-      paymentIntentData: {
-        id: paymentIntent.id,
-        customer: paymentIntent.customer,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        clientSecret: paymentIntent.client_secret,
-        metadata: paymentIntent.metadata,
-      },
+      order: orderCopy,
+      // paymentIntentData: {
+      //   id: paymentIntent.id,
+      //   customer: paymentIntent.customer,
+      //   amount: paymentIntent.amount,
+      //   currency: paymentIntent.currency,
+      //   clientSecret: paymentIntent.client_secret,
+      //   metadata: paymentIntent.metadata,
+      // },
     },
   });
 };
