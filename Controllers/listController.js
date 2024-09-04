@@ -1295,6 +1295,10 @@ exports.payDeliveryCharges = async (req, res, next) => {
     const tip = order.tip ? tip : 0;
     const total = deliveryCharges + tip;
     console.log(total, tip, "here is the rider earned amount");
+    order.deliveryPaymentStatus = "paid";
+    order.riderEarnings = total;
+
+    await order.save();
     paymentIntent = await createPaymentIntent(user, total, customerId, orderId);
   } catch (error) {
     return res.status(500).json({
@@ -1304,12 +1308,6 @@ exports.payDeliveryCharges = async (req, res, next) => {
       error: error.message,
     });
   }
-
-  // Update the delivery payment status
-  order.deliveryPaymentStatus = "paid";
-  order.riderEarnings = total;
-
-  await order.save();
 
   res.status(200).json({
     success: true,
