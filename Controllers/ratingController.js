@@ -6,12 +6,12 @@ const AppError = require("../Utils/appError.js");
 // const RideRequest = require("../Models/rideRequestModel.js");
 
 exports.createRating = catchAsync(async (req, res, next) => {
-  const { from, to, stars, comment } = req.body;
+  const { to, stars, comment } = req.body;
 
-  if (!from || !to || stars == null || !comment) {
+  if (!to || stars == null || !comment) {
     return next(new AppError("Invalid input", 400));
   }
-
+  const from = req.user.id;
   const newRating = await Rating.create({
     from,
     to,
