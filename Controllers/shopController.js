@@ -1145,3 +1145,40 @@ exports.getProductDetail = async (req, res, next) => {
     return next(new AppError("Internal Server Error", 500));
   }
 };
+
+////---Get completed orders by shop
+
+exports.getCompletedOrdersByShop = catchAsync(async (req, res, next) => {
+  const shopId = req.params.id;
+
+  // Find the shop by ID to ensure it exists
+  const shop = await Shop.findById(shopId);
+  if (!shop) {
+    return next(new AppError("Shop not found", 404));
+  }
+
+  // Find all orders that are marked as 'delivered' and include the provided shopId in their products
+  const completedOrders = await Order.find({
+    orderStatus: "completed", // Filter orders by 'delivered' status
+    "products.shop": shopId, // Filter orders where the shop is part of the order's products
+  })
+    .populate("products.shop", "shopTitle image location owner") // Populate shop details
+    .populate("customer", "name email") // Populate customer details if needed
+    .populate("driver", "name email") // Populate driver details if needed
+    .select("-__v"); // Exclude internal versioning field
+
+  // Return a success response with the completed orders
+  res.status(200).json({
+    success: true,
+    results: completedOrders.length,
+    data: {
+      shop: {
+        shopTitle: shop.shopTitle,
+        shopType: shop.shopType,
+        owner: shop.owner,
+        location: shop.location,
+      },
+      orders: completedOrders,
+    },
+  });
+});

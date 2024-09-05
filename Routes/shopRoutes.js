@@ -13,6 +13,10 @@ router.get("/getAllShop", shopController.getAllShop);
 router.get("/get-nearby-shops", shopController.getNearbyShops);
 router.get("/all-shops-groceries", shopController.getRandomGroceries);
 router.get("/shop-stats", shopController.getShopOrderStats);
+router.get(
+  "/shop-completed-orders/:id",
+  shopController.getCompletedOrdersByShop
+);
 
 router
   .route("/:id")
