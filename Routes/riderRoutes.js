@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(authController.protect);
 router.get("/online-riders", riderController.getAllOnlineRiders);
 router.post("/online-offline-rider", riderController.updateRiderOnlineStatus);
-router.get("/rider-stats/:id", riderController.getRiderStatistics);
+router.get("/rider-stats", riderController.getRiderStatistics);
 router.post("/search-shop", riderController.searchShopByTitle);
 // router.get("/", shopController.getAllProduct);
 // router

@@ -78,22 +78,24 @@ exports.updateRiderOnlineStatus = catchAsync(async (req, res, next) => {
 // });
 
 exports.getRiderStatistics = catchAsync(async (req, res, next) => {
-  const { riderId } = req.params;
+  const userId = req.user.id;
 
-  if (!riderId) {
+  console.log(userId, "here is the  rider id");
+
+  if (!userId) {
     return next(new AppError("No Rider Found With Given Id ", 404));
   }
 
   // Fetch completed orders (assuming "delivered" status means completed)
   const completedOrders = await Order.find({
-    driver: riderId,
-    orderStatus: "delivered",
+    driver: userId,
+    orderStatus: "completed",
   }).countDocuments();
 
   // Fetch in-progress orders (assuming statuses other than "delivered" and "pending" mean in-progress)
   const inProgressOrders = await Order.find({
     driver: riderId,
-    orderStatus: { $nin: ["delivered", "pending"] },
+    orderStatus: { $nin: ["completed", "pending"] },
   }).countDocuments();
 
   // Calculate total earnings based on the riderEarnings field
@@ -101,7 +103,7 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
     {
       $match: {
         driver: mongoose.Types.ObjectId(riderId),
-        orderStatus: "delivered",
+        orderStatus: "completed",
       },
     },
     { $group: { _id: null, total: { $sum: "$riderEarnings" } } },

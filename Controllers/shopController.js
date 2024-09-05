@@ -906,17 +906,6 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
 //////------Shop Statistics by owner------//////
 
 exports.getShopOrderStats = catchAsync(async (req, res, next) => {
-  // const shopId = req.params.id;
-  // console.log(shopId, "here is the shop id");
-
-  // if (!shopId) {
-  //   return res.status(400).json({
-  //     success: false,
-  //     status: 400,
-  //     message: "Shop ID is required",
-  //   });
-  // }
-
   const userId = req.user.id;
   const shop = await Shop.findOne({ owner: userId });
   console.log(shop, "Here is the shop id");
@@ -1170,6 +1159,7 @@ exports.getCompletedOrdersByShop = catchAsync(async (req, res, next) => {
   // Return a success response with the completed orders
   res.status(200).json({
     success: true,
+    status: 200,
     results: completedOrders.length,
     data: {
       shop: {
