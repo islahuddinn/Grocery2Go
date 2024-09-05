@@ -919,7 +919,8 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
 
   const userId = req.user.id;
   const shop = await Shop.findOne({ owner: userId });
-  const shopId = shop._id;
+  console.log(shop, "Here is the shop id");
+  const shopId = shop.id;
   console.log(shop, shopId, "here is the owner shop");
 
   if (!shop) {
@@ -928,19 +929,19 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
 
   const completedOrders = await Order.countDocuments({
     "products.shop": shopId,
-    orderStatus: "delivered",
+    orderStatus: "completed",
   });
-
+  console.log(completedOrders, "Here are shop complted orders");
   const pendingOrders = await Order.countDocuments({
     "products.shop": shopId,
-    orderStatus: { $ne: "delivered" },
+    orderStatus: { $ne: "completed" },
   });
 
   const totalEarningsData = await Order.aggregate([
     {
       $match: {
         "products.shop": new mongoose.Types.ObjectId(shopId),
-        orderStatus: "delivered",
+        orderStatus: "completed",
       },
     },
     { $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } } },

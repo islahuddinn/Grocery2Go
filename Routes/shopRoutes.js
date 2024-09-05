@@ -12,7 +12,7 @@ router.post("/mark-favorite-unfavorite/:id", shopController.toggleShopFavorite);
 router.get("/getAllShop", shopController.getAllShop);
 router.get("/get-nearby-shops", shopController.getNearbyShops);
 router.get("/all-shops-groceries", shopController.getRandomGroceries);
-router.get("/shop-stats/:id", shopController.getShopOrderStats);
+router.get("/shop-stats", shopController.getShopOrderStats);
 
 router
   .route("/:id")
