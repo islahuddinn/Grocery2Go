@@ -133,8 +133,8 @@ exports.getRiderDetails = catchAsync(async (req, res, next) => {
   }
 
   // Fetch all ratings for the rider
-  const ratings = await Rating.find({ to: rider._id, toDriver: true }).select(
-    "stars createdAt -_id"
+  const ratings = await Rating.find({ to: rider._id }).select(
+    "from stars comment createdAt -_id"
   );
 
   // Calculate average rating

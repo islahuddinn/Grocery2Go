@@ -1,19 +1,28 @@
 const mongoose = require("mongoose");
 
-const structure = {
-  from: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  to: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  toDriver: {
-    type: String,
-    default: false,
+const ratingSchema = new mongoose.Schema(
+  {
+    from: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    to: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    toDriver: {
+      type: String,
+      default: false,
+    },
+    requestId: { type: mongoose.Schema.Types.ObjectId, ref: "OrderRequest" },
+    comment: String,
+    stars: Number,
+    createdAt: Number,
   },
-  requestId: { type: mongoose.Schema.Types.ObjectId, ref: "OrderRequest" },
-  comment: String,
-  stars: Number,
-  createdAt: Number,
-};
+  { timestamps: true }
+);
 
-const schema = new mongoose.Schema(structure);
-const model = mongoose.model("Ratings", schema);
+ratingSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "from",
+    select: "firstName lastName image",
+  });
+  next();
+});
+const Rating = mongoose.model("Rating", ratingSchema);
 
-module.exports = model;
+module.exports = Rating;
