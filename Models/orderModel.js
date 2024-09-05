@@ -20,6 +20,7 @@ const orderSchema = new mongoose.Schema(
         "ready to deliver",
         "on the way",
         "delivered",
+        "completed",
         // "list order accepted",
       ],
       default: "pending",

@@ -14,16 +14,17 @@ const {
 //// ----update ordr status----- /////
 
 exports.updateOrderStatus = catchAsync(async (req, res, next) => {
-  const { orderId, status } = req.body;
+  const { orderId, orderStatus } = req.body;
 
   const order = await Order.findByIdAndUpdate(
     orderId,
-    { status },
+    { orderStatus },
     { new: true }
   );
 
   res.status(200).json({
     success: true,
+    status: 200,
     data: order,
   });
 });

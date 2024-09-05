@@ -32,6 +32,7 @@ router.post(
   //   authController.restrictTo("Rider"),
   orderController.acceptOrRejectOrderByRider
 );
+router.patch("/change-order-status", orderController.updateOrderStatus);
 router.post("/ready-for-pickup/:id", orderController.readyForPickup);
 router.post("/mark-shop-order-pickedup", orderController.markOrderAsPickedUp);
 router.post(
