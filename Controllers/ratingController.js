@@ -6,9 +6,9 @@ const AppError = require("../Utils/appError.js");
 // const RideRequest = require("../Models/rideRequestModel.js");
 
 exports.createRating = catchAsync(async (req, res, next) => {
-  const { from, to, stars, toDriver } = req.body;
+  const { from, to, stars, comment } = req.body;
 
-  if (!from || !to || stars == null || !toDriver) {
+  if (!from || !to || stars == null || !comment) {
     return next(new AppError("Invalid input", 400));
   }
 
@@ -17,7 +17,8 @@ exports.createRating = catchAsync(async (req, res, next) => {
     to,
     stars,
     // requestId,
-    toDriver,
+    // toDriver,
+    comment,
     createdAt: Date.now(),
   });
 
@@ -40,6 +41,7 @@ exports.updateRating = catchAsync(async (req, res, next) => {
   const updatedRating = await Rating.findByIdAndUpdate(
     ratingId,
     { stars },
+    { comment },
     { new: true, runValidators: true }
   );
 

@@ -8,7 +8,7 @@ const structure = {
     default: false,
   },
   requestId: { type: mongoose.Schema.Types.ObjectId, ref: "OrderRequest" },
-
+  comment: String,
   stars: Number,
   createdAt: Number,
 };
