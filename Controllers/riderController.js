@@ -193,3 +193,110 @@ exports.updateLocation = async (req, res, next) => {
       });
   }
 };
+
+///// GET ALL COMPLETED ORDERS BY RIDER
+exports.getCompletedOrdersByRider = catchAsync(async (req, res, next) => {
+  const riderId = req.params.id; // Get the riderId from request parameters
+
+  // Find the rider by ID to ensure it exists
+  const rider = await Driver.findById(riderId);
+  if (!rider) {
+    return next(new AppError("Rider not found", 404));
+  }
+
+  // Find all orders that are marked as 'completed' and include the provided riderId as the driver
+  const completedOrders = await Order.find({
+    orderStatus: "completed", // Filter orders by 'completed' status
+    driver: riderId, // Filter orders where the rider is assigned as the driver
+  })
+    .populate("products.shop", "shopTitle image location owner") // Populate shop details
+    .populate("customer", "firstName lastName email image location") // Populate customer details
+    .populate("driver", "firstName lastName email image location") // Populate driver (rider) details
+    .select("-__v"); // Exclude internal versioning field
+
+  // Map the completed orders to the required format
+  const formattedOrders = completedOrders.map((order) => ({
+    orderNumber: order.orderNumber,
+    riderStatus: order.riderStatus,
+    orderType: order.orderType,
+    totalListItems: order.totalListItems,
+    _id: order._id,
+    customer: order.customer
+      ? {
+          location: order.customer.location,
+          _id: order.customer._id,
+          firstName: order.customer.firstName,
+          lastName: order.customer.lastName,
+          email: order.customer.email,
+          image: order.customer.image,
+          id: order.customer._id.toString(),
+        }
+      : {}, // Handle case where customer is undefined
+    shopDetailWithProduct: Array.isArray(order.products)
+      ? order.products.map((product) => ({
+          shopId: product?.shop?._id?.toString() || "",
+          ownerId: product?.shop?.owner?.toString() || "",
+          shopTitle: product?.shop?.shopTitle || "",
+          image: product?.shop?.image || "",
+          location: product?.shop?.location || {},
+          isOrderAccepted: product?.isOrderAccepted || false,
+          isOrderPickedUp: product?.isOrderPickedUp || false,
+          isOrderReadyForPickup: product?.isOrderReadyForPickup || false,
+          products: Array.isArray(product?.products)
+            ? product.products.map((prod) => ({
+                productName: prod.productName,
+                category: Array.isArray(prod?.category)
+                  ? prod.category.map((cat) => ({
+                      categoryName: cat.categoryName,
+                      categoryImage: cat.categoryImage,
+                      _id: cat._id,
+                    }))
+                  : [], // Handle case where category is undefined
+                volume: prod.volume,
+                quantity: prod.quantity,
+                productImages: prod.productImages || [],
+                price: prod.price,
+              }))
+            : [], // Handle case where products are undefined
+          shopTotal: product?.shopTotal || 0,
+        }))
+      : [], // Handle case where order.products is undefined
+    orderTotal: order.orderTotal,
+    rider: order.driver
+      ? {
+          location: order.driver.location,
+          _id: order.driver._id,
+          firstName: order.driver.firstName,
+          lastName: order.driver.lastName,
+          email: order.driver.email,
+          image: order.driver.image,
+          id: order.driver._id.toString(),
+        }
+      : {}, // Handle case where driver is undefined
+    orderStatus: order.orderStatus,
+    orderSummary: {
+      itemsTotal: order.itemsTotal,
+      totalListItems: order.listItems ? order.listItems.length : 0,
+      listItems: order.listItems ? order.listItems : [],
+      serviceFee: order.serviceFee,
+      adminFee: order.adminFee,
+      totalPayment: order.totalPayment,
+      paymentStatus: order.paymentStatus,
+      deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
+    },
+  }));
+
+  // Return a success response with all formatted orders
+  res.status(200).json({
+    success: true,
+    status: 200,
+    message: "Completed orders retrieved successfully",
+    orders: formattedOrders,
+  });
+});
