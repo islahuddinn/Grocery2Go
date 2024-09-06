@@ -1173,6 +1173,114 @@ exports.getProductDetail = async (req, res, next) => {
 //   });
 // });
 
+// exports.getCompletedOrdersByShop = catchAsync(async (req, res, next) => {
+//   const shopId = req.params.id; // Get the shopId from request parameters
+
+//   // Find the shop by ID to ensure it exists
+//   const shop = await Shop.findById(shopId);
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+
+//   // Find all orders that are marked as 'completed' and include the provided shopId in their products
+//   const completedOrders = await Order.find({
+//     orderStatus: "completed", // Filter orders by 'completed' status
+//     "products.shop": shopId, // Filter orders where the shop is part of the order's products
+//   })
+//     .populate("products.shop", "shopTitle image location owner") // Populate shop details
+//     .populate("customer", "firstName lastName email image location") // Populate customer details
+//     .populate("driver", "firstName lastName email image location") // Populate driver (rider) details
+//     .select("-__v"); // Exclude internal versioning field
+
+//   // Map the completed orders to the required format
+//   const formattedOrders = completedOrders.map((order) => ({
+//     orderNumber: order.orderNumber,
+//     riderStatus: order.riderStatus,
+//     orderType: order.orderType,
+//     totalListItems: order.totalListItems,
+//     _id: order._id,
+//     customer: order.customer
+//       ? {
+//           location: order.customer.location,
+//           _id: order.customer._id,
+//           firstName: order.customer.firstName,
+//           lastName: order.customer.lastName,
+//           email: order.customer.email,
+//           image: order.customer.image,
+//           id: order.customer._id.toString(),
+//         }
+//       : {}, // Handle case where customer is undefined
+//     shopDetailWithProduct: Array.isArray(order.products)
+//       ? order.products.map((product) => ({
+//           shopId: product?.shop?._id?.toString() || "",
+//           ownerId: product?.shop?.owner?.toString() || "",
+//           shopTitle: product?.shop?.shopTitle || "",
+//           image: product?.shop?.image || "",
+//           location: product?.shop?.location || {},
+//           isOrderAccepted: product?.isOrderAccepted || false,
+//           isOrderPickedUp: product?.isOrderPickedUp || false,
+//           isOrderReadyForPickup: product?.isOrderReadyForPickup || false,
+//           products: Array.isArray(product?.products)
+//             ? product.products.map((prod) => ({
+//                 productName: prod.productName,
+//                 category: Array.isArray(prod?.category)
+//                   ? prod.category.map((cat) => ({
+//                       categoryName: cat.categoryName,
+//                       categoryImage: cat.categoryImage,
+//                       _id: cat._id,
+//                     }))
+//                   : [], // Handle case where category is undefined
+//                 volume: prod.volume,
+//                 quantity: prod.quantity,
+//                 productImages: prod.productImages || [],
+//                 price: prod.price,
+//               }))
+//             : [], // Handle case where products are undefined
+//           shopTotal: product?.shopTotal || 0,
+//         }))
+//       : [], // Handle case where order.products is undefined
+//     orderTotal: order.orderTotal,
+//     rider: order.driver
+//       ? {
+//           location: order.driver.location,
+//           _id: order.driver._id,
+//           firstName: order.driver.firstName,
+//           lastName: order.driver.lastName,
+//           email: order.driver.email,
+//           image: order.driver.image,
+//           id: order.driver._id.toString(),
+//         }
+//       : {}, // Handle case where driver is undefined
+//     orderStatus: order.orderStatus,
+//     orderSummary: {
+//       itemsTotal: order.itemsTotal,
+//       totalListItems: order.listItems ? order.listItems.length : 0,
+//       // listItems: order.listItems ? listItems : 0,
+//       // listItems: listItems,
+//       listItems: order.listItems ? order.listItems : [],
+//       serviceFee: order.serviceFee,
+//       adminFee: order.adminFee,
+//       totalPayment: order.totalPayment,
+//       paymentStatus: order.paymentStatus,
+//       deliveryFee: order.deliveryCharges,
+//       deliveryTime: order.deliveryTime,
+//       startLocation: order.startLocation,
+//       endLocation: order.endLocation,
+//       deliveryPaymentStatus: order.deliveryPaymentStatus,
+//       shopAcceptedOrder: order.shopAcceptedOrder,
+//       shopRejectedOrder: order.shopRejectedOrder,
+//     },
+//   }));
+
+//   // Return a success response with the formatted orders
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Order details retrieved successfully",
+//     order: formattedOrders.length > 0 ? formattedOrders[0] : {},
+//   });
+// });
+
 exports.getCompletedOrdersByShop = catchAsync(async (req, res, next) => {
   const shopId = req.params.id; // Get the shopId from request parameters
 
@@ -1237,12 +1345,6 @@ exports.getCompletedOrdersByShop = catchAsync(async (req, res, next) => {
               }))
             : [], // Handle case where products are undefined
           shopTotal: product?.shopTotal || 0,
-          shopOrderSummary: product?.shopOrderSummary
-            ? {
-                shopItems: product.shopOrderSummary.shopItems,
-                shopItemsTotal: product.shopOrderSummary.shopItemsTotal,
-              }
-            : {}, // Handle case where shopOrderSummary is undefined
         }))
       : [], // Handle case where order.products is undefined
     orderTotal: order.orderTotal,
@@ -1258,32 +1360,30 @@ exports.getCompletedOrdersByShop = catchAsync(async (req, res, next) => {
         }
       : {}, // Handle case where driver is undefined
     orderStatus: order.orderStatus,
-    orderSummary: order.orderSummary
-      ? {
-          itemsTotal: order.orderSummary.itemsTotal,
-          totalItems: order.orderSummary.totalItems,
-          totalListItems: order.orderSummary.totalListItems,
-          listItems: order.orderSummary.listItems || [],
-          serviceFee: order.orderSummary.serviceFee,
-          adminFee: order.orderSummary.adminFee,
-          totalPayment: order.orderSummary.totalPayment,
-          paymentStatus: order.orderSummary.paymentStatus,
-          deliveryFee: order.orderSummary.deliveryFee,
-          deliveryTime: order.orderSummary.deliveryTime,
-          startLocation: order.orderSummary.startLocation,
-          endLocation: order.orderSummary.endLocation,
-          deliveryPaymentStatus: order.orderSummary.deliveryPaymentStatus,
-          shopAcceptedOrder: order.orderSummary.shopAcceptedOrder || [],
-          shopRejectedOrder: order.orderSummary.shopRejectedOrder || [],
-        }
-      : {}, // Handle case where orderSummary is undefined
+    orderSummary: {
+      itemsTotal: order.itemsTotal,
+      totalListItems: order.listItems ? order.listItems.length : 0,
+      listItems: order.listItems ? order.listItems : [],
+      serviceFee: order.serviceFee,
+      adminFee: order.adminFee,
+      totalPayment: order.totalPayment,
+      paymentStatus: order.paymentStatus,
+      deliveryFee: order.deliveryCharges,
+      deliveryTime: order.deliveryTime,
+      startLocation: order.startLocation,
+      endLocation: order.endLocation,
+      deliveryPaymentStatus: order.deliveryPaymentStatus,
+      shopAcceptedOrder: order.shopAcceptedOrder,
+      shopRejectedOrder: order.shopRejectedOrder,
+    },
   }));
 
-  // Return a success response with the formatted orders
+  // Return a success response with all formatted orders
   res.status(200).json({
     success: true,
     status: 200,
-    message: "Order details retrieved successfully",
-    order: formattedOrders.length > 0 ? formattedOrders[0] : {},
+    message: "Completed orders retrieved successfully",
+    results: formattedOrders.length,
+    orders: formattedOrders,
   });
 });
