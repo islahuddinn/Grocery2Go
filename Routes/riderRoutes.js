@@ -9,6 +9,10 @@ router.get("/online-riders", riderController.getAllOnlineRiders);
 router.post("/online-offline-rider", riderController.updateRiderOnlineStatus);
 router.get("/rider-stats", riderController.getRiderStatistics);
 router.post("/search-shop", riderController.searchShopByTitle);
+router.get(
+  "/get-completed orders-rider/:id",
+  riderController.getCompletedOrdersByRider
+);
 // router.get("/", shopController.getAllProduct);
 // router
 //   .route("/:id")
