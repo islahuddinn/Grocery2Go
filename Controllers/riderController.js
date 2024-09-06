@@ -199,7 +199,7 @@ exports.getCompletedOrdersByRider = catchAsync(async (req, res, next) => {
   const riderId = req.params.id; // Get the riderId from request parameters
 
   // Find the rider by ID to ensure it exists
-  const rider = await Driver.findById(riderId);
+  const rider = await User.findById(riderId);
   if (!rider) {
     return next(new AppError("Rider not found", 404));
   }
@@ -296,6 +296,7 @@ exports.getCompletedOrdersByRider = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     status: 200,
+    results: formattedOrders.length,
     message: "Completed orders retrieved successfully",
     orders: formattedOrders,
   });
