@@ -102,7 +102,7 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
   const totalEarnings = await Order.aggregate([
     {
       $match: {
-        driver: mongoose.Types.ObjectId(userId),
+        driver: new mongoose.Types.ObjectId(userId),
         orderStatus: "completed",
       },
     },
