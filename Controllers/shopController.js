@@ -1162,13 +1162,13 @@ exports.getCompletedOrdersByShop = catchAsync(async (req, res, next) => {
     status: 200,
     results: completedOrders.length,
     data: {
-      shop: {
+      shopDetails: {
         shopTitle: shop.shopTitle,
         shopType: shop.shopType,
         owner: shop.owner,
         location: shop.location,
       },
-      orders: completedOrders,
+      orderSummary: completedOrders,
     },
   });
 });
