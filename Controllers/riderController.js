@@ -94,7 +94,7 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
 
   // Fetch in-progress orders (assuming statuses other than "delivered" and "pending" mean in-progress)
   const inProgressOrders = await Order.find({
-    driver: riderId,
+    driver: userId,
     orderStatus: { $nin: ["completed", "pending"] },
   }).countDocuments();
 
