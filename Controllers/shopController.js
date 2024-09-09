@@ -905,27 +905,76 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
 
 //////------Shop Statistics by owner------//////
 
+// exports.getShopOrderStats = catchAsync(async (req, res, next) => {
+//   const userId = req.user.id;
+//   const shop = await Shop.findOne({ owner: userId });
+//   console.log(shop, "Here is the shop id");
+//   const shopId = shop.id;
+//   console.log(shop, shopId, "here is the owner shop");
+
+//   if (!shop) {
+//     return next(new AppError("Shop not found", 404));
+//   }
+
+//   const completedOrders = await Order.countDocuments({
+//     "products.shop": shopId,
+//     orderStatus: "completed",
+//   });
+//   console.log(completedOrders, "Here are shop complted orders");
+//   const pendingOrders = await Order.countDocuments({
+//     "products.shop": shopId,
+//     orderStatus: { $ne: "completed" },
+//   });
+
+//   const totalEarningsData = await Order.aggregate([
+//     {
+//       $match: {
+//         "products.shop": new mongoose.Types.ObjectId(shopId),
+//         orderStatus: "completed",
+//       },
+//     },
+//     { $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } } },
+//   ]);
+
+//   const totalEarnings = totalEarningsData.length
+//     ? totalEarningsData[0].totalEarnings
+//     : 0;
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Shop order stats retrieved successfully",
+//     data: {
+//       completedOrders,
+//       pendingOrders,
+//       totalEarnings,
+//     },
+//   });
+// });
 exports.getShopOrderStats = catchAsync(async (req, res, next) => {
   const userId = req.user.id;
-  const shop = await Shop.findOne({ owner: userId });
-  console.log(shop, "Here is the shop id");
-  const shopId = shop.id;
-  console.log(shop, shopId, "here is the owner shop");
 
+  // Find the shop for the current user
+  const shop = await Shop.findOne({ owner: userId });
   if (!shop) {
     return next(new AppError("Shop not found", 404));
   }
 
+  const shopId = shop.id;
+
+  // Count the number of completed orders for the shop
   const completedOrders = await Order.countDocuments({
     "products.shop": shopId,
     orderStatus: "completed",
   });
-  console.log(completedOrders, "Here are shop complted orders");
+
+  // Count the number of pending orders for the shop
   const pendingOrders = await Order.countDocuments({
     "products.shop": shopId,
     orderStatus: { $ne: "completed" },
   });
 
+  // Calculate the total earnings for the shop from completed orders
   const totalEarningsData = await Order.aggregate([
     {
       $match: {
@@ -933,13 +982,24 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
         orderStatus: "completed",
       },
     },
-    { $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } } },
+    {
+      $unwind: "$products", // Unwind products array to access individual product entries
+    },
+    {
+      $match: {
+        "products.shop": new mongoose.Types.ObjectId(shopId), // Match specific shop in products
+      },
+    },
+    {
+      $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } },
+    },
   ]);
 
   const totalEarnings = totalEarningsData.length
     ? totalEarningsData[0].totalEarnings
     : 0;
 
+  // Send the response with the calculated statistics
   res.status(200).json({
     success: true,
     status: 200,
@@ -951,6 +1011,7 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
     },
   });
 });
+
 //////-----get all categories-----/////
 
 exports.getAllCategories = catchAsync(async (req, res, next) => {
