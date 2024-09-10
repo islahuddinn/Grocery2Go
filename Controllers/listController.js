@@ -1195,9 +1195,9 @@ exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     // Check the payment status
-    // if (paymentIntent.status !== "succeeded") {
-    //   return next(new AppError("Payment was not successful", 400));
-    // }
+    if (paymentIntent.status !== "succeeded") {
+      return next(new AppError("Payment was not successful", 400));
+    }
 
     // Fetch the order by orderId
     const order = await Order.findById(orderId);
