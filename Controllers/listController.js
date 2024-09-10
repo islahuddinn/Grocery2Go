@@ -1120,6 +1120,7 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
     const order = await Order.findById(orderId);
     console.log(order, "here is the order ");
     order.paymentStatus = "paid";
+
     await order.save();
 
     // Payment is successful, you can now process the order or other business logic
@@ -1156,6 +1157,11 @@ exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
     console.log(order, "here is the order ");
     order.deliveryPaymentStatus = "paid";
     await order.save();
+    const rider = await User.findById(order.driver);
+    console.log(rider, "Here is the driver");
+    rider.riderEarnings = order.riderTotal;
+    await rider.save();
+    console.log(rider.riderEarnings, "here is the rider earnings");
 
     // Payment is successful, you can now process the order or other business logic
     res.status(200).json({
@@ -1298,7 +1304,7 @@ exports.payDeliveryCharges = async (req, res, next) => {
 
     paymentIntent = await createPaymentIntent(user, total, customerId, orderId);
     order.deliveryPaymentStatus = "paid";
-    order.riderEarnings = total;
+    order.riderTotal = total;
 
     await order.save();
   } catch (error) {

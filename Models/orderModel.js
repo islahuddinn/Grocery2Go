@@ -72,6 +72,9 @@ const orderSchema = new mongoose.Schema(
           type: Boolean,
           default: false,
         },
+        shopTotal: {
+          type: Number,
+        },
         isOrderReadyForPickup: {
           type: Boolean,
           default: false,
@@ -162,7 +165,7 @@ const orderSchema = new mongoose.Schema(
     tip: {
       type: Number,
     },
-    riderEarnings: {
+    riderTotal: {
       type: Number,
     },
     shopEarnings: {
