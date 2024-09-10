@@ -118,7 +118,7 @@ const userSchema = new mongoose.Schema(
     },
     country: String,
     riderEarnings: {
-      type: String,
+      type: Number,
     },
     otp: {
       type: Number,

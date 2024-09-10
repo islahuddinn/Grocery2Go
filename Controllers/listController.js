@@ -1137,6 +1137,47 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
     );
   }
 });
+// exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
+//   const { paymentIntentId, orderId } = req.body;
+
+//   // Validate input
+//   if (!paymentIntentId) {
+//     return next(new AppError("Payment Intent ID is required", 400));
+//   }
+
+//   try {
+//     // Retrieve the PaymentIntent from Stripe
+//     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+//     // Check the payment status
+//     if (paymentIntent.status !== "succeeded") {
+//       return next(new AppError("Payment was not successful", 400));
+//     }
+//     const order = await Order.findById(orderId);
+//     console.log(order, "here is the order ");
+//     order.deliveryPaymentStatus = "paid";
+//     await order.save();
+//     const rider = await User.findById(order.driver);
+//     console.log(rider, "Here is the driver");
+//     rider.riderEarnings += order.riderTotal;
+//     await rider.save();
+//     console.log(rider.riderEarnings, "here is the rider earnings");
+
+//     // Payment is successful, you can now process the order or other business logic
+//     res.status(200).json({
+//       success: true,
+//       status: 200,
+//       message: "Payment verified successfully",
+//       data: paymentIntent,
+//     });
+//   } catch (error) {
+//     // Handle errors from Stripe or other issues
+//     return next(
+//       new AppError(`Payment verification failed: ${error.message}`, 500)
+//     );
+//   }
+// });
+
 exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
   const { paymentIntentId, orderId } = req.body;
 
@@ -1145,22 +1186,43 @@ exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
     return next(new AppError("Payment Intent ID is required", 400));
   }
 
+  if (!orderId) {
+    return next(new AppError("Order ID is required", 400));
+  }
+
   try {
     // Retrieve the PaymentIntent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     // Check the payment status
-    if (paymentIntent.status !== "succeeded") {
-      return next(new AppError("Payment was not successful", 400));
-    }
+    // if (paymentIntent.status !== "succeeded") {
+    //   return next(new AppError("Payment was not successful", 400));
+    // }
+
+    // Fetch the order by orderId
     const order = await Order.findById(orderId);
+    if (!order) {
+      return next(new AppError("Order not found", 404));
+    }
     console.log(order, "here is the order ");
+
+    // Update the delivery payment status
     order.deliveryPaymentStatus = "paid";
     await order.save();
+
+    // Fetch the rider by the driver ID from the order
     const rider = await User.findById(order.driver);
+    if (!rider) {
+      return next(new AppError("Driver not found", 404));
+    }
     console.log(rider, "Here is the driver");
-    rider.riderEarnings += order.riderTotal;
+
+    // Ensure riderEarnings is initialized and order.riderTotal is defined
+    rider.riderEarnings = rider.riderEarnings || 0; // Ensure riderEarnings is initialized to 0 if undefined
+    order.riderTotal = order.riderTotal || 0; // Ensure order.riderTotal is initialized to 0 if undefined
+    rider.riderEarnings += order.riderTotal; // Update the rider earnings
     await rider.save();
+
     console.log(rider.riderEarnings, "here is the rider earnings");
 
     // Payment is successful, you can now process the order or other business logic
