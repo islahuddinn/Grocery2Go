@@ -87,6 +87,37 @@ exports.deleteProductFromList = catchAsync(async (req, res, next) => {
 
 // Get all riders
 
+// exports.getAllRiders = catchAsync(async (req, res, next) => {
+//   const riders = await User.find({ userType: "Rider" }).select(
+//     "-password -__v"
+//   ); // Exclude password and version key
+
+//   // Get ratings for each rider
+//   const riderRatingsPromises = riders.map(async (rider) => {
+//     const ratings = await Rating.find({ to: rider._id }).select(
+//       "stars comment createdAt -_id"
+//     );
+//     console.log(ratings, "Here is the ratings");
+//     const averageRating = ratings.length
+//       ? ratings.reduce((acc, rating) => acc + rating.stars, 0) / ratings.length
+//       : "0";
+//     return {
+//       rider,
+//       ratings,
+//       averageRating,
+//     };
+//   });
+
+//   const ridersWithRatings = await Promise.all(riderRatingsPromises);
+
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Riders retrieved successfully",
+//     data: ridersWithRatings,
+//   });
+// });
+
 exports.getAllRiders = catchAsync(async (req, res, next) => {
   const riders = await User.find({ userType: "Rider" }).select(
     "-password -__v"
@@ -94,19 +125,24 @@ exports.getAllRiders = catchAsync(async (req, res, next) => {
 
   // Get ratings for each rider
   const riderRatingsPromises = riders.map(async (rider) => {
-    const ratings = await Rating.find({ to: rider._id, toDriver: true }).select(
-      "stars createdAt -_id"
+    const ratings = await Rating.find({ to: rider._id }).select(
+      "stars comment createdAt -_id"
     );
+
+    console.log(ratings, "Here are the ratings");
+
+    // Calculate average rating
     const averageRating = ratings.length
       ? (
           ratings.reduce((acc, rating) => acc + rating.stars, 0) /
           ratings.length
-        ).toFixed(2)
+        ).toFixed(2) // Ensures the average is a number and formatted to two decimals
       : "0";
+
     return {
       rider,
       ratings,
-      averageRating,
+      averageRating: parseFloat(averageRating), // Convert to a number
     };
   });
 
