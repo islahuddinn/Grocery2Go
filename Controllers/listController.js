@@ -1159,7 +1159,7 @@ exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
     await order.save();
     const rider = await User.findById(order.driver);
     console.log(rider, "Here is the driver");
-    rider.riderEarnings = order.riderTotal;
+    rider.riderEarnings += order.riderTotal;
     await rider.save();
     console.log(rider.riderEarnings, "here is the rider earnings");
 
