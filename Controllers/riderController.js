@@ -82,8 +82,13 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
 
   console.log(userId, "here is the  rider id");
 
-  if (!userId) {
-    return next(new AppError("No Rider Found With Given Id ", 404));
+  // if (!userId) {
+  //   return next(new AppError("No Rider Found With Given Id ", 404));
+  // }
+  const rider = await User.findById(userId);
+
+  if (!rider) {
+    return next(new AppError("No Rider Found With Given Id", 404));
   }
 
   // Fetch completed orders (assuming "delivered" status means completed)
@@ -99,7 +104,7 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
   }).countDocuments();
 
   // Calculate total earnings based on the riderEarnings field
-  const totalEarnings = await Order.aggregate([
+  const totalEarnings = await User.aggregate([
     {
       $match: {
         driver: new mongoose.Types.ObjectId(userId),
@@ -109,6 +114,8 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
     { $group: { _id: null, total: { $sum: "$riderEarnings" } } },
   ]);
 
+  const riderEarnings = rider.riderEarnings || 0;
+
   res.status(200).json({
     success: true,
     status: 200,
@@ -116,7 +123,8 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
     data: {
       completedOrders,
       inProgressOrders,
-      totalEarnings: totalEarnings[0] ? totalEarnings[0].total : 0,
+      // totalEarnings: totalEarnings[0] ? totalEarnings[0].total : 0,
+      totalEarnings: riderEarnings,
     },
   });
 });
