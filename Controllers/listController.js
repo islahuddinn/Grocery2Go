@@ -1285,7 +1285,7 @@ exports.payDeliveryCharges = async (req, res, next) => {
   console.log(deliveryCharges, "here are the delivery charges");
 
   // const deliveryCharges = parseFloat(order.deliveryCharges);
-  const deliveryChargesAmount = Math.round(deliveryCharges * 100);
+  const deliveryChargesAmount = Math.round(deliveryCharges);
   console.log(deliveryChargesAmount, "here are the delivery charges");
   const user = req.user;
   let paymentIntent;
