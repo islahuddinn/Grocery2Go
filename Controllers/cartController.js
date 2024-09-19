@@ -994,8 +994,33 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
     totalPayment,
     // shopAcceptedOrder,
     // shopRejectedOrder,
-    paymentStatus: "paid",
-    orderStatus: "pending",
+    // paymentStatus: "paid",
+    // orderStatus: "pending",
+  });
+  ///Notification
+
+  const title = `New Order: ${newOrder.orderNumber}.`;
+  const body = `New Order: ${newOrder.orderNumber}, is created succesfully`;
+  // const riders = [];
+  // const allRiders = await User.find({ userType: "Rider" });
+  // riders.push(allRiders.map(id)={ids:id});
+  // console.log(riders, "Here are all riders");
+  // Fetch only the IDs of the riders
+  const allRiders = await User.find({ userType: "Rider" }).select("_id"); // Select only the _id field
+
+  console.log(allRiders, "Here are all the riders");
+
+  // Map the riders to get an array of their IDs
+  const riderIds = allRiders.map((rider) => rider._id);
+
+  console.log(riderIds, "Here are all rider IDs");
+
+  // Create a notification with multiple receivers
+  await Notification.create({
+    sender: req.user._id,
+    multireceiver: riderIds,
+    title: title,
+    data: body,
   });
 
   if (!user.stripeCustomerId) {
@@ -1042,6 +1067,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
         clientSecret: paymentIntent.client_secret,
         metadata: paymentIntent.metadata,
       },
+      notification: Notification,
     },
   });
 });

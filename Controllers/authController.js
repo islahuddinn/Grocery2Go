@@ -779,7 +779,7 @@ exports.sendOtpForDeletingMe = catchAsync(async (req, res, next) => {
   });
 });
 exports.deleteMe = catchAsync(async (req, res, next) => {
-  const { otp } = req.body;
+  const otp = req.body.otp;
   if (!otp) {
     return next(new AppError("Please provide OTP", 400));
   }
