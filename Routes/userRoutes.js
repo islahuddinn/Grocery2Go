@@ -37,7 +37,7 @@ router.patch("/updateMyPassword", authController.updatePassword);
 router.get("/mynotifications", userController.mynotifications);
 router.post("/logout", authController.logout);
 router.post("/delete-account-send-otp", authController.sendOtpForDeletingMe);
-router.delete("/delete-account-verify", authController.deleteMe);
+router.post("/delete-account-verify", authController.deleteMe);
 router.get("/stripe/add-bank", userController.addBankAccount);
 router.get("/stripe/verify-onboarding", userController.verifyStripeOnboarding);
 router.get("/stripe/get-onboarding-link", userController.getLoginLink);
