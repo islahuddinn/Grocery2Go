@@ -795,12 +795,13 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   // user.otp = undefined;
   // user.otpExpires = undefined;
   // user.email = undefined;
-  await user.save();
-  console.log(deletedUser, "Here is the user");
+  // await user.save();
+  // console.log(deletedUser, "Here is the user");
   res.status(200).json({
     status: 200,
     success: true,
     message: "Account Deleted!",
+    // data: deletedUser ? deletedUser : null,
     data: null,
   });
 });
