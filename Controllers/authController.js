@@ -750,7 +750,7 @@ exports.sendOtpForDeletingMe = catchAsync(async (req, res, next) => {
   const { password } = req.body;
   if (!password) {
     return next(
-      new CustomError("Please type your password before deleting account.", 400)
+      new AppError("Please type your password before deleting account.", 400)
     );
   }
   const user = await User.findById(req.user._id).select("+password");
@@ -773,8 +773,8 @@ exports.sendOtpForDeletingMe = catchAsync(async (req, res, next) => {
   });
   await email.sendWelcome(otp);
   res.status(200).json({
-    status: "success",
-    statusCode: 200,
+    status: 200,
+    success: true,
     message: "OTP has been sent to your email for verification.",
   });
 });
@@ -795,8 +795,8 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   user.otpExpires = undefined;
   await user.save();
   res.status(200).json({
-    status: "success",
-    statusCode: 200,
+    status: 200,
+    success: true,
     message: "Account Deleted!",
     data: null,
   });
