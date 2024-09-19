@@ -10,6 +10,7 @@ const listRoutes = require("./listRoutes");
 const orderRoutes = require("./orderRoutes");
 const riderRoutes = require("./riderRoutes");
 const ratingRoutes = require("./ratingRoutes");
+const earningsRoutes = require("./earningsRoutes");
 
 const setupRoutesV1 = () => {
   const router = express.Router();
@@ -24,6 +25,7 @@ const setupRoutesV1 = () => {
   router.use("/order", orderRoutes);
   router.use("/rider", riderRoutes);
   router.use("/rating", ratingRoutes);
+  router.use("/earnings", earningsRoutes);
 
   return router;
 };

@@ -1153,6 +1153,16 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
     //   title: "New order delivery request ",
     //   body: `Accept or reject the order ${order}`,
     // });
+    const title = `The Rider rejected the order number: ${order.orderNumber}`;
+    const body = `The Rider with id: ${req.user._id}, rejected the order number: ${order.orderNumber}`;
+
+    await Notification.create({
+      sender: req.user._id,
+      receiver: customer._id,
+      title: title,
+      data: body,
+    });
+
     return res.status(200).json({
       success: true,
       status: 200,
@@ -1164,7 +1174,15 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
     order.driver = req.user.id;
     order.isdeliveryInProgress = true;
     await order.save();
+    const title = `The Rider accepted the order number: ${order.orderNumber}`;
+    const body = `The Rider with id: ${req.user._id}, accepted the order number: ${order.orderNumber}`;
 
+    await Notification.create({
+      sender: req.user._id,
+      receiver: customer._id,
+      title: title,
+      data: body,
+    });
     return res.status(200).json({
       success: true,
       status: 200,
@@ -1214,11 +1232,20 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     //   title: "New order on shop",
     //   body: `Accept or reject the order ${order}`,
     // });
+    const title = `Shop Owner accepted the order number: ${order.orderNumber}`;
+    const body = `The owner of the shop accepted the order number: ${order.orderNumber}`;
+
+    await Notification.create({
+      sender: req.user._id,
+      receiver: customer._id,
+      title: title,
+      data: body,
+    });
 
     return res.status(200).json({
       success: true,
       status: 200,
-      message: "Order accepted and notified to all riders",
+      message: "Order accepted by shop owner",
       data: order,
     });
   } else if (action === "reject") {
@@ -1250,6 +1277,15 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     //   title: "Your order is rejected by the owner",
     //   body: `Owner rejected the order ${order}`,
     // });
+    const title = `Shop Owner rejected the order number: ${order.orderNumber}`;
+    const body = `The owner of the shop rejected the order number: ${order.orderNumber}`;
+
+    await Notification.create({
+      sender: req.user._id,
+      receiver: customer._id,
+      title: title,
+      data: body,
+    });
 
     return res.status(200).json({
       success: true,
@@ -1334,6 +1370,15 @@ exports.readyForPickup = async (req, res) => {
     //   title: "Your order is raedy for pickup ",
     //   body: notificationMessage,
     // });
+    const title = `Order ready for pickup`;
+    const body = `Your order number: ${order.orderNumber} is ready for pickup.`;
+
+    await Notification.create({
+      sender: req.user._id,
+      receiver: customer._id,
+      title: title,
+      data: body,
+    });
 
     res.status(200).json({
       success: true,
@@ -1430,7 +1475,17 @@ exports.markOrderAsReadyForPickedUp = catchAsync(async (req, res, next) => {
     }
   });
   await order.save();
+  ////Notify about order is ready for picked up from shop
 
+  const title = `The Rider order number: ${order.orderNumber} is ready for pickup.`;
+  const body = `The order number: ${order.orderNumber}, is ready for pickup from shop id: ${shopId}`;
+
+  await Notification.create({
+    sender: req.user._id,
+    receiver: customer._id,
+    title: title,
+    data: body,
+  });
   // Return a success response with the updated order details
   res.status(200).json({
     success: true,

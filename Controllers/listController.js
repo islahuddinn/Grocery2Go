@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const catchAsync = require("../Utils/catchAsync");
 const AppError = require("../Utils/appError");
 const List = require("../Models/listModel");
@@ -7,6 +8,7 @@ const Order = require("../Models/orderModel");
 const { SendNotification } = require("../Utils/notificationSender");
 const Notification = require("../Models/notificationModel");
 const Shop = require("../Models/shopsModel");
+const Earnings = require("../Models/earningsModel");
 const Rating = require("../Models/ratingModel");
 const { calculateDeliveryCharges } = require("../Utils/helper");
 const {
@@ -85,38 +87,7 @@ exports.deleteProductFromList = catchAsync(async (req, res, next) => {
   });
 });
 
-// Get all riders
-
-// exports.getAllRiders = catchAsync(async (req, res, next) => {
-//   const riders = await User.find({ userType: "Rider" }).select(
-//     "-password -__v"
-//   ); // Exclude password and version key
-
-//   // Get ratings for each rider
-//   const riderRatingsPromises = riders.map(async (rider) => {
-//     const ratings = await Rating.find({ to: rider._id }).select(
-//       "stars comment createdAt -_id"
-//     );
-//     console.log(ratings, "Here is the ratings");
-//     const averageRating = ratings.length
-//       ? ratings.reduce((acc, rating) => acc + rating.stars, 0) / ratings.length
-//       : "0";
-//     return {
-//       rider,
-//       ratings,
-//       averageRating,
-//     };
-//   });
-
-//   const ridersWithRatings = await Promise.all(riderRatingsPromises);
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Riders retrieved successfully",
-//     data: ridersWithRatings,
-//   });
-// });
+////// Get all riders
 
 exports.getAllRiders = catchAsync(async (req, res, next) => {
   const riders = await User.find({ userType: "Rider" }).select(
@@ -194,285 +165,6 @@ exports.getRiderDetails = catchAsync(async (req, res, next) => {
 
 // // ------Select rider for list order delivery ----- ////
 
-// exports.requestRider = catchAsync(async (req, res, next) => {
-//   const { endLocation, riderId, listId } = req.body;
-//   const { user } = req;
-
-//   // Validate that the rider exists
-//   const rider = await User.findOne({ _id: riderId, userType: "Rider" });
-//   if (!rider) {
-//     return next(new AppError("Rider not found", 404));
-//   }
-//   // Retrieve the list by listId
-//   const list = await List.findById(listId).populate("user");
-//   if (!list) {
-//     return next(new AppError("List not found", 404));
-//   }
-
-//   // Extract product names from the list
-//   const productNames = list.items.map((item) => item.productName);
-//   console.log("List product names:", productNames);
-
-//   // Fetch all products with their prices from the shop model
-//   const shopProducts = await Shop.aggregate([
-//     { $unwind: "$categories" },
-//     { $unwind: "$categories.groceries" },
-//     { $match: { "categories.groceries.productName": { $in: productNames } } },
-//     {
-//       $project: {
-//         "categories.groceries.productName": 1,
-//         "categories.groceries.price": 1,
-//       },
-//     },
-//   ]);
-
-//   console.log("Shop products details:", shopProducts);
-
-//   // Create a map for product prices
-//   const priceMap = {};
-//   shopProducts.forEach((shopProduct) => {
-//     const productName = shopProduct.categories.groceries.productName;
-//     const productPrice = shopProduct.categories.groceries.price;
-//     priceMap[productName] = productPrice;
-//   });
-
-//   console.log("Mapped prices:", priceMap);
-
-//   // // Check if all items have a price
-//   // for (const item of list.items) {
-//   //   if (!priceMap[item.productName]) {
-//   //     return res.status(404).json({
-//   //       success: false,
-//   //       status: 404,
-//   //       message: `Price not found for item: ${item.productName} or item not available`,
-//   //     });
-//   //   }
-//   // }
-
-//   // Generate a unique order number (e.g., using a timestamp)
-//   const orderNumber = `ORD-${Date.now()}`;
-
-//   // Calculate items total and construct products array
-//   const products = [];
-//   let itemsTotal = 0;
-
-//   for (const item of list.items) {
-//     const price = priceMap[item.productName];
-//     console.log("what the heck is this price:", price);
-//     const totalPrice = item.quantity * price;
-//     itemsTotal += totalPrice;
-//     products.push({
-//       productName: item.productName,
-//       quantity: item.quantity,
-//       price: price,
-//     });
-//   }
-
-//   // Assuming startLocation is the first shop's location for simplicity
-//   const shop = await Shop.findOne({
-//     "groceries.productName": productNames[0],
-//   });
-//   if (!shop || !shop.location) {
-//     return next(
-//       new AppError("Shop not found or invalid coordinates/location", 404)
-//     );
-//   }
-//   const startLocation = shop.location;
-//   console.log("rider start:", startLocation);
-//   const serviceFee = 0.5;
-//   const adminFee = 0.1;
-//   const totalPayment = itemsTotal + serviceFee + adminFee;
-
-//   // Calculate delivery charges
-//   const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
-//   console.log("Calculated delivery charges:", deliveryCharges);
-
-//   // Create the order
-//   const newOrder = await Order.create({
-//     orderNumber,
-//     customer: list.user._id,
-//     listItems: products,
-//     startLocation: startLocation,
-//     endLocation: endLocation,
-//     // driver
-//     itemsTotal: itemsTotal,
-//     serviceFee,
-//     adminFee,
-//     totalPayment: totalPayment,
-//     deliveryCharges: deliveryCharges,
-//   });
-
-//   ///// Notification for the rider
-//   // const FCMToken = rider.deviceToken;
-//   // const notification = await Notification.create({
-//   //   sender: user._id,
-//   //   receiver: rider._id,
-//   //   data: `New order from ${user.firstName}. Please accept or reject the order.`,
-//   // });
-
-//   // await SendNotification({
-//   //   token: FCMToken,
-//   //   title: `New Order from ${user.firstName}`,
-//   //   body: "Please accept or reject the order delivery request.",
-//   // });
-
-//   // Return the order details
-//   res.status(201).json({
-//     success: true,
-//     status: 201,
-//     message: "Order created successfully, rider has been notified.",
-//     order: {
-//       orderId: newOrder.id,
-//       orderNumber: newOrder.orderNumber,
-//       orderStatus: newOrder.orderStatus,
-//       startLocation: newOrder.startLocation,
-//       endLocation: newOrder.endLocation,
-//       customer: newOrder.customer,
-//       itemsTotal: newOrder.itemsTotal,
-//       serviceFee: newOrder.serviceFee,
-//       adminFee: newOrder.adminFee,
-//       totalPayment: newOrder.totalPayment,
-//       paymentStatus: newOrder.paymentStatus,
-//       deliveryCharges: newOrder.deliveryCharges,
-//       deliveryPaymentStatus: newOrder.deliveryPaymentStatus,
-//       listItems: newOrder.listItems,
-//       // notification,
-//     },
-//   });
-// });
-// exports.requestRider = catchAsync(async (req, res, next) => {
-//   const { endLocation, riderId, listId } = req.body;
-//   const { user } = req;
-
-//   // Validate that the rider exists
-//   const rider = await User.findOne({ _id: riderId, userType: "Rider" });
-//   if (!rider) {
-//     return next(new AppError("Rider not found", 404));
-//   }
-
-//   // Retrieve the list by listId
-//   const list = await List.findById(listId).populate("user");
-//   if (!list) {
-//     return next(new AppError("List not found", 404));
-//   }
-
-//   // Extract product names from the list
-//   // const productNames = list.items.map((item) => item.productName);
-
-//   // // Fetch all products with their prices from the shop model
-//   // const shopProducts = await Shop.aggregate([
-//   //   { $unwind: "$groceries" },
-//   //   { $match: { "groceries.productName": { $in: productNames } } },
-//   //   {
-//   //     $project: {
-//   //       "groceries.productName": 1,
-//   //       "groceries.price": 1,
-//   //     },
-//   //   },
-//   // ]);
-
-//   // Create a map for product prices
-//   // const priceMap = {};
-//   // shopProducts.forEach((shopProduct) => {
-//   //   const productName = shopProduct.groceries.productName;
-//   //   const productPrice = shopProduct.groceries.price;
-//   //   priceMap[productName] = productPrice;
-//   // });
-
-//   // Generate a unique order number (e.g., using a timestamp)
-//   // const orderNumber = `ORD-${Date.now()}`;
-
-//   // Calculate items total and construct products array
-//   // const products = [];
-//   // let itemsTotal = 0;
-
-//   // for (const item of list.items) {
-//   //   const price = priceMap[item.productName];
-//   //   if (!price) {
-//   //     return res.status(404).json({
-//   //       success: false,
-//   //       status: 404,
-//   //       message: `Price not found for item: ${item.productName} or item not available`,
-//   //     });
-//   //   }
-//   //   const totalPrice = item.quantity * price;
-//   //   itemsTotal += totalPrice;
-//   //   products.push({
-//   //     productName: item.productName,
-//   //     quantity: item.quantity,
-//   //     price: price,
-//   //   });
-//   // }
-
-//   // Assuming startLocation is the first shop's location for simplicity
-//   // const shop = await Shop.findOne({
-//   //   "groceries.productName": productNames[0],
-//   // });
-//   // if (!shop || !shop.location) {
-//   //   return next(
-//   //     new AppError("Shop not found or invalid coordinates/location", 404)
-//   //   );
-//   // }
-//   // const startLocation = shop.location;
-
-//   // const serviceFee = 0.5;
-//   // const adminFee = 0.1;
-//   // const totalPayment = itemsTotal + serviceFee + adminFee;
-
-//   // Calculate delivery charges
-//   // const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
-
-//   // // Create the order
-//   // const newOrder = await Order.create({
-//   //   orderNumber,
-//   //   customer: list.user._id,
-//   //   listItems: products,
-//   //   startLocation: startLocation,
-//   //   endLocation: endLocation,
-//   //   itemsTotal: itemsTotal,
-//   //   serviceFee,
-//   //   adminFee,
-//   //   totalPayment: totalPayment,
-//   //   deliveryCharges: deliveryCharges,
-//   // });
-
-//   // Notification for the rider
-//   // const FCMToken = rider.deviceToken;
-//   // const notification = await Notification.create({
-//   //   sender: user._id,
-//   //   receiver: rider._id,
-//   //   data: `New order from ${user.firstName}. Please accept or reject the order.`,
-//   // });
-//   // await SendNotification({
-//   //   token: FCMToken,
-//   //   title: `New Order from ${user.firstName}`,
-//   //   body: "Please accept or reject the order delivery request.",
-//   // });
-
-//   // Return the order details
-//   res.status(201).json({
-//     success: true,
-//     status: 201,
-//     message: "Rider has been notified.",
-//     order: {
-//       // orderId: newOrder.id,
-//       // orderNumber: newOrder.orderNumber,
-//       // orderStatus: newOrder.orderStatus,
-//       // startLocation: newOrder.startLocation,
-//       // endLocation: newOrder.endLocation,
-//       // customer: newOrder.customer,
-//       // itemsTotal: newOrder.itemsTotal,
-//       // serviceFee: newOrder.serviceFee,
-//       // adminFee: newOrder.adminFee,
-//       // totalPayment: newOrder.totalPayment,
-//       // paymentStatus: newOrder.paymentStatus,
-//       // deliveryCharges: newOrder.deliveryCharges,
-//       // deliveryPaymentStatus: newOrder.deliveryPaymentStatus,
-//       // listItems: newOrder.listItems,
-//       // notification,
-//     },
-//   });
-// });
 exports.requestRider = catchAsync(async (req, res, next) => {
   const { endLocation, riderId, listId } = req.body;
   const { user } = req;
@@ -507,11 +199,11 @@ exports.requestRider = catchAsync(async (req, res, next) => {
   await list.save();
   // Notify the rider (mock notification for now)
   // const FCMToken = rider.deviceToken;
-  // const notification = await Notification.create({
-  //   sender: user._id,
-  //   receiver: rider._id,
-  //   data: `New delivery request from ${user.firstName}. Please accept or reject the request.`,
-  // });
+  const notification = await Notification.create({
+    sender: user._id,
+    receiver: rider._id,
+    data: `New delivery request from ${user.firstName}. Please accept or reject the request.`,
+  });
   // await SendNotification({
   //   token: FCMToken,
   //   title: `New Delivery Request from ${user.firstName}`,
@@ -540,121 +232,6 @@ exports.requestRider = catchAsync(async (req, res, next) => {
 });
 
 /////-----Aaccept or Reject list order by rider -----////
-
-// exports.acceptOrRejectOrder = catchAsync(async (req, res, next) => {
-//   const { listId, action } = req.body;
-
-//   // Retrieve the list by listId
-//   const list = await List.findById(listId).populate("customer");
-//   if (!list) {
-//     return next(new AppError("List not found", 404));
-//   }
-
-//   /// Extract product names from the list
-//   const productNames = list.items.map((item) => item.productName);
-
-//   // Fetch all products with their prices from the shop model
-//   const shopProducts = await Shop.aggregate([
-//     { $unwind: "$groceries" },
-//     { $match: { "groceries.productName": { $in: productNames } } },
-//     {
-//       $project: {
-//         "groceries.productName": 1,
-//         "groceries.price": 1,
-//       },
-//     },
-//   ]);
-
-//   ///// Create a map for product prices
-//   const priceMap = {};
-//   shopProducts.forEach((shopProduct) => {
-//     const productName = shopProduct.groceries.productName;
-//     const productPrice = shopProduct.groceries.price;
-//     priceMap[productName] = productPrice;
-//   });
-
-//   ///// Generate a unique order number (e.g., using a timestamp)
-//   const orderNumber = `ORD-${Date.now()}`;
-
-//   ////// Calculate items total and construct products array
-//   const products = [];
-//   let itemsTotal = 0;
-
-//   for (const item of list.items) {
-//     const price = priceMap[item.productName];
-//     if (!price) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: `Price not found for item: ${item.productName} or item not available`,
-//       });
-//     }
-//     const totalPrice = item.quantity * price;
-//     itemsTotal += totalPrice;
-//     products.push({
-//       productName: item.productName,
-//       quantity: item.quantity,
-//       price: price,
-//     });
-//   }
-
-//   ///// Assuming startLocation is the first shop's location for simplicity
-//   const shop = await Shop.findOne({
-//     "groceries.productName": productNames[0],
-//   });
-//   if (!shop || !shop.location) {
-//     return next(
-//       new AppError("Shop not found or invalid coordinates/location", 404)
-//     );
-//   }
-//   const startLocation = shop.location;
-
-//   const serviceFee = 0.5;
-//   const adminFee = 0.1;
-//   const totalPayment = itemsTotal + serviceFee + adminFee;
-
-//   /// // Calculate delivery charges
-//   // const deliveryCharges = calculateDeliveryCharges(startLocation, endLocation);
-
-//   // Create the order
-//   const newOrder = await Order.create({
-//     orderNumber,
-//     customer: list.user._id,
-//     listItems: products,
-//     startLocation: startLocation,
-//     endLocation: endLocation,
-//     itemsTotal: itemsTotal,
-//     serviceFee,
-//     adminFee,
-//     totalPayment: totalPayment,
-//     // deliveryCharges: deliveryCharges,
-//   });
-
-//   // Handle the action
-//   if (action === "accept") {
-//     newOrder.orderStatus = "rider accepted";
-//     newOrder.driver = req.user.id;
-//     await newOrder.save();
-
-//     // Send a notification to the customer about the order status change
-//     // Assuming you have a function to send notifications
-//     // sendNotificationToCustomer(order.customer, 'Your order is ready for pickup');
-
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "Order accepted and status updated to ready for pickup",
-//       newOrder,
-//     });
-//   } else if (action === "reject") {
-//     // Optionally, you can log the rejection or notify the customer about the rejection
-//     // sendNotificationToCustomer(newOrder.customer, 'Your order has been rejected');
-
-//     return next(new AppError("Order rejected ", 200));
-//   } else {
-//     return next(new AppError("Invalid action use accept/reject ", 400));
-//   }
-// });
 
 exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
   const { listId, action } = req.body;
@@ -724,6 +301,16 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
       orderType: "listOrder",
       isdeliveryInProgress: false,
     });
+    ////Notification
+    const title = `Rider with id: ${newOrder.driver}, Accepted the order`;
+    const body = `Rider with id: ${newOrder.driver} , Accepted the list order number: ${newOrder.orderNumber}`;
+
+    await Notification.create({
+      sender: req.user._id,
+      receiver: customer._id,
+      title: title,
+      data: body,
+    });
 
     return res.status(200).json({
       success: true,
@@ -738,85 +325,6 @@ exports.acceptOrRejectListByRider = catchAsync(async (req, res, next) => {
 });
 
 ////// ----- Rider Buying Grocery ----- /////
-
-// exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
-//   const { orderId, updatedItems } = req.body;
-
-//   if (!orderId || !updatedItems || !Array.isArray(updatedItems)) {
-//     return next(new AppError("Invalid input data", 400));
-//   }
-
-//   const order = await Order.findById(orderId);
-//   if (!order) {
-//     return next(new AppError("Order not found", 404));
-//   }
-//   const riderDetails = await User.findById(order.driver).populate(
-//     "firstName image location"
-//   );
-//   if (!riderDetails) {
-//     return next(new AppError("Driver not found in the order", 404));
-//   }
-//   // console.log("mr rider details are here:", riderDetails);
-//   // Fetch serviceFee and adminFee from settings
-//   const otherCharges = await Order.findOne();
-//   if (!otherCharges) {
-//     return next(new AppError("Other charges not found", 500));
-//   }
-
-//   const { serviceFee, tax, tip } = otherCharges;
-//   let itemsTotal = 0;
-//   let totalPayment = 0;
-//   const deliveryCharges = order.deliveryCharges || 2.0;
-
-//   for (const item of order.listItems) {
-//     const updatedItem = updatedItems.find(
-//       (ui) => ui.productName === item.productName
-//     );
-//     if (updatedItem) {
-//       item.isAvailable = updatedItem.isAvailable;
-
-//       if (updatedItem.isAvailable) {
-//         const shopProduct = await Shop.findOne(
-//           { "categories.groceries.productName": item.productName },
-//           { "categories.groceries.$": 1 }
-//         );
-
-//         if (!shopProduct) {
-//           return res.status(404).json({
-//             success: false,
-//             status: 404,
-//             message: `Price not found for item: ${item.productName}`,
-//           });
-//         }
-
-//         const grocery = shopProduct.categories[0].groceries[0];
-//         const totalPrice = item.quantity * grocery.price;
-//         itemsTotal += totalPrice;
-//       }
-//     }
-//   }
-
-//   totalPayment = itemsTotal + serviceFee + tax;
-
-//   order.itemsTotal = itemsTotal.toFixed(2);
-//   order.serviceFee = serviceFee;
-//   order.tax = tax;
-//   order.tip = tip;
-//   order.totalPayment = totalPayment.toFixed(2);
-//   order.orderStatus = "buying grocery";
-//   order.deliveryCharges = deliveryCharges;
-
-//   await order.save();
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "List item availability and billing details updated successfully",
-//     order,
-//     // paymentIntent,
-//     riderDetails,
-//   });
-// });
 
 exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
   const { orderId, updatedItems, itemsTotal } = req.body;
@@ -912,104 +420,6 @@ exports.updateListItemAvailability = catchAsync(async (req, res, next) => {
 });
 
 //////-----Send bill to the customer with order details----////
-
-// exports.sendListBill = catchAsync(async (req, res, next) => {
-//   const { orderId } = req.body;
-
-//   if (!orderId) {
-//     return next(new AppError("Invalid input data", 400));
-//   }
-
-//   const order = await Order.findById(orderId).populate("customer");
-//   if (!order) {
-//     return next(new AppError("Order not found", 404));
-//   }
-
-//   const riderDetails = await User.findById(order.driver).select(
-//     "firstName image location"
-//   );
-//   if (!riderDetails) {
-//     return next(new AppError("Driver not found in the order", 404));
-//   }
-
-//   const settings = await Order.findOne();
-//   if (!settings) {
-//     return next(
-//       new AppError("Service fee, Admin fee or tax fee not found", 500)
-//     );
-//   }
-
-//   const { serviceFee, tax } = settings;
-//   let itemsTotal = 0;
-
-//   for (const item of order.listItems) {
-//     if (item.isAvailable) {
-//       const shopProduct = await Shop.findOne(
-//         { "categories.groceries.productName": item.productName },
-//         { "categories.$": 1 }
-//       );
-
-//       if (!shopProduct) {
-//         return res.status(404).json({
-//           success: false,
-//           status: 404,
-//           message: `Price not found for item: ${item.productName}`,
-//         });
-//       }
-
-//       const grocery = shopProduct.categories[0].groceries.find(
-//         (g) => g.productName === item.productName
-//       );
-//       const totalPrice = item.quantity * grocery.price;
-//       itemsTotal += totalPrice;
-//     }
-//   }
-
-//   const totalPayment = itemsTotal + serviceFee + tax;
-
-//   order.itemsTotal = itemsTotal.toFixed(2);
-//   order.serviceFee = serviceFee;
-//   order.tax = tax;
-//   order.totalPayment = totalPayment.toFixed(2);
-//   order.orderStatus = "buying grocery";
-
-//   await order.save();
-
-//   const FCMToken = order.customer.deviceToken;
-//   const paymentIntent = await stripe.paymentIntents.create({
-//     amount: Math.round(totalPayment * 100),
-//     currency: "usd",
-//     customer: order.customer.stripeCustomerId,
-//     description: `Payment for order ${order.orderNumber}`,
-//   });
-
-//   //// Notify the customer
-//   // await SendNotification({
-//   //   token: FCMToken,
-//   //   title: "Bill Details",
-//   //   body: `Your order ${
-//   //     order.orderNumber
-//   //   } payment is pending. Total payment: ${totalPayment.toFixed(2)}`,
-//   // });
-
-//   // await Notification.create({
-//   //   sender: order.driver,
-//   //   receiver: order.customer._id,
-//   //   data: `Your order ${
-//   //     order.orderNumber
-//   //   } bill is ready. Total payment: ${totalPayment.toFixed(2)}`,
-//   // });
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "List items and billing details send successfully",
-//     order,
-//     paymentIntentId: paymentIntent._id,
-//     tip: paymentIntent.amount_details,
-//     riderDetails,
-//   });
-// });
 
 exports.sendListBill = catchAsync(async (req, res, next) => {
   const { orderId } = req.body;
@@ -1137,43 +547,7 @@ exports.sendListBill = catchAsync(async (req, res, next) => {
 
 ////----verify-payment intent----///
 
-exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
-  const { paymentIntentId, orderId } = req.body;
-
-  // Validate input
-  if (!paymentIntentId) {
-    return next(new AppError("Payment Intent ID is required", 400));
-  }
-
-  try {
-    // Retrieve the PaymentIntent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-    // Check the payment status
-    if (paymentIntent.status !== "succeeded") {
-      return next(new AppError("Payment was not successful", 400));
-    }
-    const order = await Order.findById(orderId);
-    console.log(order, "here is the order ");
-    order.paymentStatus = "paid";
-
-    await order.save();
-
-    // Payment is successful, you can now process the order or other business logic
-    res.status(200).json({
-      success: true,
-      status: 200,
-      message: "Payment verified successfully",
-      data: paymentIntent,
-    });
-  } catch (error) {
-    // Handle errors from Stripe or other issues
-    return next(
-      new AppError(`Payment verification failed: ${error.message}`, 500)
-    );
-  }
-});
-// exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
+// exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
 //   const { paymentIntentId, orderId } = req.body;
 
 //   // Validate input
@@ -1191,13 +565,9 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
 //     }
 //     const order = await Order.findById(orderId);
 //     console.log(order, "here is the order ");
-//     order.deliveryPaymentStatus = "paid";
+//     order.paymentStatus = "paid";
+
 //     await order.save();
-//     const rider = await User.findById(order.driver);
-//     console.log(rider, "Here is the driver");
-//     rider.riderEarnings += order.riderTotal;
-//     await rider.save();
-//     console.log(rider.riderEarnings, "here is the rider earnings");
 
 //     // Payment is successful, you can now process the order or other business logic
 //     res.status(200).json({
@@ -1213,6 +583,130 @@ exports.verifyPaymentIntent = catchAsync(async (req, res, next) => {
 //     );
 //   }
 // });
+
+exports.verifyPaymentIntent = async (req, res, next) => {
+  const { paymentIntentId, orderId } = req.body;
+
+  // Validate input
+  if (!paymentIntentId) {
+    // console.log("Payment Intent ID is missing.");
+    return next(new AppError("Payment Intent ID is required", 400));
+  }
+
+  try {
+    // Retrieve the PaymentIntent from Stripe
+    // console.log(`Retrieving payment intent: ${paymentIntentId}`);
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    /// Check the payment status
+    if (paymentIntent.status !== "succeeded") {
+      return next(new AppError("Payment was not successful", 400));
+    }
+    // Find the order by ID
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return next(new AppError("Order not found", 404));
+    }
+
+    // Update the order's payment status to 'paid'
+    order.paymentStatus = "paid";
+    await order.save();
+
+    // Initialize shop earnings map
+    const shopEarningsMap = {};
+
+    // Iterate over each product in the order
+    for (const item of order.products) {
+      const groceryId = new mongoose.Types.ObjectId(item.grocery);
+      // console.log(`Searching for shop with grocery ID: ${groceryId}`);
+
+      // Find the shop containing the grocery item
+      const shop = await Shop.findOne({ "groceries._id": groceryId });
+      if (!shop) {
+        // console.log(`Shop not found for grocery ID: ${groceryId}`);
+        return next(
+          new AppError("Shop not found for the provided grocery ID", 404)
+        );
+      }
+
+      // Find the grocery within the shop
+      const grocery = shop.groceries.id(groceryId);
+      if (!grocery) {
+        // console.log(
+        //   `Grocery not found for ID: ${groceryId} in shop ID: ${shop._id}`
+        // );
+        return next(new AppError("Grocery not found in shop", 404));
+      }
+
+      // Calculate earnings for each shop
+      const productTotal = item.quantity * grocery.price;
+
+      // Update shop earnings map
+      if (!shopEarningsMap[shop._id]) {
+        shopEarningsMap[shop._id] = {
+          ownerId: shop.owner,
+          total: 0,
+        };
+      }
+      shopEarningsMap[shop._id].total += productTotal;
+
+      console.log(
+        `Shop ID: ${shop._id} - Total calculated: ${
+          shopEarningsMap[shop._id].total
+        }`
+      );
+    }
+
+    // Process earnings for each shop
+    const shopOrders = [];
+    for (const shopId in shopEarningsMap) {
+      const { ownerId, total } = shopEarningsMap[shopId];
+
+      console.log(
+        `Creating earnings record for shop ID: ${shopId} with total: ${total}`
+      );
+
+      // Create earnings record in the database
+      const earnings = await Earnings.create({
+        user: ownerId,
+        shop: shopId,
+        order: order._id,
+        orderNumber: order.orderNumber,
+        amount: total,
+        type: "shop",
+      });
+
+      // Update the shop's total earnings
+      await Shop.findByIdAndUpdate(shopId, { $inc: { shopEarnings: total } });
+
+      // Log the creation of earnings
+      console.log(`Earnings recorded: ${JSON.stringify(earnings)}`);
+
+      // Add shop's earnings and total to the response array
+      shopOrders.push({
+        shop: shopId,
+        totalEarnings: earnings.amount, // The recorded earnings amount
+        totalOrderValue: total, // The total value of the shop's products in the order
+      });
+    }
+
+    // Return response
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Payment verified and earnings recorded successfully",
+      data: {
+        paymentIntentId: paymentIntent.id,
+        shopOrders,
+      },
+    });
+  } catch (error) {
+    // Handle errors from Stripe or other issues
+    console.log(`Error during payment verification: ${error.message}`);
+    return next(
+      new AppError(`Payment verification failed: ${error.message}`, 500)
+    );
+  }
+};
 
 exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
   const { paymentIntentId, orderId } = req.body;
