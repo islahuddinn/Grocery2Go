@@ -790,12 +790,13 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   if (user.otp !== otp || user.otpExpires < Date.now()) {
     return next(new AppError("Verification Failed. Your OTP is Invalid", 400));
   }
-  user.active = false;
-  user.otp = undefined;
-  user.otpExpires = undefined;
-  user.email = undefined;
+  const deletedUser = await User.findByIdAndDelete(req.user._id);
+  // user.active = false;
+  // user.otp = undefined;
+  // user.otpExpires = undefined;
+  // user.email = undefined;
   await user.save();
-  console.log(user, "Here is the user");
+  console.log(deletedUser, "Here is the user");
   res.status(200).json({
     status: 200,
     success: true,
