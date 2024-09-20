@@ -725,9 +725,9 @@ exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     // Check the payment status
-    if (paymentIntent.status !== "succeeded") {
-      return next(new AppError("Payment was not successful", 400));
-    }
+    // if (paymentIntent.status !== "succeeded") {
+    //   return next(new AppError("Payment was not successful", 400));
+    // }
 
     // Fetch the order by orderId
     const order = await Order.findById(orderId);
@@ -752,6 +752,13 @@ exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
     order.riderTotal = order.riderTotal || 0; // Ensure order.riderTotal is initialized to 0 if undefined
     rider.riderEarnings += order.riderTotal; // Update the rider earnings
     await rider.save();
+    await Earnings.create({
+      user: rider.id,
+      order: order.id,
+      orderNumber: order.orderNumber,
+      type: "rider",
+      amount: order.riderTotal,
+    });
 
     console.log(rider.riderEarnings, "here is the rider earnings");
 

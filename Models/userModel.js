@@ -85,6 +85,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isChatNotification: {
+      type: Boolean,
+      default: false,
+    },
+    isEmailNotification: {
+      type: Boolean,
+      default: false,
+    },
     walletBalance: {
       type: Number,
       default: 0,

@@ -1180,7 +1180,7 @@ exports.acceptOrRejectOrderByRider = catchAsync(async (req, res, next) => {
 
     await Notification.create({
       sender: req.user._id,
-      receiver: customer._id,
+      receiver: order.driver,
       title: title,
       data: body,
     });
@@ -1238,7 +1238,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
 
     await Notification.create({
       sender: req.user._id,
-      receiver: customer._id,
+      receiver: order.customer.id,
       title: title,
       data: body,
     });
@@ -1283,7 +1283,7 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
 
     await Notification.create({
       sender: req.user._id,
-      receiver: customer._id,
+      receiver: order.customer.id,
       title: title,
       data: body,
     });
