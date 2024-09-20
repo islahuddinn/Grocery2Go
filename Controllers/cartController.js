@@ -1006,7 +1006,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   // riders.push(allRiders.map(id)={ids:id});
   // console.log(riders, "Here are all riders");
   // Fetch only the IDs of the riders
-  const allRiders = await User.find({ userType: "Rider" }).select("_id"); // Select only the _id field
+  const allRiders = await User.find({ userType: "Rider" }).select("_id");
 
   console.log(allRiders, "Here are all the riders");
 
@@ -1019,6 +1019,7 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   await Notification.create({
     sender: req.user._id,
     multireceiver: riderIds,
+    receiver: req.user.id,
     title: title,
     data: body,
   });

@@ -131,27 +131,67 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
 
 //////------ Search shops, or any grocery store function------/////
 
+// exports.searchShopByTitle = catchAsync(async (req, res, next) => {
+//   const { keywords } = req.query;
+
+//   if (!keywords) {
+//     return next(new AppError("No Search keyword provided. ", 400));
+//   }
+
+//   const regex = new RegExp(keywords, "i");
+
+//   const shops = await Shop.find({ shopTitle: regex });
+
+//   if (!shops.length) {
+//     return next(
+//       new AppError("No shops found matching the provided keywords", 404)
+//     );
+//   }
+//   res.status(200).json({
+//     success: true,
+//     status: 200,
+//     message: "Shops retrieved successfully",
+//     data: shops,
+//   });
+// });
 exports.searchShopByTitle = catchAsync(async (req, res, next) => {
   const { keywords } = req.query;
 
   if (!keywords) {
-    return next(new AppError("No Search keyword provided. ", 400));
+    return next(new AppError("Search keywords are required", 400));
   }
 
-  const regex = new RegExp(keywords, "i");
+  // Split keywords by spaces
+  const keywordArray = keywords.split(" ");
+  const totalKeywords = keywordArray.length;
 
-  const shops = await Shop.find({ shopTitle: regex });
+  // Find FAQs where at least 60% of the keywords match the question
+  const shops = await Shop.find({});
 
-  if (!shops.length) {
+  const matchingFAQs = shops.filter((faq) => {
+    const questionWords = faq.shopTitle.split(" ");
+    const matchingWords = keywordArray.filter((keyword) =>
+      questionWords.some((word) =>
+        word.toLowerCase().includes(keyword.toLowerCase())
+      )
+    );
+
+    // Return only FAQs where at least 60% of keywords match
+    return matchingWords.length / totalKeywords >= 0.6;
+  });
+
+  if (!matchingFAQs.length) {
     return next(
-      new AppError("No shops found matching the provided keywords", 404)
+      new AppError("No shops found matching the search criteria", 200)
     );
   }
+
   res.status(200).json({
     success: true,
     status: 200,
-    message: "Shops retrieved successfully",
-    data: shops,
+    data: {
+      shops: matchingFAQs,
+    },
   });
 });
 

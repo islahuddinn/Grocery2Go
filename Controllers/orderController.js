@@ -6,6 +6,7 @@ const Cart = require("../Models/cartModel");
 const User = require("../Models/userModel");
 const Shop = require("../Models/shopsModel");
 const List = require("../Models/listModel");
+const Notification = require("../Models/notificationModel");
 const {
   SendNotification,
   SendNotificationMultiCast,
