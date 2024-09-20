@@ -1019,7 +1019,6 @@ exports.verifyPaymentAndCreateOrder = catchAsync(async (req, res, next) => {
   await Notification.create({
     sender: req.user._id,
     multireceiver: riderIds,
-    receiver: req.user.id,
     title: title,
     data: body,
   });

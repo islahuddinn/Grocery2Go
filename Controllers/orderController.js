@@ -1359,12 +1359,12 @@ exports.readyForPickup = async (req, res) => {
     }
 
     // Notify the rider
-    const notificationMessage = `Order #${order.orderNumber} is ready for pickup.`;
-    const riderDetails = await User.findById(rider.id);
-    console.log(riderDetails, "here is the rider details ......");
+    // const notificationMessage = `Order #${order.orderNumber} is ready for pickup.`;
+    // const riderDetails = await User.findById(rider.id);
+    // console.log(riderDetails, "here is the rider details ......");
 
-    const FCMToken = riderDetails.deviceToken;
-    console.log(FCMToken, "here is the rider fcm token");
+    // const FCMToken = riderDetails.deviceToken;
+    // console.log(FCMToken, "here is the rider fcm token");
     // notifyRider(rider._id, notificationMessage);
     // await SendNotification({
     //   token: FCMToken,
@@ -1376,7 +1376,7 @@ exports.readyForPickup = async (req, res) => {
 
     await Notification.create({
       sender: req.user._id,
-      receiver: customer._id,
+      receiver: rider._id,
       title: title,
       data: body,
     });
@@ -1483,7 +1483,7 @@ exports.markOrderAsReadyForPickedUp = catchAsync(async (req, res, next) => {
 
   await Notification.create({
     sender: req.user._id,
-    receiver: customer._id,
+    receiver: order.driver,
     title: title,
     data: body,
   });
