@@ -9,12 +9,12 @@ router.get(
   "/shop-earnings-history/:id",
   earningsController.getShopEarningsHistory
 );
-router.get("/all-shops-earnings/:id", earningsController.getAllShopEarnings);
+router.get("/all-shops-earnings", earningsController.getAllShopEarnings);
 router.get(
   "/rider-earnings-history/:id",
   earningsController.getRiderEarningsHistory
 );
-router.get("/all-riders-earnings/:id", earningsController.getAllRiderEarnings);
+router.get("/all-riders-earnings", earningsController.getAllRiderEarnings);
 router
   .route("/get-one-shop-earnings/:id")
   .get(earningsController.getOneShopEarnings);

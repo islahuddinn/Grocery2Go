@@ -8,7 +8,7 @@ router.use(authController.protect);
 router.get("/online-riders", riderController.getAllOnlineRiders);
 router.post("/online-offline-rider", riderController.updateRiderOnlineStatus);
 router.get("/rider-stats", riderController.getRiderStatistics);
-router.post("/search-shop", riderController.searchShopByTitle);
+router.get("/search-shop", riderController.searchShopByTitle);
 router.get(
   "/rider-completed-orders/:id",
   riderController.getCompletedOrdersByRider
