@@ -656,7 +656,7 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
   // Count the number of pending orders for the shop
   const pendingOrders = await Order.countDocuments({
     "products.shop": shopId,
-    orderStatus: { $ne: "completed" },
+    orderStatus: { $nin: ["completed", "pending"] },
   });
 
   // Calculate the total earnings for the shop from the Earnings model
