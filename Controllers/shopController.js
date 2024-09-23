@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Shop = require("../Models/shopsModel");
 const Order = require("../Models/orderModel");
+const Earnings = require("../Models/earningsModel");
 const AppError = require("../Utils/appError");
 const catchAsync = require("../Utils/catchAsync");
 const factory = require("./handleFactory");
@@ -43,94 +44,6 @@ exports.getShop = factory.getOne(Shop);
 exports.getAllShop = factory.getAll(Shop);
 exports.deleteShop = factory.deleteOne(Shop);
 //////---- Mark a shop as favorite----////
-
-// exports.toggleShopFavorite = async (req, res, next) => {
-//   try {
-//     const shopId = req.params.id;
-
-//     console.log(`Attempting to toggle favorite status for shop: ${shopId}`);
-
-//     // Find the shop by ID
-//     const shop = await Shop.findById(shopId);
-
-//     if (!shop) {
-//       console.error(`Shop not found with ID: ${shopId}`);
-//       return next(new AppError("Shop not found", 404));
-//     }
-
-//     console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
-
-//     // Toggle the isFavorite field
-//     shop.isFavorite = !shop.isFavorite;
-
-//     // Save the shop document
-//     await shop.save();
-
-//     const message = shop.isFavorite
-//       ? "Shop marked as favorite"
-//       : "Shop unmarked as favorite";
-//     console.log(`${message} - Shop ID: ${shopId}`);
-
-//     res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: message,
-//       data: shop,
-//     });
-//   } catch (error) {
-//     console.error(`Error in toggleShopFavorite: ${error.message}`);
-//     return next(new AppError("Internal Server Error", 500));
-//   }
-// };
-
-// exports.toggleShopFavorite = catchAsync(async (req, res, next) => {
-//   const { user } = req;
-//   const shopId = req.params.id;
-
-//   console.log(`Attempting to toggle favorite status for shop: ${shopId}`);
-
-//   // Find the shop by ID
-//   const shop = await Shop.findById(shopId);
-
-//   if (!shop) {
-//     console.error(`Shop not found with ID: ${shopId}`);
-//     return next(new AppError("Shop not found", 404));
-//   }
-
-//   console.log(`Shop found: ${shop.shopTitle} - Shop ID: ${shop._id}`);
-
-//   // Check if the shop is currently a favorite for the user
-//   const favoriteRecord = await Favorite.findOne({
-//     user: user._id,
-//     shop: shopId,
-//   });
-
-//   if (favoriteRecord) {
-//     // If the shop is already a favorite, remove it from the user's favorites
-//     await Favorite.deleteOne({ user: user._id, shop: shopId });
-//     shop.isFavorite = false; // Update shop's isFavorite status
-//   } else {
-//     // If the shop is not a favorite, add it to the user's favorites
-//     await Favorite.create({ user: user._id, shop: shopId });
-//     shop.isFavorite = true; // Update shop's isFavorite status
-//   }
-
-//   // Save the shop document
-//   await shop.save();
-
-//   const message = shop.isFavorite
-//     ? "Shop marked as favorite"
-//     : "Shop unmarked as favorite";
-
-//   console.log(`${message} - Shop ID: ${shopId}`);
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: message,
-//     data: shop,
-//   });
-// });
 
 exports.toggleShopFavorite = catchAsync(async (req, res, next) => {
   const { user } = req;
@@ -182,27 +95,6 @@ exports.toggleShopFavorite = catchAsync(async (req, res, next) => {
 
 ///////// Get all favorite shops for a user////////
 
-// exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
-//   const { user } = req;
-
-//   // Retrieve the user's favorite records
-//   const favoriteRecords = await Favorite.find({ user: user._id }).populate(
-//     "shop"
-//   );
-
-//   if (!favoriteRecords || favoriteRecords.length === 0) {
-//     return next(new AppError("No favorite shops found for this user", 404));
-//   }
-
-//   // Extract shop details from favorite records
-//   const favoriteShops = favoriteRecords.map((fav) => fav.shop);
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: favoriteShops,
-//   });
-// });
 exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
   const { user } = req;
 
@@ -234,60 +126,6 @@ exports.getAllFavoriteShops = catchAsync(async (req, res, next) => {
 
 ////-----Shops near me -----////
 
-// exports.getNearbyShops = catchAsync(async (req, res, next) => {
-//   console.log("REQ_BODY IS:", req.query);
-//   const { latitude, longitude, maxDistance, keyword } = req.query;
-
-//   console.log(latitude, longitude, maxDistance, "here is the data");
-
-//   if (!latitude || !longitude || !maxDistance) {
-//     return next(
-//       new AppError(
-//         "Please provide valid latitude, longitude, and maxDistance",
-//         400
-//       )
-//     );
-//   }
-
-//   // Find nearby shops
-//   const nearbyShops = await Shop.find({
-//     location: {
-//       $near: {
-//         $geometry: {
-//           type: "Point",
-//           coordinates: [longitude, latitude],
-//         },
-//         $maxDistance: maxDistance,
-//       },
-//     },
-//   });
-
-//   // If no nearby shops found, get at least two default shops
-//   if (!nearbyShops || nearbyShops.length === 0) {
-//     const defaultShops = await Shop.find().limit(2);
-//     if (!defaultShops || defaultShops.length === 0) {
-//       return res.status(404).json({
-//         success: false,
-//         status: 404,
-//         message: "No shops found",
-//         data: [],
-//       });
-//     }
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No nearby shops found. Here are some default shops.",
-//       data: defaultShops,
-//     });
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Nearby shops retrieved successfully",
-//     data: nearbyShops,
-//   });
-// });
 exports.getNearbyShops = catchAsync(async (req, res, next) => {
   console.log("REQ_BODY IS:", req.query);
   const { latitude, longitude, maxDistance, keyword } = req.query;
@@ -376,90 +214,6 @@ exports.getNearbyShops = catchAsync(async (req, res, next) => {
     data: nearbyShops,
   });
 });
-
-// exports.getNearbyShops = catchAsync(async (req, res, next) => {
-//   console.log("REQ_BODY IS:", req.query);
-//   const { latitude, longitude, maxDistance, keyword } = req.query;
-
-//   console.log(latitude, longitude, maxDistance, "here is the data");
-
-//   if (!latitude || !longitude || !maxDistance) {
-//     return next(
-//       new AppError(
-//         "Please provide valid latitude, longitude, and maxDistance",
-//         400
-//       )
-//     );
-//   }
-
-//   // Convert query parameters to appropriate types
-//   const lat = parseFloat(latitude);
-//   const lon = parseFloat(longitude);
-//   const maxDist = parseInt(maxDistance, 10);
-
-//   // Initial query to find nearby shops
-//   let nearbyShops = await Shop.find({
-//     location: {
-//       $near: {
-//         $geometry: {
-//           type: "Point",
-//           coordinates: [lon, lat],
-//         },
-//         $maxDistance: maxDist,
-//       },
-//     },
-//   });
-
-//   // If no nearby shops found, get at least two default shops
-//   if (!nearbyShops || nearbyShops.length === 0) {
-//     const defaultShops = await Shop.find().limit(2);
-//     return res.status(200).json({
-//       success: true,
-//       status: 200,
-//       message: "No nearby shops found. Here are some default shops.",
-//       data: defaultShops,
-//     });
-//   }
-
-//   // If keyword is provided, filter the nearby shops using text search
-//   if (keyword) {
-//     try {
-//       nearbyShops = await Shop.find({
-//         _id: { $in: nearbyShops.map((shop) => shop._id) },
-//         $text: { $search: keyword },
-//       });
-
-//       // If no shops found after keyword filter
-//       if (!nearbyShops || nearbyShops.length === 0) {
-//         return res.status(200).json({
-//           success: true,
-//           status: 200,
-//           message: "No shops found with the given keyword.",
-//           data: [],
-//         });
-//       }
-
-//       return res.status(200).json({
-//         success: true,
-//         status: 200,
-//         message: "Nearby shops with the given keyword retrieved successfully.",
-//         data: nearbyShops,
-//       });
-//     } catch (error) {
-//       console.error("Error applying text search:", error);
-//       return next(new AppError("Error applying text search", 500));
-//     }
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     message: "Nearby shops retrieved successfully",
-//     data: nearbyShops,
-//   });
-// });
-
-////---get rendom groceries-----////
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -632,59 +386,6 @@ exports.toggleProductFavorite = catchAsync(async (req, res, next) => {
   });
 });
 
-// exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
-//   const { user } = req;
-
-//   // Retrieve the user's favorite records with shop and grocery details
-//   const favoriteProducts = await Favorite.aggregate([
-//     { $match: { user: user._id } },
-//     {
-//       $lookup: {
-//         from: "shops",
-//         localField: "shop",
-//         foreignField: "_id",
-//         as: "shopDetails",
-//       },
-//     },
-//     { $unwind: "$shopDetails" },
-//     {
-//       $project: {
-//         product: {
-//           $filter: {
-//             input: "$shopDetails.groceries",
-//             as: "grocery",
-//             cond: { $eq: ["$$grocery._id", "$grocery"] },
-//           },
-//         },
-//         shopDetails: 1,
-//       },
-//     },
-//     { $unwind: "$product" },
-//     {
-//       $project: {
-//         shop: {
-//           _id: "$shopDetails._id",
-//           shopTitle: "$shopDetails.shopTitle",
-//           location: "$shopDetails.location",
-//           owner: "$shopDetails.owner",
-//           operatingHours: "$shopDetails.operatingHours",
-//         },
-//         product: 1,
-//       },
-//     },
-//   ]);
-
-//   if (!favoriteProducts || favoriteProducts.length === 0) {
-//     return next(new AppError("No favorite products found for this user", 404));
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: favoriteProducts,
-//   });
-// });
-
 exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
   const { user } = req;
 
@@ -766,37 +467,6 @@ exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
     })),
   });
 });
-
-// exports.getAllFavoriteProducts = catchAsync(async (req, res, next) => {
-//   const { user } = req;
-
-//   // Retrieve all favorite records for the user that are marked as favorite products
-//   const favoriteRecords = await Favorite.find({
-//     user: user._id,
-//     grocery: { $ne: null }, // Ensure that the favorite records have a grocery
-//   }).populate("grocery"); // Populate the grocery details
-
-//   if (!favoriteRecords || favoriteRecords.length === 0) {
-//     return next(new AppError("No favorite products found for this user", 404));
-//   }
-
-//   // Filter out products that are marked as favorite by checking `isFavorite` status
-//   const favoriteProducts = favoriteRecords
-//     .map((record) => record.grocery)
-//     .filter((product) => product.isFavorite);
-
-//   if (favoriteProducts.length === 0) {
-//     return next(new AppError("No favorite products marked as favorite", 404));
-//   }
-
-//   res.status(200).json({
-//     success: true,
-//     status: 200,
-//     data: favoriteProducts,
-//   });
-// });
-
-/////Delete shop product////
 
 exports.deleteProductFromShop = async (req, res, next) => {
   try {
@@ -907,25 +577,28 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
 
 // exports.getShopOrderStats = catchAsync(async (req, res, next) => {
 //   const userId = req.user.id;
-//   const shop = await Shop.findOne({ owner: userId });
-//   console.log(shop, "Here is the shop id");
-//   const shopId = shop.id;
-//   console.log(shop, shopId, "here is the owner shop");
 
+//   // Find the shop for the current user
+//   const shop = await Shop.findOne({ owner: userId });
 //   if (!shop) {
 //     return next(new AppError("Shop not found", 404));
 //   }
 
+//   const shopId = shop.id;
+
+//   // Count the number of completed orders for the shop
 //   const completedOrders = await Order.countDocuments({
 //     "products.shop": shopId,
 //     orderStatus: "completed",
 //   });
-//   console.log(completedOrders, "Here are shop complted orders");
+
+//   // Count the number of pending orders for the shop
 //   const pendingOrders = await Order.countDocuments({
 //     "products.shop": shopId,
 //     orderStatus: { $ne: "completed" },
 //   });
 
+//   // Calculate the total earnings for the shop from completed orders
 //   const totalEarningsData = await Order.aggregate([
 //     {
 //       $match: {
@@ -933,13 +606,24 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
 //         orderStatus: "completed",
 //       },
 //     },
-//     { $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } } },
+//     {
+//       $unwind: "$products", // Unwind products array to access individual product entries
+//     },
+//     {
+//       $match: {
+//         "products.shop": new mongoose.Types.ObjectId(shopId), // Match specific shop in products
+//       },
+//     },
+//     {
+//       $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } },
+//     },
 //   ]);
 
 //   const totalEarnings = totalEarningsData.length
 //     ? totalEarningsData[0].totalEarnings
 //     : 0;
 
+//   // Send the response with the calculated statistics
 //   res.status(200).json({
 //     success: true,
 //     status: 200,
@@ -951,6 +635,7 @@ exports.updateProductInShop = catchAsync(async (req, res, next) => {
 //     },
 //   });
 // });
+
 exports.getShopOrderStats = catchAsync(async (req, res, next) => {
   const userId = req.user.id;
 
@@ -960,7 +645,7 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
     return next(new AppError("Shop not found", 404));
   }
 
-  const shopId = shop.id;
+  const shopId = shop._id;
 
   // Count the number of completed orders for the shop
   const completedOrders = await Order.countDocuments({
@@ -974,24 +659,16 @@ exports.getShopOrderStats = catchAsync(async (req, res, next) => {
     orderStatus: { $ne: "completed" },
   });
 
-  // Calculate the total earnings for the shop from completed orders
-  const totalEarningsData = await Order.aggregate([
+  // Calculate the total earnings for the shop from the Earnings model
+  const totalEarningsData = await Earnings.aggregate([
     {
       $match: {
-        "products.shop": new mongoose.Types.ObjectId(shopId),
-        orderStatus: "completed",
+        shop: new mongoose.Types.ObjectId(shopId),
+        type: "shop", // Only shop earnings
       },
     },
     {
-      $unwind: "$products", // Unwind products array to access individual product entries
-    },
-    {
-      $match: {
-        "products.shop": new mongoose.Types.ObjectId(shopId), // Match specific shop in products
-      },
-    },
-    {
-      $group: { _id: null, totalEarnings: { $sum: "$shopEarnings" } },
+      $group: { _id: null, totalEarnings: { $sum: "$amount" } },
     },
   ]);
 

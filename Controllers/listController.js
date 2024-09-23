@@ -748,16 +748,16 @@ exports.verifyDeliveryPaymentIntent = catchAsync(async (req, res, next) => {
     console.log(rider, "Here is the driver");
 
     // Ensure riderEarnings is initialized and order.riderTotal is defined
-    rider.riderEarnings = rider.riderEarnings || 0; // Ensure riderEarnings is initialized to 0 if undefined
-    order.riderTotal = order.riderTotal || 0; // Ensure order.riderTotal is initialized to 0 if undefined
-    rider.riderEarnings += order.riderTotal; // Update the rider earnings
+    rider.riderEarnings = rider.riderEarnings || 0;
+    order.riderTotal = order.riderTotal || 0;
+    rider.riderEarnings += order.riderTotal;
     await rider.save();
     await Earnings.create({
       user: rider.id,
       order: order.id,
       orderNumber: order.orderNumber,
       type: "rider",
-      amount: order.riderTotal,
+      amount: order.deliveryCharges,
     });
 
     console.log(rider.riderEarnings, "here is the rider earnings");
@@ -904,6 +904,7 @@ exports.payDeliveryCharges = async (req, res, next) => {
     paymentIntent = await createPaymentIntent(user, total, customerId, orderId);
     order.deliveryPaymentStatus = "paid";
     order.riderTotal = total;
+    order.deliveryCharges = total;
 
     await order.save();
   } catch (error) {

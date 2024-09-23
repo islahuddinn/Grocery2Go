@@ -4,6 +4,7 @@ const catchAsync = require("../Utils/catchAsync");
 const AppError = require("../Utils/appError");
 const Order = require("../Models/orderModel");
 const Shop = require("../Models/shopsModel");
+const Earnings = require("../Models/earningsModel");
 
 exports.updateRiderOnlineStatus = catchAsync(async (req, res, next) => {
   const { riderId, isOnline } = req.body;
@@ -34,36 +35,45 @@ exports.updateRiderOnlineStatus = catchAsync(async (req, res, next) => {
 });
 
 //////-----Rider stats------/////
-// exports.getRiderStatistics = catchAsync(async (req, res, next) => {
-//   const { riderId } = req.params;
 
-//   if (!riderId) {
-//     return res.status(400).json({
-//       success: false,
-//       status: 400,
-//       message: "Invalid rider ID",
-//     });
+// exports.getRiderStatistics = catchAsync(async (req, res, next) => {
+//   const userId = req.user.id;
+
+//   console.log(userId, "here is the  rider id");
+
+//   // if (!userId) {
+//   //   return next(new AppError("No Rider Found With Given Id ", 404));
+//   // }
+//   const rider = await User.findById(userId);
+
+//   if (!rider) {
+//     return next(new AppError("No Rider Found With Given Id", 404));
 //   }
 
+//   // Fetch completed orders (assuming "delivered" status means completed)
 //   const completedOrders = await Order.find({
-//     driver: riderId,
-//     orderStatus: "delivered",
+//     driver: userId,
+//     orderStatus: "completed",
 //   }).countDocuments();
 
+//   // Fetch in-progress orders (assuming statuses other than "delivered" and "pending" mean in-progress)
 //   const inProgressOrders = await Order.find({
-//     driver: riderId,
-//     orderStatus: { $nin: ["delivered", "pending"] },
+//     driver: userId,
+//     orderStatus: { $nin: ["completed", "pending"] },
 //   }).countDocuments();
 
-//   const totalEarnings = await Order.aggregate([
+//   // Calculate total earnings based on the riderEarnings field
+//   const totalEarnings = await User.aggregate([
 //     {
 //       $match: {
-//         driver: mongoose.Types.ObjectId(riderId),
-//         orderStatus: "delivered",
+//         driver: new mongoose.Types.ObjectId(userId),
+//         orderStatus: "completed",
 //       },
 //     },
-//     { $group: { _id: null, total: { $sum: "$totalPayment" } } },
+//     { $group: { _id: null, total: { $sum: "$riderEarnings" } } },
 //   ]);
+
+//   const riderEarnings = rider.riderEarnings || 0;
 
 //   res.status(200).json({
 //     success: true,
@@ -72,7 +82,8 @@ exports.updateRiderOnlineStatus = catchAsync(async (req, res, next) => {
 //     data: {
 //       completedOrders,
 //       inProgressOrders,
-//       totalEarnings: totalEarnings[0] ? totalEarnings[0].total : 0,
+//       // totalEarnings: totalEarnings[0] ? totalEarnings[0].total : 0,
+//       totalEarnings: riderEarnings,
 //     },
 //   });
 // });
@@ -80,41 +91,42 @@ exports.updateRiderOnlineStatus = catchAsync(async (req, res, next) => {
 exports.getRiderStatistics = catchAsync(async (req, res, next) => {
   const userId = req.user.id;
 
-  console.log(userId, "here is the  rider id");
+  console.log(userId, "here is the rider id");
 
-  // if (!userId) {
-  //   return next(new AppError("No Rider Found With Given Id ", 404));
-  // }
   const rider = await User.findById(userId);
 
   if (!rider) {
     return next(new AppError("No Rider Found With Given Id", 404));
   }
 
-  // Fetch completed orders (assuming "delivered" status means completed)
-  const completedOrders = await Order.find({
+  // Fetch completed orders (assuming "completed" status means delivered)
+  const completedOrders = await Order.countDocuments({
     driver: userId,
     orderStatus: "completed",
-  }).countDocuments();
+  });
 
-  // Fetch in-progress orders (assuming statuses other than "delivered" and "pending" mean in-progress)
-  const inProgressOrders = await Order.find({
+  // Fetch in-progress orders (orders that are not completed or pending)
+  const inProgressOrders = await Order.countDocuments({
     driver: userId,
     orderStatus: { $nin: ["completed", "pending"] },
-  }).countDocuments();
+  });
 
-  // Calculate total earnings based on the riderEarnings field
-  const totalEarnings = await User.aggregate([
+  // Calculate total earnings for the rider from the Earnings model
+  const totalEarningsData = await Earnings.aggregate([
     {
       $match: {
-        driver: new mongoose.Types.ObjectId(userId),
-        orderStatus: "completed",
+        user: new mongoose.Types.ObjectId(userId),
+        type: "rider", // Only rider earnings
       },
     },
-    { $group: { _id: null, total: { $sum: "$riderEarnings" } } },
+    {
+      $group: { _id: null, totalEarnings: { $sum: "$amount" } },
+    },
   ]);
 
-  const riderEarnings = rider.riderEarnings || 0;
+  const totalEarnings = totalEarningsData.length
+    ? totalEarningsData[0].totalEarnings
+    : 0;
 
   res.status(200).json({
     success: true,
@@ -123,8 +135,7 @@ exports.getRiderStatistics = catchAsync(async (req, res, next) => {
     data: {
       completedOrders,
       inProgressOrders,
-      // totalEarnings: totalEarnings[0] ? totalEarnings[0].total : 0,
-      totalEarnings: riderEarnings,
+      totalEarnings,
     },
   });
 });
