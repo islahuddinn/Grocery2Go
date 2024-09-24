@@ -1,5 +1,5 @@
 const admin = require("firebase-admin");
-let serviceAccount = require("../Utils/grocery2go-50545-firebase-adminsdk-t5zkx-864fcce3f5.json");
+let serviceAccount = require("../Utils/grocery2go-ad6ce-firebase-adminsdk-gnugh-845ea1296d.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),

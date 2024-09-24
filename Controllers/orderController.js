@@ -1273,11 +1273,11 @@ exports.acceptOrRejectOrderByOwner = catchAsync(async (req, res, next) => {
     const FCMToken = customer.deviceToken;
 
     // Uncomment the notification sending logic if required
-    // await SendNotification({
-    //   token: FCMToken,
-    //   title: "Your order is rejected by the owner",
-    //   body: `Owner rejected the order ${order}`,
-    // });
+    await SendNotification({
+      token: FCMToken,
+      title: "Your order is rejected by the owner",
+      body: `Owner rejected the order ${order}`,
+    });
     const title = `Shop Owner rejected the order number: ${order.orderNumber}`;
     const body = `The owner of the shop rejected the order number: ${order.orderNumber}`;
 
@@ -1359,18 +1359,18 @@ exports.readyForPickup = async (req, res) => {
     }
 
     // Notify the rider
-    // const notificationMessage = `Order #${order.orderNumber} is ready for pickup.`;
-    // const riderDetails = await User.findById(rider.id);
-    // console.log(riderDetails, "here is the rider details ......");
+    const notificationMessage = `Order #${order.orderNumber} is ready for pickup.`;
+    const riderDetails = await User.findById(rider.id);
+    console.log(riderDetails, "here is the rider details ......");
 
-    // const FCMToken = riderDetails.deviceToken;
-    // console.log(FCMToken, "here is the rider fcm token");
-    // notifyRider(rider._id, notificationMessage);
-    // await SendNotification({
-    //   token: FCMToken,
-    //   title: "Your order is raedy for pickup ",
-    //   body: notificationMessage,
-    // });
+    const FCMToken = riderDetails.deviceToken;
+    console.log(FCMToken, "here is the rider fcm token");
+    notifyRider(rider._id, notificationMessage);
+    await SendNotification({
+      token: FCMToken,
+      title: "Your order is raedy for pickup ",
+      body: notificationMessage,
+    });
     const title = `Order ready for pickup`;
     const body = `Your order number: ${order.orderNumber} is ready for pickup.`;
 

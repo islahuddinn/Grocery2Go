@@ -132,6 +132,7 @@ exports.socialLogin = catchAsync(async (req, res) => {
       firstName: req.body.firstName,
       lastNmae: req.body.lastNmae,
       image: req.body.image,
+      userType: req.body.userType,
       // customerId: id,
       verified: true,
       password: "default123",
