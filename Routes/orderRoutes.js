@@ -24,12 +24,12 @@ router.get("/order-details/:id", orderController.getOrderDetails);
 // router.get("/shop-stats", orderController.getOrderDetails);
 router.post(
   "/accept-reject-order-owner",
-  //   authController.restrictTo("owner"),
+  authController.restrictTo("owner"),
   orderController.acceptOrRejectOrderByOwner
 );
 router.post(
   "/accept-reject-order-rider",
-  //   authController.restrictTo("Rider"),
+  authController.restrictTo("Rider"),
   orderController.acceptOrRejectOrderByRider
 );
 router.patch("/change-order-status", orderController.updateOrderStatus);

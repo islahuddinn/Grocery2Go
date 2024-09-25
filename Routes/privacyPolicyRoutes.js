@@ -7,7 +7,7 @@ const router = express.Router();
 router.post(
   "/create",
   authController.protect,
-  //   authController.restrictTo("admin"),
+  authController.restrictTo("admin"),
   PrivacyController.setCreator,
   PrivacyController.createPrivacy
 );
@@ -18,12 +18,12 @@ router
   .get(PrivacyController.getOnePrivacy)
   .patch(
     authController.protect,
-    // authController.restrictTo("admin"),
+    authController.restrictTo("admin"),
     PrivacyController.updatePrivacy
   )
   .delete(
     authController.protect,
-    // authController.restrictTo("admin"),
+    authController.restrictTo("admin"),
     PrivacyController.deletePrivacy
   );
 

@@ -19,12 +19,12 @@ router
   .get(faqsController.getOneFAQ)
   .patch(
     authController.protect,
-    // authController.restrictTo("admin"),
+    authController.restrictTo("admin"),
     faqsController.updateFAQ
   )
   .delete(
     authController.protect,
-    // authController.restrictTo("admin"),
+    authController.restrictTo("admin"),
     faqsController.deleteFAQ
   );
 

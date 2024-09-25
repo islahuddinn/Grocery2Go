@@ -18,16 +18,20 @@ router.get("/all-riders-earnings", earningsController.getAllRiderEarnings);
 router
   .route("/get-one-shop-earnings/:id")
   .get(earningsController.getOneShopEarnings);
-router.route("/delete-shop-earnings/:id").delete(
-  // authController.restrictTo("admin"),
-  earningsController.deleteShopEarnings
-);
+router
+  .route("/delete-shop-earnings/:id")
+  .delete(
+    authController.restrictTo("admin"),
+    earningsController.deleteShopEarnings
+  );
 router
   .route("/get-one-rider-earnings/:id")
   .get(earningsController.getOneRiderEarnings);
-router.route("/delete-rider-earnings/:id").delete(
-  // authController.restrictTo("admin"),
-  earningsController.deleteRiderEarnings
-);
+router
+  .route("/delete-rider-earnings/:id")
+  .delete(
+    authController.restrictTo("admin"),
+    earningsController.deleteRiderEarnings
+  );
 
 module.exports = router;

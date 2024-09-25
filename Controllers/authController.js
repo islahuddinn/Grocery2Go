@@ -122,40 +122,76 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
+// exports.socialLogin = catchAsync(async (req, res) => {
+//   let user = await User.findOne({ email: req.body.email });
+
+//   if (!user) {
+//     // console.log("C_id", id);
+//     user = await User.create({
+//       ...JSON.parse(JSON.stringify(req.body)),
+//       email: req.body.email,
+//       firstName: req.body.firstName,
+//       lastNmae: req.body.lastNmae,
+//       image: req.body.image,
+//       userType: req.body.userType,
+//       // customerId: id,
+//       verified: true,
+//       password: "default123",
+//     });
+//   }
+
+//   const logedIn = await RefreshToken.findOne({
+//     device: req.body.device.id,
+//     user: user._id,
+//   });
+//   if (logedIn) {
+//     await RefreshToken.findByIdAndDelete(logedIn._id);
+//   }
+
+//   res.act = loginChecks(user);
+//   return creatSendToken(
+//     user,
+//     200,
+//     "Logged in Successfully",
+//     res,
+//     req.body.device
+//   );
+// });
 exports.socialLogin = catchAsync(async (req, res) => {
-  let user = await User.findOne({ email: req.body.email });
+  const { email, userType, device } = req.body;
+
+  // Check if user with the provided email and userType exists
+  let user = await User.findOne({ email, userType });
+
   if (!user) {
-    // console.log("C_id", id);
+    // If the user does not exist, create a new user
     user = await User.create({
-      ...JSON.parse(JSON.stringify(req.body)),
-      email: req.body.email,
+      email: email,
       firstName: req.body.firstName,
-      lastNmae: req.body.lastNmae,
+      lastName: req.body.lastName,
       image: req.body.image,
-      userType: req.body.userType,
-      // customerId: id,
+      userType: userType,
       verified: true,
-      password: "default123",
+      password: "default123", // Default password (you may want to handle this more securely)
     });
   }
 
-  const logedIn = await RefreshToken.findOne({
-    device: req.body.device.id,
+  // Check if the user is already logged in on the device
+  const loggedIn = await RefreshToken.findOne({
+    device: device.id,
     user: user._id,
   });
-  if (logedIn) {
-    await RefreshToken.findByIdAndDelete(logedIn._id);
+
+  // If the user is already logged in on the device, remove the existing refresh token
+  if (loggedIn) {
+    await RefreshToken.findByIdAndDelete(loggedIn._id);
   }
 
+  // Perform login checks and create/send the token
   res.act = loginChecks(user);
-  return creatSendToken(
-    user,
-    200,
-    "Logged in Successfully",
-    res,
-    req.body.device
-  );
+  return creatSendToken(user, 200, "Logged in Successfully", res, device);
 });
+
 // =========SIGNUP USER=====================
 
 exports.signup = catchAsync(async (req, res, next) => {

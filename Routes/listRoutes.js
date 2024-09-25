@@ -25,7 +25,7 @@ router.post("/add-tip-to-rider", listController.addTipToRider);
 router.post("/pay-delivery-charges", listController.payDeliveryCharges);
 router.post(
   "/accept-reject-list-order",
-  //   authController.restrictTo("Rider"),
+  authController.restrictTo("Rider"),
   listController.acceptOrRejectListByRider
 );
 router.patch("/buying-grocery", listController.updateListItemAvailability);
