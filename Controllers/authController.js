@@ -158,38 +158,54 @@ exports.protect = catchAsync(async (req, res, next) => {
 //   );
 // });
 exports.socialLogin = catchAsync(async (req, res) => {
-  const { email, userType, device } = req.body;
+  const { email, userType } = req.body;
 
-  // Check if user with the provided email and userType exists
-  let user = await User.findOne({ email, userType });
+  // Find the user by email
+  let user = await User.findOne({ email });
 
-  if (!user) {
-    // If the user does not exist, create a new user
+  // If user exists, check if the userType matches the type in the database
+  if (user) {
+    if (user.userType !== userType) {
+      return res.status(400).json({
+        success: false,
+        status: 400,
+        message: `You are already registered as a ${user.userType}. Please log in with the same user type.`,
+      });
+    }
+  } else {
+    // If the user doesn't exist, create a new one
     user = await User.create({
-      email: email,
+      ...JSON.parse(JSON.stringify(req.body)),
+      email: req.body.email,
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       image: req.body.image,
-      userType: userType,
+      userType: req.body.userType, // Ensure the correct userType is passed
       verified: true,
-      password: "default123", // Default password (you may want to handle this more securely)
+      password: "default123", // Default password for social login
     });
   }
 
-  // Check if the user is already logged in on the device
+  // Check if the user is already logged in on the same device
   const loggedIn = await RefreshToken.findOne({
-    device: device.id,
+    device: req.body.device.id,
     user: user._id,
   });
 
-  // If the user is already logged in on the device, remove the existing refresh token
+  // If the user is already logged in on the device, remove the token
   if (loggedIn) {
     await RefreshToken.findByIdAndDelete(loggedIn._id);
   }
 
-  // Perform login checks and create/send the token
+  // Proceed with logging in the user
   res.act = loginChecks(user);
-  return creatSendToken(user, 200, "Logged in Successfully", res, device);
+  return creatSendToken(
+    user,
+    200,
+    "Logged in Successfully",
+    res,
+    req.body.device
+  );
 });
 
 // =========SIGNUP USER=====================
